@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand Admin Colors */
+  --color-brand-primary: #5E3023;
+  --color-brand-bg: #F3E9DC;
+  --color-brand-card: #EFE3D4;
+  --color-brand-accent: #8B5E3C;
+  --color-brand-sidebar: #F3E9DC;
+
+  /* Brand User Colors */
+  --color-rs-cream: #f8f2e9;
+  --color-rs-sidebar: #f5ede1;
+  --color-rs-text-primary: #4a3427;
+  --color-rs-text-muted: #8c7a6b;
+  --color-rs-accent-bg: #ede2d3;
+
+  /* Fonts */
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-user-serif: "Libre Caslon Text", serif;
+  --font-admin-serif: "EB Garamond", serif;
+  --font-product-serif: "Crimson Pro", serif;
+
+  /* Effects */
+  --shadow-brand-card: 0 20px 50px rgba(94, 48, 35, 0.08);
+  
+  /* Spacing/Tracking */
+  --letter-spacing-brand-wide: 0.3em;
+  --letter-spacing-brand-tight: -0.02em;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg font-sans text-gray-800 antialiased transition-colors duration-300;
+  }
+}
+
+@utility bg-canvas {
+  background-color: #F3E9DC;
+  background-image: radial-gradient(circle at 50% 50%, #ffffff 0%, #F3E9DC 100%);
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #D2B48C;
+    border-radius: 10px;
+  }
+}
+
+@utility sidebar-item-hover {
+  @apply transition-all duration-200 hover:bg-brand-primary/5 hover:pl-5;
+}
+
+/* Custom Animation Utilities */
+@utility animate-in {
+  animation-duration: 500ms;
+  animation-fill-mode: both;
+}
+
+@utility fade-in {
+  animation-name: fade-in;
+}
+
+@utility slide-in-from-bottom-4 {
+  animation-name: slide-in-from-bottom;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(1rem); }
+  to { transform: translateY(0); }
+}
