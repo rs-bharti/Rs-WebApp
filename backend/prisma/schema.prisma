@@ -42,6 +42,11 @@ model StateMaster {
   countryName String
 }
 
+model CountryMaster {
+  id       Int    @id @default(autoincrement())
+  countryName String
+}
+
 model PaymentMethodMaster {
   id         Int    @id @default(autoincrement())
   methodName String

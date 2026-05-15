@@ -119,18 +119,29 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     }
 
     // Simple Masters
+    const getSecondFieldLabel = (masterType) => {
+      switch (masterType) {
+        case 'Area': return 'City Name';
+        case 'City': return 'State Name';
+        case 'State': return 'Country Name';
+        default: return null;
+      }
+    };
+
+    const secondFieldLabel = getSecondFieldLabel(type);
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
         <div className="space-y-2">
           <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>{type} Name</label>
           <input className={cn("w-full rounded-lg border px-4 py-3 text-sm", isAdmin ? "border-brand-bg bg-brand-bg/20 text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 text-rs-text-primary")} type="text" placeholder={`Enter ${type.toLowerCase()} name`}/>
         </div>
-        {type !== 'Country' && type !== 'State' && (
+        {secondFieldLabel && (
           <div className="space-y-2">
-            <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Parent Selection</label>
+            <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>{secondFieldLabel}</label>
             <div className="relative">
               <select className={cn("w-full rounded-lg border px-4 py-3 text-sm appearance-none", isAdmin ? "border-brand-bg bg-brand-bg/20 text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 text-rs-text-primary")}>
-                <option>Select Parent</option>
+                <option>Select {secondFieldLabel.replace(' Name', '')}</option>
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
