@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,82 +9,293 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id       Int    @id @default(autoincrement())
-  name     String
-  email    String @unique
-  password String
-  role     String
-}
+////////////////////////////
+// LOCATION MASTERS
+////////////////////////////
 
-model CustomerMaster {
-  id      Int    @id @default(autoincrement())
-  name    String
-  address String @unique
-  city    String
-  state   String
-  country String
-}
+model CountryMaster {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
 
-model AreaMaster {
-  id       Int    @id @default(autoincrement())
-  areaName String
-  city     String
-}
-
-model CityMaster {
-  id        Int    @id @default(autoincrement())
-  cityName  String
-  stateName String
+  states    StateMaster[]
+  branches  Branch[]
 }
 
 model StateMaster {
-  id          Int    @id @default(autoincrement())
-  stateName   String
-  countryName String
+  id          Int            @id @default(autoincrement())
+  name        String
+
+  countryId   Int
+  country     CountryMaster  @relation(fields: [countryId], references: [id])
+
+  cities      CityMaster[]
+  branches    Branch[]
+
+  @@unique([name, countryId])
 }
 
-model CountryMaster {
-  id       Int    @id @default(autoincrement())
-  countryName String
+model CityMaster {
+  id          Int           @id @default(autoincrement())
+  name        String
+
+  stateId     Int
+  state       StateMaster   @relation(fields: [stateId], references: [id])
+
+  areas       AreaMaster[]
+  suppliers   Supplier[]
+  customers   Customer[]
+  branches    Branch[]
+
+  @@unique([name, stateId])
 }
 
-model PaymentMethodMaster {
-  id         Int    @id @default(autoincrement())
-  methodName String
+model AreaMaster {
+  id        Int          @id @default(autoincrement())
+  name      String
+
+  cityId    Int
+  city      CityMaster   @relation(fields: [cityId], references: [id])
+
+  @@unique([name, cityId])
 }
 
-model SupplierMaster {
-  id           Int    @id @default(autoincrement())
-  supplierName String
-  address      String
-  city         String
-  state        String
-  country      String
+////////////////////////////
+// BRANCH
+////////////////////////////
+
+model Branch {
+  id          Int             @id @default(autoincrement())
+  name        String
+  address     String?
+
+  cityId      Int
+  stateId     Int
+  countryId   Int
+
+  city        CityMaster      @relation(fields: [cityId], references: [id])
+  state       StateMaster     @relation(fields: [stateId], references: [id])
+  country     CountryMaster   @relation(fields: [countryId], references: [id])
+
+  users       User[]
+  purchases   PurchaseVoucher[]
+  sales       SalesVoucher[]
 }
 
-model ProductMaster {
-  id          Int    @id @default(autoincrement())
-  productName String
-  category    String
-  supplier    String
-  unit        String
-  lowestPrice String
-}
+////////////////////////////
+// PRODUCT MASTERS
+////////////////////////////
 
 model CategoryMaster {
-  id           Int    @id @default(autoincrement())
-  categoryName String
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+
+  products  Product[]
 }
 
 model UnitMaster {
-  id       Int    @id @default(autoincrement())
-  unitName String
+  id          Int        @id @default(autoincrement())
+  unitName    String
+  shortName   String?
+
+  products    Product[]
 }
 
-model BranchMaster {
-  id          Int    @id @default(autoincrement())
-  branchName  String
-  stateName   String
-  countryName String
+model Supplier {
+  id          Int         @id @default(autoincrement())
+  name        String
+  address     String?
+  phone       String?
+  email       String?
+  gstNo       String?
+
+  cityId      Int
+  city        CityMaster  @relation(fields: [cityId], references: [id])
+
+  products    Product[]
+  purchases   PurchaseVoucher[]
+}
+
+model Product {
+  id              Int               @id @default(autoincrement())
+  name            String
+
+  categoryId      Int
+  supplierId      Int
+  unitId          Int
+
+  purchasePrice   Float
+  sellingPrice    Float
+  stockQuantity   Float             @default(0)
+
+  barcode         String?           @unique
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  category        CategoryMaster    @relation(fields: [categoryId], references: [id])
+  supplier        Supplier          @relation(fields: [supplierId], references: [id])
+  unit            UnitMaster        @relation(fields: [unitId], references: [id])
+
+  purchaseItems   PurchaseVoucherItem[]
+  salesItems      SalesVoucherItem[]
+}
+
+////////////////////////////
+// CUSTOMER
+////////////////////////////
+
+model Customer {
+  id          Int          @id @default(autoincrement())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  gstNo       String?
+
+  cityId      Int
+  city        CityMaster   @relation(fields: [cityId], references: [id])
+
+  sales       SalesVoucher[]
+}
+
+////////////////////////////
+// USER + ROLE + PERMISSION
+////////////////////////////
+
+model Role {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+
+  users         User[]
+  permissions   Permission[]
+}
+
+model User {
+  id             Int        @id @default(autoincrement())
+  name           String
+  email          String     @unique
+  password       String
+
+  roleId         Int
+  branchId       Int
+
+  isActive       Boolean    @default(true)
+
+  role           Role       @relation(fields: [roleId], references: [id])
+  branch         Branch     @relation(fields: [branchId], references: [id])
+
+  purchases      PurchaseVoucher[]
+  sales          SalesVoucher[]
+}
+
+model Module {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+
+  permissions   Permission[]
+}
+
+model Permission {
+  id            Int        @id @default(autoincrement())
+
+  roleId        Int
+  moduleId      Int
+
+  canCreate     Boolean    @default(false)
+  canView       Boolean    @default(false)
+  canEdit       Boolean    @default(false)
+  canDelete     Boolean    @default(false)
+
+  role          Role       @relation(fields: [roleId], references: [id])
+  module        Module     @relation(fields: [moduleId], references: [id])
+
+  @@unique([roleId, moduleId])
+}
+
+////////////////////////////
+// PAYMENT METHOD MASTER
+////////////////////////////
+
+model PaymentMethodMaster {
+  id          Int                 @id @default(autoincrement())
+  name        String              @unique
+
+  purchases   PurchaseVoucher[]
+  sales       SalesVoucher[]
+}
+
+////////////////////////////
+// PURCHASE VOUCHER
+////////////////////////////
+
+model PurchaseVoucher {
+  id                Int                    @id @default(autoincrement())
+  voucherNo         String                 @unique
+
+  supplierId        Int
+  branchId          Int
+  paymentMethodId   Int
+  createdById       Int
+
+  date              DateTime
+  totalAmount       Float
+
+  supplier          Supplier              @relation(fields: [supplierId], references: [id])
+  branch            Branch                @relation(fields: [branchId], references: [id])
+  paymentMethod     PaymentMethodMaster   @relation(fields: [paymentMethodId], references: [id])
+  createdBy         User                  @relation(fields: [createdById], references: [id])
+
+  items             PurchaseVoucherItem[]
+}
+
+model PurchaseVoucherItem {
+  id            Int                 @id @default(autoincrement())
+
+  voucherId     Int
+  productId     Int
+
+  qty           Float
+  rate          Float
+  amount        Float
+
+  voucher       PurchaseVoucher     @relation(fields: [voucherId], references: [id])
+  product       Product             @relation(fields: [productId], references: [id])
+}
+
+////////////////////////////
+// SALES VOUCHER
+////////////////////////////
+
+model SalesVoucher {
+  id                Int                    @id @default(autoincrement())
+  voucherNo         String                 @unique
+
+  customerId        Int
+  branchId          Int
+  paymentMethodId   Int
+  createdById       Int
+
+  date              DateTime
+  totalAmount       Float
+
+  customer          Customer              @relation(fields: [customerId], references: [id])
+  branch            Branch                @relation(fields: [branchId], references: [id])
+  paymentMethod     PaymentMethodMaster   @relation(fields: [paymentMethodId], references: [id])
+  createdBy         User                  @relation(fields: [createdById], references: [id])
+
+  items             SalesVoucherItem[]
+}
+
+model SalesVoucherItem {
+  id            Int               @id @default(autoincrement())
+
+  voucherId     Int
+  productId     Int
+
+  qty           Float
+  rate          Float
+  amount        Float
+
+  voucher       SalesVoucher      @relation(fields: [voucherId], references: [id])
+  product       Product           @relation(fields: [productId], references: [id])
 }
