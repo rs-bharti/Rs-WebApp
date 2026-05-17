@@ -106,10 +106,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </div>
           </div>
           <div className="space-y-2">
-            <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>State Name</label>
+            <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Currency Type</label>
             <div className="relative">
               <select className={cn("w-full rounded-lg border px-4 py-3 text-sm appearance-none", isAdmin ? "border-brand-bg bg-brand-bg/20 text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 text-rs-text-primary")}>
-                <option>Select State</option>
+                <option>Select Currency</option>
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
             </div>

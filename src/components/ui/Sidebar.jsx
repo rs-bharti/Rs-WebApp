@@ -83,6 +83,18 @@ const Sidebar = ({ role = 'admin' }) => {
               <UserPlus className="w-5 h-5 mr-3" />
               Add User
             </NavLink>
+            <NavLink
+              to="/dashboard/master/branches"
+              className={({ isActive }) => cn(
+                "flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2",
+                isActive 
+                  ? "bg-brand-primary text-white border-brand-primary" 
+                  : "bg-white text-brand-primary border-stone-200 hover:bg-stone-50"
+              )}
+            >
+              <Database className="w-5 h-5 mr-3" />
+              Branch Master
+            </NavLink>
           </div>
         )}
 
@@ -115,7 +127,6 @@ const Sidebar = ({ role = 'admin' }) => {
             <SidebarItem to="/dashboard/master/state" icon={Globe} role={role}>State Master</SidebarItem>
             <SidebarItem to="/dashboard/master/city" icon={Building} role={role}>City Master</SidebarItem>
             <SidebarItem to="/dashboard/master/area" icon={MapPin} role={role}>Area Master</SidebarItem>
-            <SidebarItem to="/dashboard/master/branches" icon={Database} role={role}>Branches Master</SidebarItem>
             {role === 'admin' && (
               <>
                 <SidebarItem to="/dashboard/master/supplier" icon={Truck} role={role}>Supplier Master</SidebarItem>
