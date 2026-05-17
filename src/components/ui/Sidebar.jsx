@@ -137,7 +137,7 @@ const Sidebar = ({ role = 'admin' }) => {
               </>
             )}
             {role === 'user' && (
-               ['Country', 'Payment Method', 'Supplier', 'Product', 'Category', 'Unit'].map(item => (
+               ['Payment Method', 'Supplier', 'Product', 'Category', 'Unit'].map(item => (
                 <SidebarItem key={item} to={`/dashboard/master/${item.toLowerCase().replace(' ', '-')}`} icon={Database} role={role}>
                   {item} Master
                 </SidebarItem>
