@@ -4,7 +4,13 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Registration from './pages/Registration';
 import DashboardLayout from './components/layout/DashboardLayout';
-import VoucherForm from './components/ui/VoucherForm';
+import ReceiptVoucherForm from './components/ui/vouchers/ReceiptVoucherForm';
+import PaymentVoucherForm from './components/ui/vouchers/PaymentVoucherForm';
+import ContraVoucherForm from './components/ui/vouchers/ContraVoucherForm';
+import SalesVoucherForm from './components/ui/vouchers/SalesVoucherForm';
+import SalesReturnVoucherForm from './components/ui/vouchers/SalesReturnVoucherForm';
+import PurchaseVoucherForm from './components/ui/vouchers/PurchaseVoucherForm';
+import PurchaseReturnVoucherForm from './components/ui/vouchers/PurchaseReturnVoucherForm';
 import MasterForm from './components/ui/MasterForm';
 
 // Helper component to handle Master Routing with capitalization
@@ -36,13 +42,13 @@ function App() {
           <Route path="registration" element={<Registration />} />
           
           {/* Functional Voucher Routes for User */}
-          <Route path="receipt" element={<VoucherForm type="Receipt" />} />
-          <Route path="payment" element={<VoucherForm type="Payment" />} />
-          <Route path="sales" element={<VoucherForm type="Sales" />} />
-          <Route path="sales-return" element={<VoucherForm type="Sales Return" />} />
-          <Route path="purchase" element={<VoucherForm type="Purchase" />} />
-          <Route path="purchase-return" element={<VoucherForm type="Purchase Return" />} />
-          <Route path="contra" element={<VoucherForm type="Contra" />} />
+          <Route path="receipt" element={<ReceiptVoucherForm />} />
+          <Route path="payment" element={<PaymentVoucherForm />} />
+          <Route path="sales" element={<SalesVoucherForm />} />
+          <Route path="sales-return" element={<SalesReturnVoucherForm />} />
+          <Route path="purchase" element={<PurchaseVoucherForm />} />
+          <Route path="purchase-return" element={<PurchaseReturnVoucherForm />} />
+          <Route path="contra" element={<ContraVoucherForm />} />
           
           {/* Functional Master Routes */}
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />

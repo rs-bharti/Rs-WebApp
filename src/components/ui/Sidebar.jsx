@@ -111,9 +111,10 @@ const Sidebar = ({ role = 'admin' }) => {
           )}>Master</h3>
           <ul className="space-y-1">
             <SidebarItem to="/dashboard/master/customer" icon={Users} role={role}>Customer Master</SidebarItem>
-            <SidebarItem to="/dashboard/master/area" icon={MapPin} role={role}>Area Master</SidebarItem>
-            <SidebarItem to="/dashboard/master/city" icon={Building} role={role}>City Master</SidebarItem>
+            <SidebarItem to="/dashboard/master/country" icon={Globe} role={role}>Country Master</SidebarItem>
             <SidebarItem to="/dashboard/master/state" icon={Globe} role={role}>State Master</SidebarItem>
+            <SidebarItem to="/dashboard/master/city" icon={Building} role={role}>City Master</SidebarItem>
+            <SidebarItem to="/dashboard/master/area" icon={MapPin} role={role}>Area Master</SidebarItem>
             <SidebarItem to="/dashboard/master/branches" icon={Database} role={role}>Branches Master</SidebarItem>
             {role === 'admin' && (
               <>
