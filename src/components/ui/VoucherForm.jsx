@@ -4,10 +4,10 @@ import { Plus, X, Calendar, ChevronDown } from 'lucide-react';
 
 const VoucherForm = ({ type = 'Receipt' }) => {
   const isTransactional = ['Sales', 'Purchase', 'Sales Return', 'Purchase Return'].includes(type);
-  const [rows, setRows] = useState([{ id: 1, product: '', qty: 1, rate: 0, subTotal: 0, taxRate: 0, taxAmount: 0, discountAmount: 0, amount: 0 }]);
+  const [rows, setRows] = useState([{ id: 1, product: '', qty: 1, rate: 0, amount: 0 }]);
 
   const addRow = () => {
-    setRows([...rows, { id: Date.now(), product: '', qty: 1, rate: 0, subTotal: 0, taxRate: 0, taxAmount: 0, discountAmount: 0, amount: 0 }]);
+    setRows([...rows, { id: Date.now(), product: '', qty: 1, rate: 0, amount: 0 }]);
   };
 
   const removeRow = (id) => {
@@ -22,9 +22,7 @@ const VoucherForm = ({ type = 'Receipt' }) => {
         const updatedRow = { ...row, [field]: value };
         
         // Recalculate derived fields
-        updatedRow.subTotal = updatedRow.qty * updatedRow.rate;
-        updatedRow.taxAmount = (updatedRow.subTotal - updatedRow.discountAmount) * (updatedRow.taxRate / 100);
-        updatedRow.amount = updatedRow.subTotal - updatedRow.discountAmount + updatedRow.taxAmount;
+        updatedRow.amount = updatedRow.qty * updatedRow.rate;
         
         return updatedRow;
       }
@@ -33,12 +31,9 @@ const VoucherForm = ({ type = 'Receipt' }) => {
   };
 
   const totals = rows.reduce((acc, row) => {
-    acc.subTotal += row.subTotal;
-    acc.taxAmount += row.taxAmount;
-    acc.discountAmount += row.discountAmount;
     acc.totalAmount += row.amount;
     return acc;
-  }, { subTotal: 0, taxAmount: 0, discountAmount: 0, totalAmount: 0 });
+  }, { totalAmount: 0 });
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -51,7 +46,7 @@ const VoucherForm = ({ type = 'Receipt' }) => {
 
       <form className="p-8 space-y-10" onSubmit={(e) => e.preventDefault()}>
         {/* Header Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
@@ -62,18 +57,6 @@ const VoucherForm = ({ type = 'Receipt' }) => {
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Voucher No</label>
             <div className="relative border-b border-stone-100 pb-1">
               <input className="w-full bg-transparent text-sm font-bold text-rs-text-primary outline-none" readOnly type="text" value={`${type.charAt(0)}V-2026-001`}/>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Branch</label>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer">
-                <option disabled selected>Select Branch</option>
-                <option>Main Branch</option>
-                <option>Secondary Branch</option>
-                <option>Warehouse Outlet</option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
           </div>
           <div className="space-y-2">
@@ -103,10 +86,6 @@ const VoucherForm = ({ type = 'Receipt' }) => {
                     <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name</th>
                     <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-20">Qty</th>
                     <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Rate</th>
-                    <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Subtotal</th>
-                    <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Discount</th>
-                    <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-20">Tax %</th>
-                    <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Tax Amt</th>
                     <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Total</th>
                     <th className="w-10"></th>
                   </tr>
@@ -140,30 +119,6 @@ const VoucherForm = ({ type = 'Receipt' }) => {
                           value={row.rate}
                           onChange={(e) => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)}
                         />
-                      </td>
-                      <td className="px-4 py-4 text-right text-stone-500 font-medium">
-                        ₹{row.subTotal.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <input 
-                          className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none text-rose-600" 
-                          type="number" 
-                          value={row.discountAmount}
-                          placeholder="0.00"
-                          onChange={(e) => updateRow(row.id, 'discountAmount', parseFloat(e.target.value) || 0)}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <input 
-                          className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none" 
-                          type="number" 
-                          value={row.taxRate}
-                          placeholder="0"
-                          onChange={(e) => updateRow(row.id, 'taxRate', parseFloat(e.target.value) || 0)}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-right text-stone-500 font-medium">
-                        ₹{row.taxAmount.toFixed(2)}
                       </td>
                       <td className="px-4 py-4 text-right font-bold text-rs-text-primary">
                         ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -230,19 +185,6 @@ const VoucherForm = ({ type = 'Receipt' }) => {
           </div>
           
           <div className="w-full md:w-80 space-y-4">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-rs-text-muted font-medium">Subtotal</span>
-              <span className="text-rs-text-primary font-bold">₹ {isTransactional ? totals.subTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-rose-500 font-medium">Discount</span>
-              <span className="text-rose-500 font-bold">- ₹ {isTransactional ? totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-rs-text-muted font-medium">Tax Amount</span>
-              <span className="text-rs-text-primary font-bold">₹ {isTransactional ? totals.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</span>
-            </div>
-            <div className="h-[1px] bg-stone-100 my-4"></div>
             <div className="flex justify-between items-end">
               <span className="font-bold text-rs-text-primary text-sm uppercase tracking-widest">Grand Total</span>
               <span className="text-3xl font-user-serif font-bold text-rs-text-primary tracking-tight">

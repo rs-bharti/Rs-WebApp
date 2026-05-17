@@ -104,7 +104,7 @@ const Sidebar = ({ role = 'admin' }) => {
         </div>
 
         {/* Master Section */}
-        <div className="space-y-1 pb-8">
+        <div className="space-y-1">
           <h3 className={cn(
             "px-4 text-[10px] font-bold uppercase tracking-widest mb-3",
             role === 'admin' ? "text-brand-primary/40" : "text-rs-text-muted"
@@ -130,6 +130,24 @@ const Sidebar = ({ role = 'admin' }) => {
                 </SidebarItem>
                ))
             )}
+          </ul>
+        </div>
+
+        {/* Other Section */}
+        <div className="space-y-1 pb-8">
+          <h3 className={cn(
+            "px-4 text-[10px] font-bold uppercase tracking-widest mb-3",
+            role === 'admin' ? "text-brand-primary/40" : "text-rs-text-muted"
+          )}>Other</h3>
+          <ul className="space-y-1">
+            <SidebarItem to="/dashboard/other/client-ledger" icon={FileText} role={role}>Client Ledger</SidebarItem>
+            <SidebarItem to="/dashboard/other/stock-ledger" icon={FileText} role={role}>Stock Ledger</SidebarItem>
+            <SidebarItem to="/dashboard/other/client-balance" icon={CreditCard} role={role}>Client Balance</SidebarItem>
+            <SidebarItem to="/dashboard/other/stock-quantity" icon={Package} role={role}>Stock Quantity</SidebarItem>
+            <SidebarItem to="/dashboard/other/product-statement" icon={FileText} role={role}>Product Statement</SidebarItem>
+            <SidebarItem to="/dashboard/other/customer-statement" icon={FileText} role={role}>Customer Statement</SidebarItem>
+            <SidebarItem to="/dashboard/other/all-customer-balance" icon={Users} role={role}>All Customer Balance</SidebarItem>
+            <SidebarItem to="/dashboard/other/all-balance-stock" icon={Database} role={role}>All Balance Stock</SidebarItem>
           </ul>
         </div>
       </nav>
