@@ -122,6 +122,7 @@ const Sidebar = ({ role = 'admin' }) => {
                 <SidebarItem to="/dashboard/master/product" icon={Package} role={role}>Product Master</SidebarItem>
                 <SidebarItem to="/dashboard/master/category" icon={Layers} role={role}>Category Master</SidebarItem>
                 <SidebarItem to="/dashboard/master/unit" icon={Box} role={role}>Unit Master</SidebarItem>
+                <SidebarItem to="/dashboard/master/payment-method" icon={CreditCard} role={role}>Payment Method Master</SidebarItem>
               </>
             )}
             {role === 'user' && (
