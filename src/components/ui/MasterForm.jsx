@@ -110,7 +110,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <input type="tel" value={contact.phone} onChange={(e) => updateContact(contact.id, 'phone', e.target.value)} placeholder="+91 ..." className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors" />
                       </td>
                       <td className="p-2">
-                        <input type="text" value={contact.designation} onChange={(e) => updateContact(contact.id, 'designation', e.target.value)} placeholder="e.g. Manager" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors" />
+                        <select value={contact.designation} onChange={(e) => updateContact(contact.id, 'designation', e.target.value)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors cursor-pointer">
+                          <option value="">Select Designation</option>
+                          <option value="Manager">Manager</option>
+                          <option value="Owner">Owner</option>
+                          <option value="Sales Head">Sales Head</option>
+                          <option value="Procurement Head">Procurement Head</option>
+                          <option value="Sales Boy">Sales Boy</option>
+                          <option value="President">President</option>
+                          <option value="CEO">CEO</option>
+                        </select>
                       </td>
                       <td className="p-2">
                         <input type="text" onFocus={(e) => (e.target.type = "date")} onBlur={(e) => (e.target.type = "text")} value={contact.dob} onChange={(e) => updateContact(contact.id, 'dob', e.target.value)} placeholder="dd-mm-yyyy" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors text-stone-500" />
@@ -136,8 +145,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 <input type="text" placeholder="Enter Tax ID" className={cn("w-full bg-transparent border-b px-2 py-3 outline-none text-sm transition-colors focus:border-stone-500", isAdmin ? "border-brand-bg text-brand-primary" : "border-rs-accent-bg text-rs-text-primary")} />
               </div>
               <div className="space-y-2">
-                <label className={cn("block text-[10px] uppercase tracking-widest font-bold mb-2", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>Weight No</label>
-                <input type="text" placeholder="Enter Weight Number" className={cn("w-full bg-transparent border-b px-2 py-3 outline-none text-sm transition-colors focus:border-stone-500", isAdmin ? "border-brand-bg text-brand-primary" : "border-rs-accent-bg text-rs-text-primary")} />
+                <label className={cn("block text-[10px] uppercase tracking-widest font-bold mb-2", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>VAT</label>
+                <input type="text" placeholder="Enter VAT Number" className={cn("w-full bg-transparent border-b px-2 py-3 outline-none text-sm transition-colors focus:border-stone-500", isAdmin ? "border-brand-bg text-brand-primary" : "border-rs-accent-bg text-rs-text-primary")} />
               </div>
               <div className="space-y-2">
                 <label className={cn("block text-[10px] uppercase tracking-widest font-bold mb-2", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>TIN No</label>
@@ -151,29 +160,88 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     if (isDetailed) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="space-y-8">
-            <div className="space-y-2">
-              <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Name</label>
-              <input className={cn("w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none", isAdmin ? "border-brand-bg bg-brand-bg/20 focus:border-brand-primary text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 focus:border-rs-text-primary text-rs-text-primary")} type="text" placeholder={`Enter ${type.toLowerCase()} full name`}/>
+        <div className="space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="space-y-8">
+              <div className="space-y-2">
+                <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Name</label>
+                <input className={cn("w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none", isAdmin ? "border-brand-bg bg-brand-bg/20 focus:border-brand-primary text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 focus:border-rs-text-primary text-rs-text-primary")} type="text" placeholder={`Enter ${type.toLowerCase()} full name`}/>
+              </div>
+              <div className="space-y-2">
+                <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Address</label>
+                <textarea className={cn("w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none resize-none", isAdmin ? "border-brand-bg bg-brand-bg/20 focus:border-brand-primary text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 focus:border-rs-text-primary text-rs-text-primary")} placeholder="Enter full postal address" rows="5"></textarea>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Address</label>
-              <textarea className={cn("w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none resize-none", isAdmin ? "border-brand-bg bg-brand-bg/20 focus:border-brand-primary text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 focus:border-rs-text-primary text-rs-text-primary")} placeholder="Enter full postal address" rows="5"></textarea>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {['Area', 'City', 'State', 'Country'].map((loc) => (
+                <div key={loc} className="space-y-2">
+                  <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>{loc}</label>
+                  <div className="relative">
+                    <select className={cn("w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none appearance-none cursor-pointer", isAdmin ? "border-brand-bg bg-brand-bg/20 text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 text-rs-text-primary")}>
+                      <option value="">Select {loc}</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {['Area', 'City', 'State', 'Country'].map((loc) => (
-              <div key={loc} className="space-y-2">
-                <label className={cn("block text-sm font-semibold mb-2", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>{loc}</label>
-                <div className="relative">
-                  <select className={cn("w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none appearance-none cursor-pointer", isAdmin ? "border-brand-bg bg-brand-bg/20 text-brand-primary" : "border-rs-accent-bg bg-rs-cream/10 text-rs-text-primary")}>
-                    <option value="">Select {loc}</option>
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                </div>
-              </div>
-            ))}
+
+          {/* Contact Persons Section */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center pb-2">
+              <h3 className={cn("text-xl font-bold", isAdmin ? "text-brand-primary" : "text-rs-text-primary")}>Contact Persons</h3>
+              <button type="button" onClick={handleAddContact} className={cn("flex items-center text-xs font-bold uppercase tracking-wider transition-colors", isAdmin ? "text-brand-primary hover:text-brand-primary/80" : "text-rs-text-primary hover:text-rs-text-primary/80")}>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Add Contact
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className={cn("border-b", isAdmin ? "border-brand-bg bg-brand-bg/10" : "border-rs-accent-bg bg-rs-cream/20")}>
+                    <th className={cn("p-4 text-[10px] font-bold uppercase tracking-widest", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>Name</th>
+                    <th className={cn("p-4 text-[10px] font-bold uppercase tracking-widest", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>Phone Number</th>
+                    <th className={cn("p-4 text-[10px] font-bold uppercase tracking-widest", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>Designation</th>
+                    <th className={cn("p-4 text-[10px] font-bold uppercase tracking-widest", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}>Date of Birth (DOB)</th>
+                    <th className={cn("p-4 text-[10px] font-bold uppercase tracking-widest text-center", isAdmin ? "text-brand-primary/60" : "text-rs-text-muted")}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contacts.map((contact) => (
+                    <tr key={contact.id} className={cn("border-b transition-colors", isAdmin ? "border-brand-bg/50 hover:bg-brand-bg/5" : "border-rs-accent-bg/50 hover:bg-rs-cream/10")}>
+                      <td className="p-2">
+                        <input type="text" value={contact.name} onChange={(e) => updateContact(contact.id, 'name', e.target.value)} placeholder="Full Name" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors" />
+                      </td>
+                      <td className="p-2">
+                        <input type="tel" value={contact.phone} onChange={(e) => updateContact(contact.id, 'phone', e.target.value)} placeholder="+91 ..." className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors" />
+                      </td>
+                      <td className="p-2">
+                        <select value={contact.designation} onChange={(e) => updateContact(contact.id, 'designation', e.target.value)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors cursor-pointer">
+                          <option value="">Select Designation</option>
+                          <option value="Manager">Manager</option>
+                          <option value="Owner">Owner</option>
+                          <option value="Sales Head">Sales Head</option>
+                          <option value="Procurement Head">Procurement Head</option>
+                          <option value="Sales Boy">Sales Boy</option>
+                          <option value="President">President</option>
+                          <option value="CEO">CEO</option>
+                        </select>
+                      </td>
+                      <td className="p-2">
+                        <input type="text" onFocus={(e) => (e.target.type = "date")} onBlur={(e) => (e.target.type = "text")} value={contact.dob} onChange={(e) => updateContact(contact.id, 'dob', e.target.value)} placeholder="dd-mm-yyyy" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors text-stone-500" />
+                      </td>
+                      <td className="p-2 text-center">
+                        <button type="button" onClick={() => handleRemoveContact(contact.id)} className="text-red-500 hover:text-red-600 transition-colors p-2" title="Remove Contact">
+                          <Trash2 className="w-4 h-4 mx-auto" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       );
