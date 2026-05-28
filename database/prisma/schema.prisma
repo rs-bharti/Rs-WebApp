@@ -66,6 +66,7 @@ model AreaMaster {
 model Branch {
   id        Int               @id @default(autoincrement())
   name      String
+  address   String?
   areaId    Int?
   cityId    Int
   stateId   Int
@@ -76,6 +77,7 @@ model Branch {
   city      CityMaster        @relation(fields: [cityId], references: [id])
   country   CountryMaster     @relation(fields: [countryId], references: [id])
   state     StateMaster       @relation(fields: [stateId], references: [id])
+  stocks    BranchStock[]
   purchases PurchaseVoucher[]
   sales     SalesVoucher[]
   users     User[]
@@ -92,6 +94,7 @@ model CategoryMaster {
 model UnitMaster {
   id        Int       @id @default(autoincrement())
   unitName  String
+  shortName String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   products  Product[]
