@@ -77,7 +77,6 @@ model Branch {
   city      CityMaster        @relation(fields: [cityId], references: [id])
   country   CountryMaster     @relation(fields: [countryId], references: [id])
   state     StateMaster       @relation(fields: [stateId], references: [id])
-  stocks    BranchStock[]
   purchases PurchaseVoucher[]
   sales     SalesVoucher[]
   users     User[]
@@ -130,23 +129,12 @@ model Product {
   barcode       String?               @unique
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
-  stocks        BranchStock[]
   category      CategoryMaster        @relation(fields: [categoryId], references: [id])
   unit          UnitMaster            @relation(fields: [unitId], references: [id])
   purchaseItems PurchaseVoucherItem[]
   salesItems    SalesVoucherItem[]
 }
 
-model BranchStock {
-  id        Int     @id @default(autoincrement())
-  branchId  Int
-  productId Int
-  quantity  Float   @default(0)
-  branch    Branch  @relation(fields: [branchId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
-
-  @@unique([branchId, productId])
-}
 
 model Customer {
   id        Int            @id @default(autoincrement())

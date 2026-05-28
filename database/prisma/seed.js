@@ -154,19 +154,6 @@ async function main() {
     },
   });
 
-  // 8. Initial Stock
-  await prisma.branchStock.upsert({
-    where: { branchId_productId: { branchId: branch.id, productId: product1.id } },
-    update: { quantity: 50 },
-    create: { branchId: branch.id, productId: product1.id, quantity: 50 },
-  });
-
-  await prisma.branchStock.upsert({
-    where: { branchId_productId: { branchId: branch.id, productId: product2.id } },
-    update: { quantity: 100 },
-    create: { branchId: branch.id, productId: product2.id, quantity: 100 },
-  });
-
   console.log('Seeding completed successfully!');
 }
 
