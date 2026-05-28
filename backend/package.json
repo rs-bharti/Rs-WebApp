@@ -2,13 +2,18 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "node prisma/seed.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:generate": "prisma generate --schema=../database/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=../database/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema=../database/prisma/schema.prisma",
+    "db:seed": "prisma db seed --schema=../database/prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --schema=../database/prisma/schema.prisma"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node ../database/prisma/seed.js"
   },
   "keywords": [],
   "author": "",
