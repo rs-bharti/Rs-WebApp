@@ -1,4 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
+const path = require('path');
+
+// Both @prisma/client and bcryptjs live in backend/node_modules.
+// The Prisma schema output directive also points there.
+const { PrismaClient } = require(path.resolve(__dirname, '../../backend/node_modules/@prisma/client'));
+const bcrypt = require(path.resolve(__dirname, '../../backend/node_modules/bcryptjs'));
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -44,7 +50,7 @@ async function main() {
 
   // 3. Branch
   const branch = await prisma.branch.upsert({
-    where: { id: 1 }, // Using a known ID for seeding
+    where: { id: 1 },
     update: {
       name: 'Main Branch - Mumbai',
       address: '123 Business Hub, Andheri East',
@@ -64,19 +70,25 @@ async function main() {
     },
   });
 
-  // 4. Admin User
+  // 4. Admin User — permissions must be explicit (NOT NULL column)
+  const adminPassword = await bcrypt.hash('admin123', 10);
   await prisma.user.upsert({
     where: { email: 'admin@rsbharti.com' },
     update: {
+      password: adminPassword,
+      plainPassword: 'admin123',
       branchId: branch.id,
       roleId: adminRole.id,
+      permissions: '{}',
     },
     create: {
       name: 'System Admin',
       email: 'admin@rsbharti.com',
-      password: 'password123',
+      password: adminPassword,
+      plainPassword: 'admin123',
       roleId: adminRole.id,
       branchId: branch.id,
+      permissions: '{}',
     },
   });
 
@@ -87,14 +99,14 @@ async function main() {
     create: { name: 'Stationery' },
   });
 
-  const unit = await prisma.unitMaster.upsert({
+  await prisma.unitMaster.upsert({
     where: { id: 1 },
     update: { unitName: 'Pieces', shortName: 'Pcs' },
     create: { id: 1, unitName: 'Pieces', shortName: 'Pcs' },
   });
 
-  // 6. Supplier
-  const supplier = await prisma.supplier.upsert({
+  // 7. Supplier
+  await prisma.supplier.upsert({
     where: { id: 1 },
     update: {
       name: 'Elite Paper Supplies',
@@ -115,8 +127,10 @@ async function main() {
     },
   });
 
-  // 7. Products
-  const product1 = await prisma.product.upsert({
+  // 8. Products
+  const unit = await prisma.unitMaster.findFirst({ where: { id: 1 } });
+
+  await prisma.product.upsert({
     where: { barcode: 'NB-001' },
     update: {
       name: 'Premium Leather Notebook',
@@ -135,7 +149,7 @@ async function main() {
     },
   });
 
-  const product2 = await prisma.product.upsert({
+  await prisma.product.upsert({
     where: { barcode: 'INK-002' },
     update: {
       name: 'Archival Grade Blue Ink',
@@ -154,7 +168,9 @@ async function main() {
     },
   });
 
-  console.log('Seeding completed successfully!');
+  console.log('✓ Seeding completed!');
+  console.log('  Admin → admin@rsbharti.com / admin123');
+  console.log('  All other users must be created by admin through the app.');
 }
 
 main()

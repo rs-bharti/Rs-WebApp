@@ -93,9 +93,9 @@ model CategoryMaster {
 model UnitMaster {
   id        Int       @id @default(autoincrement())
   unitName  String
-  shortName String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  shortName String?
   products  Product[]
 }
 
@@ -135,7 +135,6 @@ model Product {
   salesItems    SalesVoucherItem[]
 }
 
-
 model Customer {
   id        Int            @id @default(autoincrement())
   name      String
@@ -166,15 +165,17 @@ model Role {
 }
 
 model User {
-  id        Int               @id @default(autoincrement())
-  name      String
-  email     String            @unique
-  password  String
-  branchId  Int
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  isActive  Boolean           @default(true)
-  roleId    Int
+  id            Int               @id @default(autoincrement())
+  name          String
+  email         String            @unique
+  password      String
+  plainPassword String?
+  branchId      Int
+  permissions   String            @default("{}")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  isActive    Boolean           @default(true)
+  roleId      Int
   purchases PurchaseVoucher[]
   sales     SalesVoucher[]
   branch    Branch            @relation(fields: [branchId], references: [id])

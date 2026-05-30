@@ -3,6 +3,7 @@ import Sidebar from '../ui/Sidebar';
 import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../context/AuthContext';
 
 const StatCard = ({ title, amount, trend, trendType, role }) => (
   <article className={cn(
@@ -47,7 +48,8 @@ const StatCard = ({ title, amount, trend, trendType, role }) => (
 
 const DashboardLayout = ({ userRole = 'admin' }) => {
   const location = useLocation();
-  const userName = localStorage.getItem('userName') || 'Admin User';
+  const { user } = useAuth();
+  const userName = user?.name || 'Admin User';
 
   return (
     <div className={cn(

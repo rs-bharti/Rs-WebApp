@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
 import Button from '../components/ui/Button';
-import { Eye } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { loginUser } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState('');
+  const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Simple mock logic for role switching
-    const role = (username === 'adminuser' || username === 'admin@gmail.com') ? 'admin' : 'user';
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('userName', username || 'Standard User');
-    
-    if (onLogin) onLogin(role);
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      const { user, token } = await loginUser(email.trim(), password);
+      login(user, token);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,58 +52,60 @@ const Login = ({ onLogin }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-10">
+            {/* Email */}
             <div className="relative border-b border-stone-300 pb-2 transition-colors focus-within:border-brand-primary">
               <label className="block text-[11px] font-bold tracking-wider text-stone-500 uppercase mb-3">
-                Username/Email
+                Email
               </label>
               <input
-                type="text"
-                placeholder="Enter identity"
+                type="email"
+                placeholder="Enter your email"
+                required
                 className="w-full border-none p-0 focus:ring-0 text-[15px] text-stone-800 bg-transparent placeholder:text-stone-300 outline-none"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
-            <Select 
-              label="Branch Selection"
-              options={[
-                { label: 'Select location', value: '', disabled: true },
-                { label: 'North Branch', value: 'north' },
-                { label: 'South Branch', value: 'south' },
-                { label: 'Central HQ', value: 'central' },
-              ]}
-              defaultValue=""
-            />
-
-            <div className="relative">
-              <Input 
-                label="Credential Key"
+            {/* Password */}
+            <div className="relative border-b border-stone-300 pb-2 transition-colors focus-within:border-brand-primary">
+              <label className="block text-[11px] font-bold tracking-wider text-stone-500 uppercase mb-3">
+                Password
+              </label>
+              <input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="..."
+                placeholder="Enter your password"
+                required
+                className="w-full border-none p-0 focus:ring-0 text-[15px] text-stone-800 bg-transparent placeholder:text-stone-300 outline-none pr-8"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-0 bottom-2 text-stone-400 hover:text-brand-primary transition-colors focus:outline-none"
               >
-                <Eye className="h-4 w-4" />
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
 
-            <div className="pt-6">
-              <Button type="submit" className="w-full py-4">
-                Authenticate Access
+            {/* Error */}
+            {error && (
+              <p className="text-rose-600 text-[12px] font-medium text-center -mt-4">
+                {error}
+              </p>
+            )}
+
+            <div className="pt-2">
+              <Button type="submit" className="w-full py-4" disabled={loading}>
+                {loading ? 'Authenticating...' : 'Authenticate Access'}
               </Button>
             </div>
 
             <div className="text-center pt-2">
-              <p className="text-[10px] text-stone-400 mb-4 italic">
-                Tip: Use "adminuser" for Admin view, any other name for User view.
+              <p className="text-[10px] text-stone-400 italic">
+                Access is provided by the administrator only.
               </p>
-              <a href="#" className="text-[11px] text-stone-500 border-b border-transparent hover:border-stone-500 hover:text-brand-primary transition-all duration-300 uppercase tracking-widest">
-                Forgot Access
-              </a>
             </div>
           </form>
         </section>
