@@ -51,12 +51,12 @@ model CityMaster {
 }
 
 model AreaMaster {
-  id         Int                @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   cityId     Int
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
   name       String
-  city       CityMaster         @relation(fields: [cityId], references: [id])
+  city       CityMaster        @relation(fields: [cityId], references: [id])
   branches   Branch[]
   customers  Customer[]
   suppliers  Supplier[]
@@ -66,15 +66,18 @@ model AreaMaster {
 }
 
 model WarehouseMaster {
-  id        Int         @id @default(autoincrement())
-  name      String
-  address   String?
-  areaId    Int?
-  cityId    Int?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  area      AreaMaster? @relation(fields: [areaId], references: [id])
-  city      CityMaster? @relation(fields: [cityId], references: [id])
+  id                Int                    @id @default(autoincrement())
+  name              String
+  address           String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  areaId            Int?
+  cityId            Int?
+  stockDataVouchers StockDataVoucher[]
+  stockTransferFrom StockTransferVoucher[] @relation("TransferFrom")
+  stockTransferTo   StockTransferVoucher[] @relation("TransferTo")
+  area              AreaMaster?            @relation(fields: [areaId], references: [id])
+  city              CityMaster?            @relation(fields: [cityId], references: [id])
 }
 
 model Branch {
@@ -107,9 +110,9 @@ model CategoryMaster {
 model UnitMaster {
   id        Int       @id @default(autoincrement())
   unitName  String
-  shortName String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  shortName String?
   products  Product[]
 }
 
@@ -134,21 +137,22 @@ model Supplier {
 }
 
 model Product {
-  id            Int                   @id @default(autoincrement())
-  name          String
-  categoryId    Int
-  unitId        Int
-  purchasePrice Float
-  sellingPrice  Float
-  barcode       String?               @unique
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  category      CategoryMaster        @relation(fields: [categoryId], references: [id])
-  unit          UnitMaster            @relation(fields: [unitId], references: [id])
-  purchaseItems PurchaseVoucherItem[]
-  salesItems    SalesVoucherItem[]
+  id                    Int                    @id @default(autoincrement())
+  name                  String
+  categoryId            Int
+  unitId                Int
+  purchasePrice         Float
+  sellingPrice          Float
+  barcode               String?                @unique
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  category              CategoryMaster         @relation(fields: [categoryId], references: [id])
+  unit                  UnitMaster             @relation(fields: [unitId], references: [id])
+  purchaseItems         PurchaseVoucherItem[]
+  salesItems            SalesVoucherItem[]
+  stockDataVouchers     StockDataVoucher[]
+  stockTransferVouchers StockTransferVoucher[]
 }
-
 
 model Customer {
   id        Int            @id @default(autoincrement())
@@ -180,19 +184,21 @@ model Role {
 }
 
 model User {
-  id        Int               @id @default(autoincrement())
-  name      String
-  email     String            @unique
-  password  String
-  branchId  Int
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  isActive  Boolean           @default(true)
-  roleId    Int
-  purchases PurchaseVoucher[]
-  sales     SalesVoucher[]
-  branch    Branch            @relation(fields: [branchId], references: [id])
-  role      Role              @relation(fields: [roleId], references: [id])
+  id                    Int                    @id @default(autoincrement())
+  name                  String
+  email                 String                 @unique
+  password              String
+  branchId              Int
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  isActive              Boolean                @default(true)
+  roleId                Int
+  purchases             PurchaseVoucher[]
+  sales                 SalesVoucher[]
+  stockDataVouchers     StockDataVoucher[]
+  stockTransferVouchers StockTransferVoucher[]
+  branch                Branch                 @relation(fields: [branchId], references: [id])
+  role                  Role                   @relation(fields: [roleId], references: [id])
 }
 
 model Module {
@@ -298,4 +304,40 @@ model SalesVoucherItem {
   amount         Float
   product        Product      @relation(fields: [productId], references: [id])
   voucher        SalesVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+model StockDataVoucher {
+  id          Int             @id @default(autoincrement())
+  voucherNo   String          @unique
+  warehouseId Int
+  createdById Int
+  date        DateTime
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  narration   String?
+  productId   Int
+  qty         Float
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  product     Product         @relation(fields: [productId], references: [id])
+  warehouse   WarehouseMaster @relation(fields: [warehouseId], references: [id])
+}
+
+model StockTransferVoucher {
+  id                 Int             @id @default(autoincrement())
+  voucherNo          String          @unique
+  fromWarehouseId    Int
+  toWarehouseId      Int
+  fromWarehouseName  String?
+  toWarehouseName    String?
+  createdById        Int
+  date               DateTime
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  narration          String?
+  productId          Int
+  qty                Float
+  createdBy          User            @relation(fields: [createdById], references: [id])
+  fromWarehouse      WarehouseMaster @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  product            Product         @relation(fields: [productId], references: [id])
+  toWarehouse        WarehouseMaster @relation("TransferTo", fields: [toWarehouseId], references: [id])
 }

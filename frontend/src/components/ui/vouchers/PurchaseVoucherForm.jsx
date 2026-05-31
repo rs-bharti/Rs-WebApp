@@ -44,7 +44,7 @@ const PurchaseVoucherForm = () => {
 
       <form className="p-8 space-y-10" onSubmit={(e) => e.preventDefault()}>
         {/* Header Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
@@ -65,6 +65,20 @@ const PurchaseVoucherForm = () => {
                 <option>Elite Paper Supplies Co.</option>
                 <option>Global Logistics Ltd.</option>
                 <option>Vintage Ink Manufacturers</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Warehouse Location</label>
+            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
+              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer">
+                <option value="" disabled selected>Select Warehouse</option>
+                <option>Main Warehouse</option>
+                <option>North Zone Warehouse</option>
+                <option>South Zone Warehouse</option>
+                <option>Central Depot</option>
+                <option>East Zone Warehouse</option>
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
