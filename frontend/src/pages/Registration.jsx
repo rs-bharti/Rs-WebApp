@@ -1,7 +1,130 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, ShieldCheck, FileText, Database, Building2 } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, FileText, Database, Building2, X, CheckCircle, User, Mail, Lock, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { createUser, getBranches, getRoles } from '../api/users';
+
+// ── Success Popup ──────────────────────────────────────────────
+const SuccessPopup = ({ data, onClose }) => {
+  if (!data) return null;
+
+  const grantedVouchers = Object.entries(data.permissions.vouchers || {})
+    .filter(([, v]) => v).map(([k]) => k);
+  const grantedMasters = Object.entries(data.permissions.masters || {})
+    .filter(([, v]) => v).map(([k]) => k);
+  const grantedBranches = data.permissions.branchNames || [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+        {/* Header */}
+        <div className="bg-brand-primary px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-white" />
+            <div>
+              <h2 className="text-white font-serif text-xl">User Created Successfully</h2>
+              <p className="text-white/60 text-[11px] uppercase tracking-widest">Share these credentials with the user</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/60 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-6 space-y-4">
+          {/* Basic Info */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-stone-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-3.5 h-3.5 text-brand-primary/60" />
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Name</span>
+              </div>
+              <p className="text-brand-primary font-semibold text-sm">{data.name}</p>
+            </div>
+            <div className="bg-stone-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Shield className="w-3.5 h-3.5 text-brand-primary/60" />
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Role</span>
+              </div>
+              <p className="text-brand-primary font-semibold text-sm capitalize">{data.role}</p>
+            </div>
+          </div>
+
+          <div className="bg-stone-50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Mail className="w-3.5 h-3.5 text-brand-primary/60" />
+              <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Email</span>
+            </div>
+            <p className="text-brand-primary font-semibold text-sm">{data.email}</p>
+          </div>
+
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Lock className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Password</span>
+            </div>
+            <p className="text-emerald-700 font-bold text-lg tracking-widest">{data.password}</p>
+          </div>
+
+          {/* Branches */}
+          {grantedBranches.length > 0 && (
+            <div className="bg-stone-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Building2 className="w-3.5 h-3.5 text-brand-primary/60" />
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">
+                  Branch Access ({grantedBranches.length})
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {grantedBranches.map(b => (
+                  <span key={b} className="bg-brand-primary/10 text-brand-primary text-[11px] px-2 py-0.5 rounded-full font-medium">{b}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Vouchers & Masters */}
+          <div className="grid grid-cols-2 gap-3">
+            {grantedVouchers.length > 0 && (
+              <div className="bg-stone-50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-3.5 h-3.5 text-brand-primary/60" />
+                  <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Vouchers</span>
+                </div>
+                <div className="space-y-1">
+                  {grantedVouchers.map(v => (
+                    <p key={v} className="text-[11px] text-stone-600">• {v}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {grantedMasters.length > 0 && (
+              <div className="bg-stone-50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Database className="w-3.5 h-3.5 text-brand-primary/60" />
+                  <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Masters</span>
+                </div>
+                <div className="space-y-1">
+                  {grantedMasters.map(m => (
+                    <p key={m} className="text-[11px] text-stone-600">• {m}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-6">
+          <button onClick={onClose}
+            className="w-full py-3 bg-brand-primary text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-brand-primary/90 transition-all">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return'];
 const MASTER_MODULES  = ['Customer', 'Area', 'City', 'State', 'Branches', 'Country', 'Payment Method', 'Supplier', 'Product', 'Category', 'Unit'];
@@ -26,6 +149,7 @@ const Registration = () => {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState('');
+  const [popup,    setPopup]    = useState(null); // holds created user data for popup
 
   useEffect(() => {
     const load = async () => {
@@ -100,20 +224,30 @@ const Registration = () => {
 
     setLoading(true);
     try {
+      const permissions = {
+        vouchers:    voucherAccess,
+        masters:     masterAccess,
+        branches:    branches.filter((b) => branchAccess[b.id]).map((b) => b.id),
+        branchNames: branches.filter((b) => branchAccess[b.id]).map((b) => b.name),
+      };
+
       const newUser = await createUser({
         name:     form.name,
         email:    form.email,
         password: form.password,
         roleId:   Number(form.roleId),
         branchId: primaryBranchId,
-        permissions: {
-          vouchers:     voucherAccess,
-          masters:      masterAccess,
-          branches:     branches.filter((b) => branchAccess[b.id]).map((b) => b.id),
-          branchNames:  branches.filter((b) => branchAccess[b.id]).map((b) => b.name),
-        },
+        permissions,
       });
-      setSuccess(`User "${newUser.name}" created successfully! They can now log in with the password you set.`);
+
+      // Show success popup with all user details
+      setPopup({
+        name:        form.name,
+        email:       form.email,
+        password:    form.password,
+        role:        selectedRoleName,
+        permissions,
+      });
       resetForm();
     } catch (err) {
       setError(err.message);
@@ -124,6 +258,9 @@ const Registration = () => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Success Popup */}
+      <SuccessPopup data={popup} onClose={() => setPopup(null)} />
+
       <div className="mb-8">
         <h2 className="font-serif text-3xl mb-1 text-brand-primary">New User Registration</h2>
         <p className="text-stone-500 text-sm">Create a new user and assign exactly what they can access.</p>
