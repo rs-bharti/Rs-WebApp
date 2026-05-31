@@ -23,7 +23,28 @@ const Login = () => {
     try {
       const { user, token } = await loginUser(email.trim(), password);
       login(user, token);
-      navigate('/dashboard');
+
+      // Admin → branch selection with all branches
+      if (user.role === 'admin') {
+        navigate('/select-branch');
+        return;
+      }
+
+      // User with branch permissions
+      const branches = user.permissions?.branches || [];
+      if (branches.length === 0) {
+        setError('No branch access assigned. Contact administrator.');
+        return;
+      }
+      if (branches.length === 1) {
+        // Only 1 branch → auto select and go to dashboard
+        const branchName = user.permissions?.branchNames?.[0] || `Branch ${branches[0]}`;
+        localStorage.setItem('activeBranch', JSON.stringify({ id: branches[0], name: branchName }));
+        navigate('/dashboard');
+        return;
+      }
+      // Multiple branches → show branch selection screen
+      navigate('/select-branch');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

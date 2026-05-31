@@ -55,7 +55,7 @@ export const getBranches = async () => {
   const res = await fetch(`${API_URL}/api/users/branches`, { headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Failed to fetch branches');
-  return data;
+  return data; // full list — use filterBranches() from AuthContext to restrict by user permissions
 };
 
 export const getRoles = async () => {

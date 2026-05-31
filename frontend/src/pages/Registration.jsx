@@ -9,14 +9,20 @@ const MASTER_MODULES  = ['Customer', 'Area', 'City', 'State', 'Branches', 'Count
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});
 
+// Fallback roles in case API fails
+const DEFAULT_ROLES = [
+  { id: 'admin', name: 'admin' },
+  { id: 'user',  name: 'user'  },
+];
+
 const Registration = () => {
-  const [form, setForm]               = useState({ name: '', email: '', password: '', roleId: '' });
+  const [form, setForm]               = useState({ name: '', email: '', password: '', roleId: 'user' });
   const [showPassword, setShowPassword] = useState(false);
   const [voucherAccess, setVoucherAccess] = useState(allFalse(VOUCHER_MODULES));
   const [masterAccess,  setMasterAccess]  = useState(allFalse(MASTER_MODULES));
-  const [branchAccess,  setBranchAccess]  = useState({});   // { [branchId]: true/false }
+  const [branchAccess,  setBranchAccess]  = useState({});
   const [branches, setBranches] = useState([]);
-  const [roles,    setRoles]    = useState([]);
+  const [roles,    setRoles]    = useState(DEFAULT_ROLES);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState('');
@@ -26,7 +32,7 @@ const Registration = () => {
       try {
         const [b, r] = await Promise.all([getBranches(), getRoles()]);
         setBranches(b);
-        setRoles(r);
+        if (r && r.length > 0) setRoles(r);
         setBranchAccess(b.reduce((a, br) => ({ ...a, [br.id]: false }), {}));
         const userRole = r.find((role) => role.name === 'user');
         if (userRole) setForm((p) => ({ ...p, roleId: String(userRole.id) }));
@@ -101,9 +107,10 @@ const Registration = () => {
         roleId:   Number(form.roleId),
         branchId: primaryBranchId,
         permissions: {
-          vouchers: voucherAccess,
-          masters:  masterAccess,
-          branches: branches.filter((b) => branchAccess[b.id]).map((b) => b.id),
+          vouchers:     voucherAccess,
+          masters:      masterAccess,
+          branches:     branches.filter((b) => branchAccess[b.id]).map((b) => b.id),
+          branchNames:  branches.filter((b) => branchAccess[b.id]).map((b) => b.name),
         },
       });
       setSuccess(`User "${newUser.name}" created successfully! They can now log in with the password you set.`);

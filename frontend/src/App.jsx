@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Login from './pages/Login';
+import BranchSelect from './pages/BranchSelect';
 import Dashboard from './pages/Dashboard';
 import Registration from './pages/Registration';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -34,6 +35,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/select-branch" element={<ProtectedRoute><BranchSelect /></ProtectedRoute>} />
 
         <Route
           path="/dashboard"
