@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
   Repeat, Undo2, LogOut, Users, MapPin, Building, Globe,
-  Database, Truck, Package, Layers, Box
+  Database, Truck, Package, Layers, Box, Warehouse,
+  ClipboardList, ArrowLeftRight
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children, role }) => (
@@ -23,30 +24,31 @@ const SidebarItem = ({ to, icon: Icon, children, role }) => (
   </NavLink>
 );
 
-// Voucher label → route slug mapping
 const VOUCHER_ROUTES = {
-  'Receipt':         { slug: 'receipt',         icon: FileText },
-  'Payment':         { slug: 'payment',          icon: CreditCard },
-  'Sales':           { slug: 'sales',            icon: Menu },
-  'Sales Return':    { slug: 'sales-return',     icon: RotateCcw },
-  'Purchase':        { slug: 'purchase',         icon: ShoppingCart },
-  'Contra':          { slug: 'contra',           icon: Repeat },
-  'Purchase Return': { slug: 'purchase-return',  icon: Undo2 },
+  'Receipt':         { slug: 'receipt',        icon: FileText },
+  'Payment':         { slug: 'payment',         icon: CreditCard },
+  'Sales':           { slug: 'sales',           icon: Menu },
+  'Sales Return':    { slug: 'sales-return',    icon: RotateCcw },
+  'Purchase':        { slug: 'purchase',        icon: ShoppingCart },
+  'Contra':          { slug: 'contra',          icon: Repeat },
+  'Purchase Return': { slug: 'purchase-return', icon: Undo2 },
+  'Stock Data':      { slug: 'stock-data',      icon: ClipboardList },
+  'Stock Transfer':  { slug: 'stock-transfer',  icon: ArrowLeftRight },
 };
 
-// Master label → route slug mapping
 const MASTER_ROUTES = {
-  'Customer':       { slug: 'customer',       icon: Users },
-  'Country':        { slug: 'country',        icon: Globe },
-  'State':          { slug: 'state',          icon: Globe },
-  'City':           { slug: 'city',           icon: Building },
-  'Area':           { slug: 'area',           icon: MapPin },
-  'Branches':       { slug: 'branches',       icon: Database },
-  'Supplier':       { slug: 'supplier',       icon: Truck },
-  'Product':        { slug: 'product',        icon: Package },
-  'Category':       { slug: 'category',       icon: Layers },
-  'Unit':           { slug: 'unit',           icon: Box },
-  'Payment Method': { slug: 'payment-method', icon: CreditCard },
+  'Customer':        { slug: 'customer',       icon: Users },
+  'Country':         { slug: 'country',        icon: Globe },
+  'State':           { slug: 'state',          icon: Globe },
+  'City':            { slug: 'city',           icon: Building },
+  'Area':            { slug: 'area',           icon: MapPin },
+  'Branches':        { slug: 'branches',       icon: Database },
+  'Warehouse':       { slug: 'warehouse',      icon: Warehouse },
+  'Supplier':        { slug: 'supplier',       icon: Truck },
+  'Product':         { slug: 'product',        icon: Package },
+  'Category':        { slug: 'category',       icon: Layers },
+  'Unit':            { slug: 'unit',           icon: Box },
+  'Payment Method':  { slug: 'payment-method', icon: CreditCard },
 };
 
 const Sidebar = ({ role = 'admin' }) => {
@@ -63,7 +65,6 @@ const Sidebar = ({ role = 'admin' }) => {
       'w-64 flex-shrink-0 border-r border-stone-200/50 flex flex-col h-screen overflow-hidden transition-colors duration-300',
       role === 'admin' ? 'bg-brand-sidebar' : 'bg-rs-sidebar'
     )}>
-      {/* Header */}
       <div className="p-8 pb-4 flex-shrink-0">
         <h1 className={cn('text-2xl tracking-tight transition-all', role === 'admin' ? 'font-serif text-brand-primary' : 'font-user-serif font-bold text-rs-text-primary')}>
           RS Bharti
@@ -73,10 +74,8 @@ const Sidebar = ({ role = 'admin' }) => {
         </p>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-4 py-4 space-y-8 overflow-y-auto custom-scrollbar">
 
-        {/* Admin-only: Add User */}
         {isAdmin && (
           <div className="space-y-1">
             <NavLink to="/dashboard/registration"
@@ -98,7 +97,7 @@ const Sidebar = ({ role = 'admin' }) => {
           </div>
         )}
 
-        {/* Voucher Entry */}
+        {/* Voucher Entry — permission filtered */}
         {(() => {
           const allowed = Object.entries(VOUCHER_ROUTES).filter(([name]) => canAccessVoucher(name));
           if (allowed.length === 0) return null;
@@ -118,7 +117,7 @@ const Sidebar = ({ role = 'admin' }) => {
           );
         })()}
 
-        {/* Master */}
+        {/* Master — permission filtered */}
         {(() => {
           const allowed = Object.entries(MASTER_ROUTES).filter(([name]) => canAccessMaster(name));
           if (allowed.length === 0) return null;
@@ -138,25 +137,24 @@ const Sidebar = ({ role = 'admin' }) => {
           );
         })()}
 
-        {/* Other — visible to all */}
+        {/* Other */}
         <div className="space-y-1 pb-8">
           <h3 className={cn('px-4 text-[10px] font-bold uppercase tracking-widest mb-3', role === 'admin' ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
             Other
           </h3>
           <ul className="space-y-1">
-            <SidebarItem to="/dashboard/other/client-ledger"     icon={FileText}  role={role}>Client Ledger</SidebarItem>
-            <SidebarItem to="/dashboard/other/stock-ledger"      icon={FileText}  role={role}>Stock Ledger</SidebarItem>
-            <SidebarItem to="/dashboard/other/client-balance"    icon={CreditCard} role={role}>Client Balance</SidebarItem>
-            <SidebarItem to="/dashboard/other/stock-quantity"    icon={Package}   role={role}>Stock Quantity</SidebarItem>
-            <SidebarItem to="/dashboard/other/product-statement" icon={FileText}  role={role}>Product Statement</SidebarItem>
-            <SidebarItem to="/dashboard/other/customer-statement" icon={FileText} role={role}>Customer Statement</SidebarItem>
-            <SidebarItem to="/dashboard/other/all-customer-balance" icon={Users}  role={role}>All Customer Balance</SidebarItem>
-            <SidebarItem to="/dashboard/other/all-balance-stock" icon={Database}  role={role}>All Balance Stock</SidebarItem>
+            <SidebarItem to="/dashboard/other/client-ledger"        icon={FileText}   role={role}>Client Ledger</SidebarItem>
+            <SidebarItem to="/dashboard/other/stock-ledger"         icon={FileText}   role={role}>Stock Ledger</SidebarItem>
+            <SidebarItem to="/dashboard/other/client-balance"       icon={CreditCard} role={role}>Client Balance</SidebarItem>
+            <SidebarItem to="/dashboard/other/stock-quantity"       icon={Package}    role={role}>Stock Quantity</SidebarItem>
+            <SidebarItem to="/dashboard/other/product-statement"    icon={FileText}   role={role}>Product Statement</SidebarItem>
+            <SidebarItem to="/dashboard/other/customer-statement"   icon={FileText}   role={role}>Customer Statement</SidebarItem>
+            <SidebarItem to="/dashboard/other/all-customer-balance" icon={Users}      role={role}>All Customer Balance</SidebarItem>
+            <SidebarItem to="/dashboard/other/all-balance-stock"    icon={Database}   role={role}>All Balance Stock</SidebarItem>
           </ul>
         </div>
       </nav>
 
-      {/* Logout */}
       <div className="p-4 border-t border-stone-200/50 flex-shrink-0">
         <button onClick={handleLogout}
           className={cn(

@@ -12,6 +12,9 @@ import SalesVoucherForm from './components/ui/vouchers/SalesVoucherForm';
 import SalesReturnVoucherForm from './components/ui/vouchers/SalesReturnVoucherForm';
 import PurchaseVoucherForm from './components/ui/vouchers/PurchaseVoucherForm';
 import PurchaseReturnVoucherForm from './components/ui/vouchers/PurchaseReturnVoucherForm';
+import StockDataVoucherForm from './components/ui/vouchers/StockDataVoucherForm';
+import StockTransferVoucherForm from './components/ui/vouchers/StockTransferVoucherForm';
+import WarehouseMaster from './components/ui/WarehouseMaster';
 import MasterForm from './components/ui/MasterForm';
 import { useAuth } from './context/AuthContext';
 
@@ -55,7 +58,10 @@ function App() {
           <Route path="purchase" element={<PurchaseVoucherForm />} />
           <Route path="purchase-return" element={<PurchaseReturnVoucherForm />} />
           <Route path="contra" element={<ContraVoucherForm />} />
+          <Route path="stock-data" element={<StockDataVoucherForm />} />
+          <Route path="stock-transfer" element={<StockTransferVoucherForm />} />
 
+          <Route path="master/warehouse" element={<WarehouseMaster userRole={userRole} />} />
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
