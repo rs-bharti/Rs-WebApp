@@ -11,6 +11,8 @@ import {
   Repeat, 
   Undo2,
   LogOut,
+  ClipboardList,
+  ArrowLeftRight,
   Users,
   MapPin,
   Building,
@@ -19,7 +21,8 @@ import {
   Truck,
   Package,
   Layers,
-  Box
+  Box,
+  Warehouse
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children, role }) => (
@@ -112,6 +115,8 @@ const Sidebar = ({ role = 'admin' }) => {
             <SidebarItem to="/dashboard/purchase" icon={ShoppingCart} role={role}>Purchase Voucher</SidebarItem>
             <SidebarItem to="/dashboard/contra" icon={Repeat} role={role}>Contra Voucher</SidebarItem>
             <SidebarItem to="/dashboard/purchase-return" icon={Undo2} role={role}>Purchase Return</SidebarItem>
+            <SidebarItem to="/dashboard/stock-data" icon={ClipboardList} role={role}>Stock Data Voucher</SidebarItem>
+            <SidebarItem to="/dashboard/stock-transfer" icon={ArrowLeftRight} role={role}>Stock Transfer Voucher</SidebarItem>
           </ul>
         </div>
 
@@ -127,6 +132,7 @@ const Sidebar = ({ role = 'admin' }) => {
             <SidebarItem to="/dashboard/master/state" icon={Globe} role={role}>State Master</SidebarItem>
             <SidebarItem to="/dashboard/master/city" icon={Building} role={role}>City Master</SidebarItem>
             <SidebarItem to="/dashboard/master/area" icon={MapPin} role={role}>Area Master</SidebarItem>
+            <SidebarItem to="/dashboard/master/warehouse" icon={Warehouse} role={role}>Warehouse Master</SidebarItem>
             {role === 'admin' && (
               <>
                 <SidebarItem to="/dashboard/master/supplier" icon={Truck} role={role}>Supplier Master</SidebarItem>

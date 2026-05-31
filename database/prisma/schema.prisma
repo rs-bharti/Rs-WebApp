@@ -35,32 +35,46 @@ model StateMaster {
 }
 
 model CityMaster {
-  id        Int          @id @default(autoincrement())
-  createdAt DateTime     @default(now())
-  stateId   Int
-  updatedAt DateTime     @updatedAt
-  name      String
-  areas     AreaMaster[]
-  branches  Branch[]
-  state     StateMaster  @relation(fields: [stateId], references: [id])
-  customers Customer[]
-  suppliers Supplier[]
+  id         Int               @id @default(autoincrement())
+  createdAt  DateTime          @default(now())
+  stateId    Int
+  updatedAt  DateTime          @updatedAt
+  name       String
+  areas      AreaMaster[]
+  branches   Branch[]
+  state      StateMaster       @relation(fields: [stateId], references: [id])
+  customers  Customer[]
+  suppliers  Supplier[]
+  warehouses WarehouseMaster[]
 
   @@unique([name, stateId])
 }
 
 model AreaMaster {
-  id        Int        @id @default(autoincrement())
-  cityId    Int
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  name      String
-  city      CityMaster @relation(fields: [cityId], references: [id])
-  branches  Branch[]
-  customers Customer[]
-  suppliers Supplier[]
+  id         Int                @id @default(autoincrement())
+  cityId     Int
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  name       String
+  city       CityMaster         @relation(fields: [cityId], references: [id])
+  branches   Branch[]
+  customers  Customer[]
+  suppliers  Supplier[]
+  warehouses WarehouseMaster[]
 
   @@unique([name, cityId])
+}
+
+model WarehouseMaster {
+  id        Int         @id @default(autoincrement())
+  name      String
+  address   String?
+  areaId    Int?
+  cityId    Int?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  area      AreaMaster? @relation(fields: [areaId], references: [id])
+  city      CityMaster? @relation(fields: [cityId], references: [id])
 }
 
 model Branch {
