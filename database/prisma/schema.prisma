@@ -94,9 +94,11 @@ model Branch {
   city      CityMaster        @relation(fields: [cityId], references: [id])
   country   CountryMaster     @relation(fields: [countryId], references: [id])
   state     StateMaster       @relation(fields: [stateId], references: [id])
-  purchases PurchaseVoucher[]
-  sales     SalesVoucher[]
-  users     User[]
+  purchases       PurchaseVoucher[]
+  sales           SalesVoucher[]
+  purchaseReturns PurchaseReturnVoucher[]
+  salesReturns    SalesReturnVoucher[]
+  users           User[]
 }
 
 model CategoryMaster {
@@ -129,11 +131,13 @@ model Supplier {
   countryId Int
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
-  purchases PurchaseVoucher[]
-  area      AreaMaster?       @relation(fields: [areaId], references: [id])
-  city      CityMaster        @relation(fields: [cityId], references: [id])
-  country   CountryMaster     @relation(fields: [countryId], references: [id])
-  state     StateMaster       @relation(fields: [stateId], references: [id])
+  purchases       PurchaseVoucher[]
+  paymentVouchers PaymentVoucher[]
+  purchaseReturns PurchaseReturnVoucher[]
+  area            AreaMaster?       @relation(fields: [areaId], references: [id])
+  city            CityMaster        @relation(fields: [cityId], references: [id])
+  country         CountryMaster     @relation(fields: [countryId], references: [id])
+  state           StateMaster       @relation(fields: [stateId], references: [id])
 }
 
 model Product {
@@ -152,6 +156,8 @@ model Product {
   salesItems            SalesVoucherItem[]
   stockDataVouchers     StockDataVoucher[]
   stockTransferVouchers StockTransferVoucher[]
+  purchaseReturnItems   PurchaseReturnVoucherItem[]
+  salesReturnItems      SalesReturnVoucherItem[]
 }
 
 model Customer {
@@ -170,8 +176,10 @@ model Customer {
   area      AreaMaster?    @relation(fields: [areaId], references: [id])
   city      CityMaster     @relation(fields: [cityId], references: [id])
   country   CountryMaster  @relation(fields: [countryId], references: [id])
-  state     StateMaster    @relation(fields: [stateId], references: [id])
-  sales     SalesVoucher[]
+  state           StateMaster    @relation(fields: [stateId], references: [id])
+  sales           SalesVoucher[]
+  receiptVouchers ReceiptVoucher[]
+  salesReturns    SalesReturnVoucher[]
 }
 
 model Role {
@@ -197,6 +205,11 @@ model User {
   sales                 SalesVoucher[]
   stockDataVouchers     StockDataVoucher[]
   stockTransferVouchers StockTransferVoucher[]
+  contraVouchers        ContraVoucher[]
+  receiptVouchers       ReceiptVoucher[]
+  paymentVouchers       PaymentVoucher[]
+  purchaseReturns       PurchaseReturnVoucher[]
+  salesReturns          SalesReturnVoucher[]
   branch                Branch                 @relation(fields: [branchId], references: [id])
   role                  Role                   @relation(fields: [roleId], references: [id])
 }
@@ -226,12 +239,18 @@ model Permission {
 }
 
 model PaymentMethodMaster {
-  id        Int               @id @default(autoincrement())
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  name      String            @unique
-  purchases PurchaseVoucher[]
-  sales     SalesVoucher[]
+  id              Int                    @id @default(autoincrement())
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  name            String                 @unique
+  purchases       PurchaseVoucher[]
+  sales           SalesVoucher[]
+  contraFrom      ContraVoucher[]        @relation("ContraFrom")
+  contraTo        ContraVoucher[]        @relation("ContraTo")
+  receiptVouchers ReceiptVoucher[]
+  paymentVouchers PaymentVoucher[]
+  purchaseReturns PurchaseReturnVoucher[]
+  salesReturns    SalesReturnVoucher[]
 }
 
 model PurchaseVoucher {
@@ -340,4 +359,141 @@ model StockTransferVoucher {
   fromWarehouse      WarehouseMaster @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
   product            Product         @relation(fields: [productId], references: [id])
   toWarehouse        WarehouseMaster @relation("TransferTo", fields: [toWarehouseId], references: [id])
+}
+
+// ─── Contra Voucher ───────────────────────────────────────────────────────────
+// Cash-to-bank or bank-to-bank internal fund transfer, no line items.
+
+model ContraVoucher {
+  id                  Int                 @id @default(autoincrement())
+  voucherNo           String              @unique
+  fromPaymentMethodId Int
+  toPaymentMethodId   Int
+  amount              Float
+  narration           String?
+  date                DateTime
+  createdById         Int
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  createdBy           User                @relation(fields: [createdById], references: [id])
+  fromPaymentMethod   PaymentMethodMaster @relation("ContraFrom", fields: [fromPaymentMethodId], references: [id])
+  toPaymentMethod     PaymentMethodMaster @relation("ContraTo", fields: [toPaymentMethodId], references: [id])
+}
+
+// ─── Receipt Voucher ─────────────────────────────────────────────────────────
+// Money received from a customer.
+
+model ReceiptVoucher {
+  id              Int                 @id @default(autoincrement())
+  voucherNo       String              @unique
+  customerId      Int
+  paymentMethodId Int
+  amount          Float
+  narration       String?
+  date            DateTime
+  createdById     Int
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  customer        Customer            @relation(fields: [customerId], references: [id])
+  paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+}
+
+// ─── Payment Voucher ─────────────────────────────────────────────────────────
+// Money paid to a supplier.
+
+model PaymentVoucher {
+  id              Int                 @id @default(autoincrement())
+  voucherNo       String              @unique
+  supplierId      Int
+  paymentMethodId Int
+  amount          Float
+  narration       String?
+  date            DateTime
+  createdById     Int
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+}
+
+// ─── Purchase Return Voucher ──────────────────────────────────────────────────
+// Returning goods back to supplier. Same structure as PurchaseVoucher.
+
+model PurchaseReturnVoucher {
+  id              Int                        @id @default(autoincrement())
+  voucherNo       String                     @unique
+  supplierId      Int
+  branchId        Int
+  paymentMethodId Int
+  createdById     Int
+  date            DateTime
+  subTotal        Float                      @default(0)
+  taxAmount       Float                      @default(0)
+  discountAmount  Float                      @default(0)
+  totalAmount     Float
+  narration       String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  branch          Branch                     @relation(fields: [branchId], references: [id])
+  createdBy       User                       @relation(fields: [createdById], references: [id])
+  paymentMethod   PaymentMethodMaster        @relation(fields: [paymentMethodId], references: [id])
+  supplier        Supplier                   @relation(fields: [supplierId], references: [id])
+  items           PurchaseReturnVoucherItem[]
+}
+
+model PurchaseReturnVoucherItem {
+  id             Int                   @id @default(autoincrement())
+  voucherId      Int
+  productId      Int
+  qty            Float
+  rate           Float
+  subTotal       Float                 @default(0)
+  taxRate        Float                 @default(0)
+  taxAmount      Float                 @default(0)
+  discountAmount Float                 @default(0)
+  amount         Float
+  product        Product               @relation(fields: [productId], references: [id])
+  voucher        PurchaseReturnVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+// ─── Sales Return Voucher ─────────────────────────────────────────────────────
+// Customer returning goods. Same structure as SalesVoucher.
+
+model SalesReturnVoucher {
+  id              Int                      @id @default(autoincrement())
+  voucherNo       String                   @unique
+  customerId      Int
+  branchId        Int
+  paymentMethodId Int
+  createdById     Int
+  date            DateTime
+  subTotal        Float                    @default(0)
+  taxAmount       Float                    @default(0)
+  discountAmount  Float                    @default(0)
+  totalAmount     Float
+  narration       String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  branch          Branch                   @relation(fields: [branchId], references: [id])
+  createdBy       User                     @relation(fields: [createdById], references: [id])
+  customer        Customer                 @relation(fields: [customerId], references: [id])
+  paymentMethod   PaymentMethodMaster      @relation(fields: [paymentMethodId], references: [id])
+  items           SalesReturnVoucherItem[]
+}
+
+model SalesReturnVoucherItem {
+  id             Int                @id @default(autoincrement())
+  voucherId      Int
+  productId      Int
+  qty            Float
+  rate           Float
+  subTotal       Float              @default(0)
+  taxRate        Float              @default(0)
+  taxAmount      Float              @default(0)
+  discountAmount Float              @default(0)
+  amount         Float
+  product        Product            @relation(fields: [productId], references: [id])
+  voucher        SalesReturnVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 }
