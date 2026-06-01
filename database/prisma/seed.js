@@ -49,17 +49,7 @@ async function main() {
   });
 
   // 3. Branches (25 branches)
-  const branchNames = [
-    'Main Branch - Mumbai',   'Branch 2 - Delhi',        'Branch 3 - Bangalore',
-    'Branch 4 - Chennai',     'Branch 5 - Hyderabad',    'Branch 6 - Pune',
-    'Branch 7 - Kolkata',     'Branch 8 - Ahmedabad',    'Branch 9 - Jaipur',
-    'Branch 10 - Surat',      'Branch 11 - Lucknow',     'Branch 12 - Kanpur',
-    'Branch 13 - Nagpur',     'Branch 14 - Indore',      'Branch 15 - Bhopal',
-    'Branch 16 - Visakhapatnam', 'Branch 17 - Patna',    'Branch 18 - Vadodara',
-    'Branch 19 - Ghaziabad',  'Branch 20 - Ludhiana',    'Branch 21 - Agra',
-    'Branch 22 - Nashik',     'Branch 23 - Faridabad',   'Branch 24 - Meerut',
-    'Branch 25 - Rajkot',
-  ];
+  const branchNames = Array.from({ length: 25 }, (_, i) => `Branch ${i + 1}`);
 
   for (let i = 0; i < branchNames.length; i++) {
     await prisma.branch.upsert({
@@ -78,8 +68,30 @@ async function main() {
 
   const branch = await prisma.branch.findFirst({ where: { id: 1 } });
 
-  // 4. Admin User — permissions must be explicit (NOT NULL column)
+  // 4. Admin Users
   const adminPassword = await bcrypt.hash('admin123', 10);
+
+  await prisma.user.upsert({
+    where: { email: 'admin@gmail.com' },
+    update: {
+      name: 'Admin',
+      password: adminPassword,
+      plainPassword: 'admin123',
+      branchId: branch.id,
+      roleId: adminRole.id,
+      permissions: '{}',
+    },
+    create: {
+      name: 'Admin',
+      email: 'admin@gmail.com',
+      password: adminPassword,
+      plainPassword: 'admin123',
+      roleId: adminRole.id,
+      branchId: branch.id,
+      permissions: '{}',
+    },
+  });
+
   await prisma.user.upsert({
     where: { email: 'admin@rsbharti.com' },
     update: {
@@ -177,8 +189,9 @@ async function main() {
   });
 
   console.log('✓ Seeding completed!');
+  console.log('  Admin → admin@gmail.com / admin123');
   console.log('  Admin → admin@rsbharti.com / admin123');
-  console.log('  All other users must be created by admin through the app.');
+  console.log('  Branches: Branch 1 … Branch 25');
 }
 
 main()
