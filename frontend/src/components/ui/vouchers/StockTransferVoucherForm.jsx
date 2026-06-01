@@ -1,34 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ArrowRight } from 'lucide-react';
 
 const StockTransferVoucherForm = () => {
   const type = 'Stock Transfer';
 
-  const [rows, setRows] = useState([{ id: 1, product: '', qty: 1 }]);
+  const [rows, setRows] = useState([{ id: 1, productId: '', qty: 1 }]);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [voucherNo, setVoucherNo] = useState('');
+  const [fromWarehouseId, setFromWarehouseId] = useState('');
+  const [toWarehouseId, setToWarehouseId] = useState('');
+  const [note, setNote] = useState('');
+  const [warehouses, setWarehouses] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const addRow = () => {
-    setRows(prev => [...prev, { id: Date.now(), product: '', qty: 1 }]);
-  };
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/warehouses').then(r => r.json()),
+      fetch('/api/products').then(r => r.json()),
+      fetch('/api/stock-transfer-vouchers/next-number').then(r => r.json()),
+    ]).then(([wh, pr, vn]) => {
+      setWarehouses(wh);
+      setProducts(pr);
+      setVoucherNo(vn.voucherNo);
+    }).catch(() => setError('Failed to load form data'));
+  }, []);
+
+  const addRow = () => setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1 }]);
 
   const removeRow = (id) => {
-    if (rows.length > 1) {
-      setRows(prev => prev.filter(row => row.id !== id));
+    if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id));
+  };
+
+  const updateRow = (id, field, value) =>
+    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+
+  const totalQty = rows.reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setSaving(true);
+    try {
+      const res = await fetch('/api/stock-transfer-vouchers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date,
+          fromWarehouseId: parseInt(fromWarehouseId),
+          toWarehouseId: parseInt(toWarehouseId),
+          note,
+          items: rows.map(r => ({ productId: r.productId, qty: r.qty })),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save voucher');
+      }
+      const saved = await res.json();
+      setSuccess(`Voucher ${saved.voucherNo} saved successfully!`);
+      setRows([{ id: 1, productId: '', qty: 1 }]);
+      setNote('');
+      setFromWarehouseId('');
+      setToWarehouseId('');
+      const vn = await fetch('/api/stock-transfer-vouchers/next-number').then(r => r.json());
+      setVoucherNo(vn.voucherNo);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const updateRow = (id, field, value) => {
-    setRows(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
+  const handleDiscard = () => {
+    setRows([{ id: 1, productId: '', qty: 1 }]);
+    setNote('');
+    setFromWarehouseId('');
+    setToWarehouseId('');
+    setError('');
+    setSuccess('');
   };
-
-  const totalQty = rows.reduce((sum, row) => sum + (parseFloat(row.qty) || 0), 0);
-
-  const warehouseOptions = [
-    'Main Warehouse',
-    'North Zone Warehouse',
-    'South Zone Warehouse',
-    'Central Depot',
-    'East Zone Warehouse',
-  ];
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -36,11 +90,14 @@ const StockTransferVoucherForm = () => {
       <div className="px-8 py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New {type} Voucher</h2>
         <span className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest bg-rs-cream px-3 py-1 rounded-full">
-          Ref: STV-2026-001
+          Ref: {voucherNo || '…'}
         </span>
       </div>
 
-      <form className="p-8 space-y-10" onSubmit={(e) => e.preventDefault()}>
+      <form className="p-8 space-y-10" onSubmit={handleSubmit}>
+        {error && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
+        {success && <p className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">{success}</p>}
+
         {/* Header Row: Date + Voucher No */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-xl">
           <div className="space-y-2">
@@ -49,7 +106,8 @@ const StockTransferVoucherForm = () => {
               <input
                 className="w-full bg-transparent text-sm font-medium outline-none"
                 type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
               />
             </div>
           </div>
@@ -61,7 +119,7 @@ const StockTransferVoucherForm = () => {
                 className="w-full bg-transparent text-sm font-bold text-rs-text-primary outline-none"
                 readOnly
                 type="text"
-                value="STV-2026-001"
+                value={voucherNo}
               />
             </div>
           </div>
@@ -72,9 +130,16 @@ const StockTransferVoucherForm = () => {
           <div className="flex-1 space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">From Warehouse</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer">
-                <option value="" disabled selected>Select Source Warehouse</option>
-                {warehouseOptions.map(w => <option key={w}>{w}</option>)}
+              <select
+                className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
+                value={fromWarehouseId}
+                onChange={(e) => setFromWarehouseId(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select Source Warehouse</option>
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
@@ -87,9 +152,16 @@ const StockTransferVoucherForm = () => {
           <div className="flex-1 space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">To Warehouse</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer">
-                <option value="" disabled selected>Select Destination Warehouse</option>
-                {warehouseOptions.map(w => <option key={w}>{w}</option>)}
+              <select
+                className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
+                value={toWarehouseId}
+                onChange={(e) => setToWarehouseId(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select Destination Warehouse</option>
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
@@ -117,15 +189,13 @@ const StockTransferVoucherForm = () => {
                       <div className="flex items-center">
                         <select
                           className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none cursor-pointer font-medium"
-                          value={row.product}
-                          onChange={(e) => updateRow(row.id, 'product', e.target.value)}
+                          value={row.productId}
+                          onChange={(e) => updateRow(row.id, 'productId', e.target.value)}
                         >
                           <option value="">Select Product</option>
-                          <option value="notebook">Premium Leather Notebook</option>
-                          <option value="ink">Archival Grade Blue Ink</option>
-                          <option value="pen">Calligraphy Pen Set</option>
-                          <option value="paper">Bond Paper Ream</option>
-                          <option value="stapler">Heavy Duty Stapler</option>
+                          {products.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
                         </select>
                         <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
                       </div>
@@ -171,6 +241,8 @@ const StockTransferVoucherForm = () => {
               className="w-full bg-rs-cream/20 border border-stone-200 rounded-lg p-4 text-sm resize-none outline-none focus:border-rs-text-primary transition-colors"
               placeholder="Enter additional details..."
               rows="4"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
             ></textarea>
           </div>
 
@@ -188,15 +260,17 @@ const StockTransferVoucherForm = () => {
         <div className="flex justify-end items-center gap-8 pt-8 border-t border-stone-100">
           <button
             className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer"
-            type="reset"
+            type="button"
+            onClick={handleDiscard}
           >
             Discard
           </button>
           <button
-            className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer"
+            className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60"
             type="submit"
+            disabled={saving}
           >
-            Save {type} Voucher
+            {saving ? 'Saving…' : `Save ${type} Voucher`}
           </button>
         </div>
       </form>
