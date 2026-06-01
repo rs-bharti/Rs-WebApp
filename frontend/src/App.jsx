@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import Login from './pages/Login';
+import BranchSelect from './pages/BranchSelect';
 import Dashboard from './pages/Dashboard';
 import Registration from './pages/Registration';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -13,38 +14,43 @@ import PurchaseVoucherForm from './components/ui/vouchers/PurchaseVoucherForm';
 import PurchaseReturnVoucherForm from './components/ui/vouchers/PurchaseReturnVoucherForm';
 import StockDataVoucherForm from './components/ui/vouchers/StockDataVoucherForm';
 import StockTransferVoucherForm from './components/ui/vouchers/StockTransferVoucherForm';
-import MasterForm from './components/ui/MasterForm';
 import WarehouseMaster from './components/ui/WarehouseMaster';
+import MasterForm from './components/ui/MasterForm';
+import { useAuth } from './context/AuthContext';
 
-// Helper component to handle Master Routing with capitalization
 const MasterRouteWrapper = ({ userRole }) => {
   const { type } = useParams();
-  const capitalizedType = type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const capitalizedType = type.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   return <MasterForm type={capitalizedType} userRole={userRole} />;
 };
 
-function App() {
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'admin');
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
 
-  useEffect(() => {
-    const handleStorage = () => {
-      setUserRole(localStorage.getItem('userRole') || 'admin');
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+function App() {
+  const { user } = useAuth();
+  const userRole = user?.role || 'user';
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login onLogin={(role) => setUserRole(role)} />} />
-        
-        {/* Protected Dashboard Routes */}
-        <Route path="/dashboard" element={<DashboardLayout userRole={userRole} />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/select-branch" element={<ProtectedRoute><BranchSelect /></ProtectedRoute>} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout userRole={userRole} />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Dashboard userRole={userRole} />} />
           <Route path="registration" element={<Registration />} />
-          
-          {/* Functional Voucher Routes for User */}
+
           <Route path="receipt" element={<ReceiptVoucherForm />} />
           <Route path="payment" element={<PaymentVoucherForm />} />
           <Route path="sales" element={<SalesVoucherForm />} />
@@ -54,14 +60,13 @@ function App() {
           <Route path="contra" element={<ContraVoucherForm />} />
           <Route path="stock-data" element={<StockDataVoucherForm />} />
           <Route path="stock-transfer" element={<StockTransferVoucherForm />} />
-          
-          {/* Functional Master Routes */}
+
           <Route path="master/warehouse" element={<WarehouseMaster userRole={userRole} />} />
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />
-          
+
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
-        
+
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

@@ -1,8 +1,9 @@
 import React from 'react';
 import Sidebar from '../ui/Sidebar';
 import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark } from 'lucide-react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../context/AuthContext';
 
 const StatCard = ({ title, amount, trend, trendType, role }) => (
   <article className={cn(
@@ -47,7 +48,9 @@ const StatCard = ({ title, amount, trend, trendType, role }) => (
 
 const DashboardLayout = ({ userRole = 'admin' }) => {
   const location = useLocation();
-  const userName = localStorage.getItem('userName') || 'Admin User';
+  const navigate  = useNavigate();
+  const { user, activeBranch, allowedBranches, isAdmin } = useAuth();
+  const userName = user?.name || 'Admin User';
 
   return (
     <div className={cn(
@@ -73,6 +76,28 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
             )}>
               {userRole === 'admin' ? 'Financial Overview' : 'Operational Workspace'}
             </span>
+
+            {/* Active Branch indicator — shown for both admin and user */}
+            {activeBranch && (
+              <>
+                <span className={cn("h-4 w-[1px]", "bg-stone-200")}></span>
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-brand-primary/60" />
+                  <span className="text-sm font-semibold text-brand-primary">
+                    {activeBranch.name}
+                  </span>
+                  {/* Admin always gets switch, user only if multiple branches */}
+                  {(isAdmin || allowedBranches.length > 1) && (
+                    <button
+                      onClick={() => navigate('/select-branch')}
+                      className="text-[10px] uppercase tracking-widest text-brand-primary/50 hover:text-brand-primary border border-brand-primary/20 hover:border-brand-primary/50 px-2 py-0.5 rounded transition-all"
+                    >
+                      Switch
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <button className="text-stone-400 hover:text-brand-primary cursor-pointer transition-colors">
