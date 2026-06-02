@@ -6,6 +6,8 @@ const authRoutes         = require('./src/routes/auth');
 const userRoutes         = require('./src/routes/users');
 const warehouseRoutes    = require('./src/routes/warehouse');
 const stockVoucherRoutes = require('./src/routes/stockVouchers');
+const mastersRoutes      = require('./src/routes/masters');
+const voucherRoutes      = require('./src/routes/vouchers');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +24,8 @@ app.use('/api/auth',           authRoutes);
 app.use('/api/users',          userRoutes);
 app.use('/api/warehouses',     warehouseRoutes);
 app.use('/api/stock-vouchers', stockVoucherRoutes);
+app.use('/api/masters',        mastersRoutes);
+app.use('/api/vouchers',       voucherRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
