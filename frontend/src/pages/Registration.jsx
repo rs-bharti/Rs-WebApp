@@ -135,8 +135,8 @@ const SuccessPopup = ({ data, onClose }) => {
   );
 };
 
-const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer', 'Warehouse Voucher'];
-const MASTER_MODULES  = ['Customer', 'Area', 'City', 'State', 'Branches', 'Country', 'Payment Method', 'Supplier', 'Product', 'Category', 'Unit', 'Warehouse'];
+const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
+const MASTER_MODULES  = ['Customer', 'Area', 'City', 'State', 'Country', 'Payment Method', 'Supplier', 'Product', 'Category', 'Unit', 'Warehouse'];
 const OTHER_MODULES   = ['Client Ledger', 'Stock Ledger', 'Client Balance', 'Stock Quantity', 'Product Statement', 'Customer Statement', 'All Customer Balance', 'All Balance Stock'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});

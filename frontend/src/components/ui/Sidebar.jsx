@@ -32,9 +32,8 @@ const VOUCHER_ROUTES = {
   'Purchase':        { slug: 'purchase',        icon: ShoppingCart },
   'Contra':          { slug: 'contra',          icon: Repeat },
   'Purchase Return': { slug: 'purchase-return', icon: Undo2 },
-  'Stock Data':      { slug: 'stock-data',        icon: ClipboardList },
-  'Stock Transfer':  { slug: 'stock-transfer',    icon: ArrowLeftRight },
-  'Warehouse Voucher': { slug: 'warehouse-voucher', icon: Warehouse },
+  'Stock Data':     { slug: 'stock-data',     icon: ClipboardList },
+  'Stock Transfer': { slug: 'stock-transfer', icon: ArrowLeftRight },
 };
 
 const MASTER_ROUTES = {
@@ -43,7 +42,6 @@ const MASTER_ROUTES = {
   'State':           { slug: 'state',          icon: Globe },
   'City':            { slug: 'city',           icon: Building },
   'Area':            { slug: 'area',           icon: MapPin },
-  'Branches':        { slug: 'branches',       icon: Database },
   'Warehouse':       { slug: 'warehouse',      icon: Warehouse },
   'Supplier':        { slug: 'supplier',       icon: Truck },
   'Product':         { slug: 'product',        icon: Package },
