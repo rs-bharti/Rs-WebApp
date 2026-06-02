@@ -61,6 +61,7 @@ function App() {
           <Route path="stock-data" element={<StockDataVoucherForm />} />
           <Route path="stock-transfer" element={<StockTransferVoucherForm />} />
 
+
           <Route path="master/warehouse" element={<WarehouseMaster userRole={userRole} />} />
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />
 

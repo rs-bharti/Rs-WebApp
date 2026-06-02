@@ -60,6 +60,12 @@ export const AuthProvider = ({ children }) => {
     return permissions?.masters?.[name] === true;
   };
 
+  // Check if this user can access a specific "Other" report
+  const canAccessOther = (name) => {
+    if (isAdmin) return true;
+    return permissions?.others?.[name] === true;
+  };
+
   // Check if this user can access a specific branch (by branch id)
   const canAccessBranch = (branchId) => {
     if (isAdmin) return true;
@@ -90,6 +96,7 @@ export const AuthProvider = ({ children }) => {
         permissions,
         canAccessVoucher,
         canAccessMaster,
+        canAccessOther,
         canAccessBranch,
         filterBranches,
         // List of branches this user can access [{id, name}]
