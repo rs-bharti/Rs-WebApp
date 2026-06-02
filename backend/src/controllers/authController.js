@@ -37,7 +37,7 @@ const login = async (req, res) => {
         name:        user.name,
         email:       user.email,
         role:        user.role.name,
-        branch:      user.branch.name,
+        branch:      user.branch?.name ?? null,
         branchId:    user.branchId,
         permissions,
       },
