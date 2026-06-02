@@ -14,6 +14,7 @@ import PurchaseVoucherForm from './components/ui/vouchers/PurchaseVoucherForm';
 import PurchaseReturnVoucherForm from './components/ui/vouchers/PurchaseReturnVoucherForm';
 import StockDataVoucherForm from './components/ui/vouchers/StockDataVoucherForm';
 import StockTransferVoucherForm from './components/ui/vouchers/StockTransferVoucherForm';
+import WarehouseVoucherForm from './components/ui/vouchers/WarehouseVoucherForm';
 import WarehouseMaster from './components/ui/WarehouseMaster';
 import MasterForm from './components/ui/MasterForm';
 import { useAuth } from './context/AuthContext';
@@ -60,6 +61,7 @@ function App() {
           <Route path="contra" element={<ContraVoucherForm />} />
           <Route path="stock-data" element={<StockDataVoucherForm />} />
           <Route path="stock-transfer" element={<StockTransferVoucherForm />} />
+          <Route path="warehouse-voucher" element={<WarehouseVoucherForm />} />
 
           <Route path="master/warehouse" element={<WarehouseMaster userRole={userRole} />} />
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />

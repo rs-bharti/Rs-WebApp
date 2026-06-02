@@ -11,6 +11,8 @@ const SuccessPopup = ({ data, onClose }) => {
     .filter(([, v]) => v).map(([k]) => k);
   const grantedMasters = Object.entries(data.permissions.masters || {})
     .filter(([, v]) => v).map(([k]) => k);
+  const grantedOthers = Object.entries(data.permissions.others || {})
+    .filter(([, v]) => v).map(([k]) => k);
   const grantedBranches = data.permissions.branchNames || [];
 
   return (
@@ -83,7 +85,7 @@ const SuccessPopup = ({ data, onClose }) => {
             </div>
           )}
 
-          {/* Vouchers & Masters */}
+          {/* Vouchers, Masters, Others */}
           <div className="grid grid-cols-2 gap-3">
             {grantedVouchers.length > 0 && (
               <div className="bg-stone-50 rounded-xl p-4">
@@ -92,9 +94,7 @@ const SuccessPopup = ({ data, onClose }) => {
                   <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Vouchers</span>
                 </div>
                 <div className="space-y-1">
-                  {grantedVouchers.map(v => (
-                    <p key={v} className="text-[11px] text-stone-600">• {v}</p>
-                  ))}
+                  {grantedVouchers.map(v => <p key={v} className="text-[11px] text-stone-600">• {v}</p>)}
                 </div>
               </div>
             )}
@@ -105,9 +105,18 @@ const SuccessPopup = ({ data, onClose }) => {
                   <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Masters</span>
                 </div>
                 <div className="space-y-1">
-                  {grantedMasters.map(m => (
-                    <p key={m} className="text-[11px] text-stone-600">• {m}</p>
-                  ))}
+                  {grantedMasters.map(m => <p key={m} className="text-[11px] text-stone-600">• {m}</p>)}
+                </div>
+              </div>
+            )}
+            {grantedOthers.length > 0 && (
+              <div className="bg-stone-50 rounded-xl p-4 col-span-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-3.5 h-3.5 text-brand-primary/60" />
+                  <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Other Reports</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4">
+                  {grantedOthers.map(o => <p key={o} className="text-[11px] text-stone-600">• {o}</p>)}
                 </div>
               </div>
             )}
@@ -126,8 +135,9 @@ const SuccessPopup = ({ data, onClose }) => {
   );
 };
 
-const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
+const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer', 'Warehouse Voucher'];
 const MASTER_MODULES  = ['Customer', 'Area', 'City', 'State', 'Branches', 'Country', 'Payment Method', 'Supplier', 'Product', 'Category', 'Unit', 'Warehouse'];
+const OTHER_MODULES   = ['Client Ledger', 'Stock Ledger', 'Client Balance', 'Stock Quantity', 'Product Statement', 'Customer Statement', 'All Customer Balance', 'All Balance Stock'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});
@@ -143,6 +153,7 @@ const Registration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [voucherAccess, setVoucherAccess] = useState(allFalse(VOUCHER_MODULES));
   const [masterAccess,  setMasterAccess]  = useState(allFalse(MASTER_MODULES));
+  const [otherAccess,   setOtherAccess]   = useState(allFalse(OTHER_MODULES));
   const [branchAccess,  setBranchAccess]  = useState({});
   const [branches, setBranches] = useState([]);
   const [roles,    setRoles]    = useState(DEFAULT_ROLES);
@@ -176,10 +187,12 @@ const Registration = () => {
     if (roleName === 'admin') {
       setVoucherAccess(allTrue(VOUCHER_MODULES));
       setMasterAccess(allTrue(MASTER_MODULES));
+      setOtherAccess(allTrue(OTHER_MODULES));
       setBranchAccess(branches.reduce((a, br) => ({ ...a, [br.id]: true }), {}));
     } else {
       setVoucherAccess(allFalse(VOUCHER_MODULES));
       setMasterAccess(allFalse(MASTER_MODULES));
+      setOtherAccess(allFalse(OTHER_MODULES));
       setBranchAccess(branches.reduce((a, br) => ({ ...a, [br.id]: false }), {}));
     }
   };
@@ -194,6 +207,7 @@ const Registration = () => {
     setForm((p) => ({ name: '', email: '', password: '', roleId: p.roleId }));
     setVoucherAccess(allFalse(VOUCHER_MODULES));
     setMasterAccess(allFalse(MASTER_MODULES));
+    setOtherAccess(allFalse(OTHER_MODULES));
     setBranchAccess(branches.reduce((a, br) => ({ ...a, [br.id]: false }), {}));
     setError(''); setSuccess('');
   };
@@ -227,6 +241,7 @@ const Registration = () => {
       const permissions = {
         vouchers:    voucherAccess,
         masters:     masterAccess,
+        others:      otherAccess,
         branches:    branches.filter((b) => branchAccess[b.id]).map((b) => b.id),
         branchNames: branches.filter((b) => branchAccess[b.id]).map((b) => b.name),
       };
@@ -397,6 +412,33 @@ const Registration = () => {
                       </label>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Other Access */}
+              <div className="mt-10 pt-8 border-t border-stone-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="w-4 h-4 text-brand-accent" />
+                  <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Other Reports Access</h4>
+                  {!isAdmin && (
+                    <button type="button"
+                      onClick={() => setOtherAccess(OTHER_MODULES.every(m => otherAccess[m]) ? allFalse(OTHER_MODULES) : allTrue(OTHER_MODULES))}
+                      className="ml-auto text-[10px] text-brand-primary underline cursor-pointer">
+                      {OTHER_MODULES.every(m => otherAccess[m]) ? 'Uncheck all' : 'Check all'}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                  {OTHER_MODULES.map((item) => (
+                    <label key={item} className={cn('flex items-center text-sm text-stone-600 group', !isAdmin && 'cursor-pointer')}>
+                      <input type="checkbox"
+                        checked={otherAccess[item] || false}
+                        onChange={() => !isAdmin && setOtherAccess((p) => ({ ...p, [item]: !p[item] }))}
+                        disabled={isAdmin}
+                        className="rounded mr-2 border-stone-300 accent-brand-primary" />
+                      <span className={cn(!isAdmin && 'group-hover:text-brand-primary transition-colors')}>{item}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
