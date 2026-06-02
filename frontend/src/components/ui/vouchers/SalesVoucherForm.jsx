@@ -71,6 +71,7 @@ const SalesVoucherForm = () => {
         date,
         customerId:      parseInt(customerId),
         paymentMethodId: parseInt(paymentMethodId),
+        narration:       narration || undefined,
         items: validItems.map(r => ({
           productId: parseInt(r.productId),
           qty:       parseFloat(r.qty),
