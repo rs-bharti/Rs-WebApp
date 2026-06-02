@@ -85,18 +85,18 @@ async function main() {
     update: {
       password: adminPassword,
       plainPassword: 'admin123',
+      permissions: '{}',
       branchId: branch.id,
       roleId: adminRole.id,
-      permissions: '{}',
     },
     create: {
       name: 'System Admin',
       email: 'admin@rsbharti.com',
       password: adminPassword,
       plainPassword: 'admin123',
+      permissions: '{}',
       roleId: adminRole.id,
       branchId: branch.id,
-      permissions: '{}',
     },
   });
 
