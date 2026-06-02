@@ -540,6 +540,17 @@ const deleteProduct = async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
+// ── Payment Methods ────────────────────────────────────────────────────────────
+const getPaymentMethods = async (req, res) => {
+  try {
+    const rows = await prisma.paymentMethodMaster.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json(rows);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
 module.exports = {
   getCountries, createCountry, updateCountry, deleteCountry,
   getStates,    createState,   updateState,   deleteState,
@@ -551,4 +562,5 @@ module.exports = {
   getSuppliers, createSupplier, updateSupplier, deleteSupplier,
   getCustomers, createCustomer, updateCustomer, deleteCustomer,
   getProducts,  createProduct,  updateProduct,  deleteProduct,
+  getPaymentMethods,
 };

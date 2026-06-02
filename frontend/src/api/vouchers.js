@@ -12,40 +12,44 @@ const apiFetch = async (path, options = {}) => {
   return data;
 };
 
-export const getPaymentMethods = () => apiFetch('/api/vouchers/payment-methods');
-export const getDashboard       = () => apiFetch('/api/vouchers/dashboard');
+// ── Sales Voucher ──────────────────────────────────────────────────────────────
+export const getSalesVoucherNextNo = ()     => apiFetch('/api/vouchers/sales/next-number');
+export const saveSalesVoucher      = (body) => apiFetch('/api/vouchers/sales', { method: 'POST', body: JSON.stringify(body) });
+export const getSalesVouchers      = ()     => apiFetch('/api/vouchers/sales');
 
-// Contra
-export const getContraNextNo = ()     => apiFetch('/api/vouchers/contra/next-number');
-export const getContras      = ()     => apiFetch('/api/vouchers/contra');
-export const createContra    = (body) => apiFetch('/api/vouchers/contra', { method: 'POST', body: JSON.stringify(body) });
+// ── Purchase Voucher ───────────────────────────────────────────────────────────
+export const getPurchaseVoucherNextNo = ()     => apiFetch('/api/vouchers/purchase/next-number');
+export const savePurchaseVoucher      = (body) => apiFetch('/api/vouchers/purchase', { method: 'POST', body: JSON.stringify(body) });
+export const getPurchaseVouchers      = ()     => apiFetch('/api/vouchers/purchase');
 
-// Receipt
-export const getReceiptNextNo = ()     => apiFetch('/api/vouchers/receipt/next-number');
-export const getReceipts      = ()     => apiFetch('/api/vouchers/receipt');
-export const createReceipt    = (body) => apiFetch('/api/vouchers/receipt', { method: 'POST', body: JSON.stringify(body) });
+// ── Sales Return Voucher ───────────────────────────────────────────────────────
+export const getSalesReturnNextNo     = ()     => apiFetch('/api/vouchers/sales-return/next-number');
+export const saveSalesReturnVoucher   = (body) => apiFetch('/api/vouchers/sales-return', { method: 'POST', body: JSON.stringify(body) });
+export const getSalesReturnVouchers   = ()     => apiFetch('/api/vouchers/sales-return');
 
-// Payment
-export const getPaymentNextNo = ()     => apiFetch('/api/vouchers/payment/next-number');
-export const getPayments      = ()     => apiFetch('/api/vouchers/payment');
-export const createPayment    = (body) => apiFetch('/api/vouchers/payment', { method: 'POST', body: JSON.stringify(body) });
+// ── Purchase Return Voucher ────────────────────────────────────────────────────
+export const getPurchaseReturnNextNo   = ()     => apiFetch('/api/vouchers/purchase-return/next-number');
+export const savePurchaseReturnVoucher = (body) => apiFetch('/api/vouchers/purchase-return', { method: 'POST', body: JSON.stringify(body) });
+export const getPurchaseReturnVouchers = ()     => apiFetch('/api/vouchers/purchase-return');
 
-// Purchase
-export const getPurchaseNextNo = ()     => apiFetch('/api/vouchers/purchase/next-number');
-export const getPurchases      = ()     => apiFetch('/api/vouchers/purchase');
-export const createPurchase    = (body) => apiFetch('/api/vouchers/purchase', { method: 'POST', body: JSON.stringify(body) });
+// ── Receipt Voucher ────────────────────────────────────────────────────────────
+export const getReceiptVoucherNextNo = ()     => apiFetch('/api/vouchers/receipt/next-number');
+export const saveReceiptVoucher      = (body) => apiFetch('/api/vouchers/receipt', { method: 'POST', body: JSON.stringify(body) });
+export const getReceiptVouchers      = ()     => apiFetch('/api/vouchers/receipt');
 
-// Sales
-export const getSalesNextNo = ()     => apiFetch('/api/vouchers/sales/next-number');
-export const getSales       = ()     => apiFetch('/api/vouchers/sales');
-export const createSales    = (body) => apiFetch('/api/vouchers/sales', { method: 'POST', body: JSON.stringify(body) });
+// ── Payment Voucher ────────────────────────────────────────────────────────────
+export const getPaymentVoucherNextNo = ()     => apiFetch('/api/vouchers/payment/next-number');
+export const savePaymentVoucher      = (body) => apiFetch('/api/vouchers/payment', { method: 'POST', body: JSON.stringify(body) });
+export const getPaymentVouchers      = ()     => apiFetch('/api/vouchers/payment');
 
-// Purchase Return
-export const getPurchaseReturnNextNo = ()     => apiFetch('/api/vouchers/purchase-return/next-number');
-export const getPurchaseReturns      = ()     => apiFetch('/api/vouchers/purchase-return');
-export const createPurchaseReturn    = (body) => apiFetch('/api/vouchers/purchase-return', { method: 'POST', body: JSON.stringify(body) });
+// ── Contra Voucher ─────────────────────────────────────────────────────────────
+export const getContraVoucherNextNo = ()     => apiFetch('/api/vouchers/contra/next-number');
+export const saveContraVoucher      = (body) => apiFetch('/api/vouchers/contra', { method: 'POST', body: JSON.stringify(body) });
+export const getContraVouchers      = ()     => apiFetch('/api/vouchers/contra');
 
-// Sales Return
-export const getSalesReturnNextNo = ()     => apiFetch('/api/vouchers/sales-return/next-number');
-export const getSalesReturns      = ()     => apiFetch('/api/vouchers/sales-return');
-export const createSalesReturn    = (body) => apiFetch('/api/vouchers/sales-return', { method: 'POST', body: JSON.stringify(body) });
+// ── Stock Data Voucher ─────────────────────────────────────────────────────────
+export const getStockDataVoucherNextNo = ()     => apiFetch('/api/stock-vouchers/data/next-number');
+export const saveStockDataVoucher      = (body) => apiFetch('/api/stock-vouchers/data', { method: 'POST', body: JSON.stringify(body) });
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+export const getDashboard = () => apiFetch('/api/vouchers/dashboard');

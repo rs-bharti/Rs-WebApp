@@ -1,69 +1,90 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { getPaymentMethods, getReceiptNextNo, createReceipt } from '../../../api/vouchers';
-import { getCustomers } from '../../../api/masters';
+import { getCustomers, getPaymentMethods } from '../../../api/masters';
+import { getReceiptVoucherNextNo, saveReceiptVoucher } from '../../../api/vouchers';
 
 const ReceiptVoucherForm = () => {
-  const [voucherNo,       setVoucherNo]       = useState('');
-  const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
-  const [customerId,      setCustomerId]      = useState('');
+  const type = 'Receipt';
+
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [voucherNo, setVoucherNo] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [amount,          setAmount]          = useState('');
-  const [narration,       setNarration]       = useState('');
-  const [customers,       setCustomers]       = useState([]);
-  const [paymentMethods,  setPaymentMethods]  = useState([]);
-  const [submitting,      setSubmitting]      = useState(false);
-  const [message,         setMessage]         = useState(null);
+  const [amount, setAmount] = useState('');
+  const [narration, setNarration] = useState('');
+
+  const [customers, setCustomers] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    Promise.all([getCustomers(), getPaymentMethods(), getReceiptNextNo()])
-      .then(([custs, methods, { voucherNo: no }]) => {
-        setCustomers(custs);
-        setPaymentMethods(methods);
-        setVoucherNo(no);
-      })
-      .catch(() => setMessage({ type: 'error', text: 'Failed to load form data' }));
+    Promise.all([
+      getCustomers(),
+      getPaymentMethods(),
+      getReceiptVoucherNextNo(),
+    ]).then(([cust, pm, vn]) => {
+      setCustomers(cust);
+      setPaymentMethods(pm);
+      setVoucherNo(vn.voucherNo);
+    }).catch(() => setError('Failed to load form data'));
   }, []);
-
-  const reset = () => { setCustomerId(''); setPaymentMethodId(''); setAmount(''); setNarration(''); setMessage(null); setDate(new Date().toISOString().split('T')[0]); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!customerId || !paymentMethodId || !amount) {
-      setMessage({ type: 'error', text: 'Please fill all required fields' });
-      return;
-    }
-    setSubmitting(true);
-    setMessage(null);
+    setError('');
+    setSuccess('');
+    if (!customerId)                        return setError('Please select a customer');
+    if (!paymentMethodId)                   return setError('Please select a payment method');
+    if (!amount || parseFloat(amount) <= 0) return setError('Please enter a valid amount');
+    setSaving(true);
     try {
-      await createReceipt({ customerId, paymentMethodId, amount: Number(amount), narration, date });
-      setMessage({ type: 'success', text: `Receipt Voucher ${voucherNo} saved successfully!` });
-      const { voucherNo: no } = await getReceiptNextNo();
-      setVoucherNo(no);
-      reset();
+      const voucher = await saveReceiptVoucher({
+        date,
+        customerId:      parseInt(customerId),
+        paymentMethodId: parseInt(paymentMethodId),
+        amount:          parseFloat(amount),
+        narration:       narration || undefined,
+      });
+      setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
+      setCustomerId('');
+      setPaymentMethodId('');
+      setAmount('');
+      setNarration('');
+      const vn = await getReceiptVoucherNextNo();
+      setVoucherNo(vn.voucherNo);
     } catch (err) {
-      setMessage({ type: 'error', text: err.message });
+      setError(err.message);
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
+  };
+
+  const handleDiscard = () => {
+    setCustomerId('');
+    setPaymentMethodId('');
+    setAmount('');
+    setNarration('');
+    setError('');
+    setSuccess('');
   };
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="px-8 py-6 border-b border-stone-100 flex justify-between items-center">
-        <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New Receipt Voucher</h2>
+        <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New {type} Voucher</h2>
         <span className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest bg-rs-cream px-3 py-1 rounded-full">
-          Ref: {voucherNo || '...'}
+          Ref: {voucherNo || '…'}
         </span>
       </div>
 
-      {message && (
-        <div className={`mx-8 mt-6 px-4 py-3 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-          {message.text}
-        </div>
-      )}
-
       <form className="p-8 space-y-10" onSubmit={handleSubmit}>
+        {error   && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
+        {success && <p className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">{success}</p>}
+
+        {/* Header Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>
@@ -71,17 +92,19 @@ const ReceiptVoucherForm = () => {
               <input className="w-full bg-transparent text-sm font-medium outline-none" type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
           </div>
+
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Voucher No</label>
             <div className="relative border-b border-stone-100 pb-1">
-              <input className="w-full bg-transparent text-sm font-bold text-rs-text-primary outline-none" readOnly value={voucherNo} />
+              <input className="w-full bg-transparent text-sm font-bold text-rs-text-primary outline-none" readOnly type="text" value={voucherNo} />
             </div>
           </div>
+
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Customer Name</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
               <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={customerId} onChange={e => setCustomerId(e.target.value)} required>
-                <option value="">Select Customer</option>
+                <option value="" disabled>Select Customer</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
@@ -89,17 +112,19 @@ const ReceiptVoucherForm = () => {
           </div>
         </div>
 
+        {/* Payment Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Method</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
               <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
-                <option value="">Select Method</option>
-                {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                <option value="" disabled>Select Method</option>
+                {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
           </div>
+
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
@@ -109,6 +134,7 @@ const ReceiptVoucherForm = () => {
           </div>
         </div>
 
+        {/* Narration & Total */}
         <div className="flex flex-col md:flex-row gap-12 pt-6 border-t border-stone-50">
           <div className="flex-1 space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Narration (Remarks)</label>
@@ -118,18 +144,19 @@ const ReceiptVoucherForm = () => {
             <div className="flex justify-between items-end">
               <span className="font-bold text-rs-text-primary text-sm uppercase tracking-widest">Grand Total</span>
               <span className="text-3xl font-user-serif font-bold text-rs-text-primary tracking-tight">
-                ₹ {Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ₹ {parseFloat(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
         </div>
 
+        {/* Actions */}
         <div className="flex justify-end items-center gap-8 pt-8 border-t border-stone-100">
-          <button type="button" onClick={reset} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+          <button type="button" onClick={handleDiscard} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
             Discard
           </button>
-          <button type="submit" disabled={submitting} className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
-            {submitting ? 'Saving...' : 'Save Receipt Voucher'}
+          <button type="submit" disabled={saving} className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
+            {saving ? 'Saving…' : `Save ${type} Voucher`}
           </button>
         </div>
       </form>

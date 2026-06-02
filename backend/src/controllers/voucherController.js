@@ -172,8 +172,8 @@ const getPurchases = async (_req, res) => {
 const createPurchase = async (req, res) => {
   try {
     const { supplierId, branchId, paymentMethodId, date, items, narration } = req.body;
-    if (!supplierId || !branchId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'supplierId, branchId, paymentMethodId, and items are required' });
+    if (!supplierId || !paymentMethodId || !items?.length)
+      return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
 
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
@@ -184,7 +184,7 @@ const createPurchase = async (req, res) => {
       data: {
         voucherNo:       await nextNo('purchaseVoucher', 'PUR'),
         supplierId:      Number(supplierId),
-        branchId:        Number(branchId),
+        branchId:        Number(branchId) || req.user.branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -237,8 +237,8 @@ const getSales = async (_req, res) => {
 const createSales = async (req, res) => {
   try {
     const { customerId, branchId, paymentMethodId, date, items, narration } = req.body;
-    if (!customerId || !branchId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'customerId, branchId, paymentMethodId, and items are required' });
+    if (!customerId || !paymentMethodId || !items?.length)
+      return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
 
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
@@ -249,7 +249,7 @@ const createSales = async (req, res) => {
       data: {
         voucherNo:       await nextNo('salesVoucher', 'SV'),
         customerId:      Number(customerId),
-        branchId:        Number(branchId),
+        branchId:        Number(branchId) || req.user.branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -302,8 +302,8 @@ const getPurchaseReturns = async (_req, res) => {
 const createPurchaseReturn = async (req, res) => {
   try {
     const { supplierId, branchId, paymentMethodId, date, items, narration } = req.body;
-    if (!supplierId || !branchId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'supplierId, branchId, paymentMethodId, and items are required' });
+    if (!supplierId || !paymentMethodId || !items?.length)
+      return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
 
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
@@ -314,7 +314,7 @@ const createPurchaseReturn = async (req, res) => {
       data: {
         voucherNo:       await nextNo('purchaseReturnVoucher', 'PRV'),
         supplierId:      Number(supplierId),
-        branchId:        Number(branchId),
+        branchId:        Number(branchId) || req.user.branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -368,8 +368,8 @@ const getSalesReturns = async (_req, res) => {
 const createSalesReturn = async (req, res) => {
   try {
     const { customerId, branchId, paymentMethodId, date, items, narration } = req.body;
-    if (!customerId || !branchId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'customerId, branchId, paymentMethodId, and items are required' });
+    if (!customerId || !paymentMethodId || !items?.length)
+      return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
 
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
@@ -380,7 +380,7 @@ const createSalesReturn = async (req, res) => {
       data: {
         voucherNo:       await nextNo('salesReturnVoucher', 'SRV'),
         customerId:      Number(customerId),
-        branchId:        Number(branchId),
+        branchId:        Number(branchId) || req.user.branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,

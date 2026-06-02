@@ -6,7 +6,7 @@ const authRoutes         = require('./src/routes/auth');
 const userRoutes         = require('./src/routes/users');
 const warehouseRoutes    = require('./src/routes/warehouse');
 const stockVoucherRoutes = require('./src/routes/stockVouchers');
-const masterRoutes       = require('./src/routes/masters');
+const mastersRoutes      = require('./src/routes/masters');
 const voucherRoutes      = require('./src/routes/vouchers');
 
 const app  = express();
@@ -24,7 +24,7 @@ app.use('/api/auth',           authRoutes);
 app.use('/api/users',          userRoutes);
 app.use('/api/warehouses',     warehouseRoutes);
 app.use('/api/stock-vouchers', stockVoucherRoutes);
-app.use('/api/masters',        masterRoutes);
+app.use('/api/masters',        mastersRoutes);
 app.use('/api/vouchers',       voucherRoutes);
 
 app.listen(PORT, () => {

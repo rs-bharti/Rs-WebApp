@@ -188,6 +188,43 @@ async function main() {
     },
   });
 
+  // 9. Payment Methods (required by all financial vouchers — no create UI exists)
+  const paymentMethodNames = ['Cash', 'Bank Transfer', 'Cheque', 'UPI', 'Credit Card', 'Debit Card'];
+  for (const name of paymentMethodNames) {
+    await prisma.paymentMethodMaster.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+
+  // 10. Sample Customer (needed for Sales / Receipt / Sales Return vouchers)
+  await prisma.customer.upsert({
+    where: { id: 1 },
+    update: { name: 'Walk-in Customer' },
+    create: {
+      id: 1,
+      name: 'Walk-in Customer',
+      phone: '9999999999',
+      cityId: city.id,
+      stateId: state.id,
+      countryId: country.id,
+    },
+  });
+
+  // 11. Sample Warehouse (needed for Stock Data voucher)
+  await prisma.warehouseMaster.upsert({
+    where: { id: 1 },
+    update: { name: 'Main Warehouse' },
+    create: {
+      id: 1,
+      name: 'Main Warehouse',
+      address: 'Mumbai, Maharashtra',
+      cityId: city.id,
+      areaId: area.id,
+    },
+  });
+
   console.log('✓ Seeding completed!');
   console.log('  Admin → admin@gmail.com / admin123');
   console.log('  Admin → admin@rsbharti.com / admin123');
