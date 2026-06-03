@@ -581,8 +581,9 @@ const createPaymentMethod = async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
+    const branchId = getBranchId(req);
     const row = await prisma.paymentMethodMaster.create({
-      data: { name: name.trim() },
+      data: { name: name.trim(), branchId: branchId || null },
       select: { id: true, name: true },
     });
     res.status(201).json(row);
@@ -591,6 +592,29 @@ const createPaymentMethod = async (req, res) => {
     if (err.code === 'P2002') return res.status(409).json({ message: `Payment method "${req.body.name}" already exists.` });
     res.status(500).json({ message: err.message || 'Server error' });
   }
+};
+
+const updatePaymentMethod = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const row = await prisma.paymentMethodMaster.update({
+      where: { id: Number(req.params.id) },
+      data: { name: name.trim() },
+      select: { id: true, name: true },
+    });
+    res.json(row);
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'P2002') return res.status(409).json({ message: `Payment method "${req.body.name}" already exists.` });
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const deletePaymentMethod = async (req, res) => {
+  try {
+    await prisma.paymentMethodMaster.delete({ where: { id: Number(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
 module.exports = {
@@ -604,5 +628,5 @@ module.exports = {
   getSuppliers, createSupplier, updateSupplier, deleteSupplier,
   getCustomers, createCustomer, updateCustomer, deleteCustomer,
   getProducts,  createProduct,  updateProduct,  deleteProduct,
-  getPaymentMethods, createPaymentMethod,
+  getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
 };
