@@ -38,9 +38,6 @@ const VOUCHER_ROUTES = {
 
 const MASTER_ROUTES = {
   'Customer':        { slug: 'customer',       icon: Users },
-  'Country':         { slug: 'country',        icon: Globe },
-  'State':           { slug: 'state',          icon: Globe },
-  'City':            { slug: 'city',           icon: Building },
   'Area':            { slug: 'area',           icon: MapPin },
   'Warehouse':       { slug: 'warehouse',      icon: Warehouse },
   'Supplier':        { slug: 'supplier',       icon: Truck },

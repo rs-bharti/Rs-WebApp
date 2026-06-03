@@ -29,7 +29,13 @@ export const updateState = (id, body) => apiFetch(`/api/masters/states/${id}`, {
 export const deleteState = (id)       => apiFetch(`/api/masters/states/${id}`,  { method: 'DELETE' });
 
 // ── Cities ─────────────────────────────────────────────────────────────────────
-export const getCities  = (stateId)   => apiFetch(`/api/masters/cities${stateId ? `?stateId=${stateId}` : ''}`);
+export const getCities = ({ stateId, search } = {}) => {
+  const params = new URLSearchParams();
+  if (stateId) params.set('stateId', stateId);
+  if (search)  params.set('search',  search);
+  const qs = params.toString();
+  return apiFetch(`/api/masters/cities${qs ? `?${qs}` : ''}`);
+};
 export const createCity = (body)      => apiFetch('/api/masters/cities',     { method: 'POST',   body: JSON.stringify(body) });
 export const updateCity = (id, body)  => apiFetch(`/api/masters/cities/${id}`, { method: 'PUT',  body: JSON.stringify(body) });
 export const deleteCity = (id)        => apiFetch(`/api/masters/cities/${id}`,  { method: 'DELETE' });
