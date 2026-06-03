@@ -8,7 +8,7 @@ const SalesVoucherForm = () => {
   const type = 'Sales';
   const { activeBranch } = useAuth();
 
-  const [rows, setRows] = useState([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
+  const [rows, setRows] = useState([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo, setVoucherNo] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -42,7 +42,7 @@ const SalesVoucherForm = () => {
   }, []);
 
   const addRow = () =>
-    setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1, rate: 0, amount: 0 }]);
+    setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
 
   const removeRow = (id) => {
     if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id));
@@ -73,16 +73,18 @@ const SalesVoucherForm = () => {
         date,
         customerId:      parseInt(customerId),
         paymentMethodId: parseInt(paymentMethodId),
+        warehouseId:     warehouseId ? parseInt(warehouseId) : undefined,
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
           productId: parseInt(r.productId),
           qty:       parseFloat(r.qty),
           rate:      parseFloat(r.rate),
+          remark:    r.remark || undefined,
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
+      setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
       setCustomerId('');
       setWarehouseId('');
       setPaymentMethodId('');
@@ -97,7 +99,7 @@ const SalesVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
+    setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
     setCustomerId('');
     setWarehouseId('');
     setPaymentMethodId('');
@@ -189,6 +191,7 @@ const SalesVoucherForm = () => {
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-20">Qty</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Rate</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Total</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-48">Remark</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -212,6 +215,15 @@ const SalesVoucherForm = () => {
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-rs-text-primary">
                       ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-4">
+                      <input
+                        className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none text-sm text-rs-text-secondary placeholder:text-stone-300"
+                        type="text"
+                        placeholder="Remark…"
+                        value={row.remark}
+                        onChange={e => updateRow(row.id, 'remark', e.target.value)}
+                      />
                     </td>
                     <td className="px-2 py-4 text-center">
                       <button type="button" onClick={() => removeRow(row.id)} className="text-stone-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">

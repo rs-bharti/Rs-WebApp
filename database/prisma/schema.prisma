@@ -77,6 +77,7 @@ model WarehouseMaster {
   stockDataVouchers StockDataVoucher[]
   stockTransferFrom StockTransferVoucher[] @relation("TransferFrom")
   stockTransferTo   StockTransferVoucher[] @relation("TransferTo")
+  salesVouchers     SalesVoucher[]
   area              AreaMaster?            @relation(fields: [areaId], references: [id])
   city              CityMaster?            @relation(fields: [cityId], references: [id])
   branch            Branch?                @relation(fields: [branchId], references: [id])
@@ -322,7 +323,10 @@ model SalesVoucher {
   id              Int                 @id @default(autoincrement())
   voucherNo       String              @unique
   customerId      Int
+  customerName    String?
   branchId        Int
+  warehouseId     Int?
+  warehouseName   String?
   paymentMethodId Int
   createdById     Int
   date            DateTime
@@ -330,12 +334,14 @@ model SalesVoucher {
   taxAmount       Float               @default(0)
   discountAmount  Float               @default(0)
   totalAmount     Float
+  narration       String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   branch          Branch              @relation(fields: [branchId], references: [id])
   createdBy       User                @relation(fields: [createdById], references: [id])
   customer        Customer            @relation(fields: [customerId], references: [id])
   paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+  warehouse       WarehouseMaster?    @relation(fields: [warehouseId], references: [id])
   items           SalesVoucherItem[]
 }
 
@@ -343,6 +349,7 @@ model SalesVoucherItem {
   id             Int          @id @default(autoincrement())
   voucherId      Int
   productId      Int
+  productName    String?
   qty            Float
   rate           Float
   subTotal       Float        @default(0)
@@ -350,6 +357,7 @@ model SalesVoucherItem {
   taxAmount      Float        @default(0)
   discountAmount Float        @default(0)
   amount         Float
+  remark         String?
   product        Product      @relation(fields: [productId], references: [id])
   voucher        SalesVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 }

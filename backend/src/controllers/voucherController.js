@@ -271,11 +271,23 @@ const getSales = async (req, res) => {
 
 const createSales = async (req, res) => {
   try {
-    const { customerId, paymentMethodId, date, items, narration } = req.body;
+    const { customerId, paymentMethodId, warehouseId, date, items, narration } = req.body;
     if (!customerId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
 
     const branchId = getBranchId(req);
+
+    const productIds = [...new Set(items.map(i => Number(i.productId)))];
+    const lookups = [
+      prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
+      prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
+      warehouseId
+        ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
+        : Promise.resolve(null),
+    ];
+    const [productRecords, customerRecord, warehouseRecord] = await Promise.all(lookups);
+    const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
+
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
@@ -285,14 +297,19 @@ const createSales = async (req, res) => {
       data: {
         voucherNo:       await nextNo('salesVoucher', 'SV'),
         customerId:      Number(customerId),
+        customerName:    customerRecord?.name || null,
         branchId:        branchId,
+        warehouseId:     warehouseId ? Number(warehouseId) : null,
+        warehouseName:   warehouseRecord?.name || null,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
+        narration:       narration || null,
         createdById:     req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
+            productName:    productNameMap[Number(i.productId)] || null,
             qty:            Number(i.qty),
             rate:           Number(i.rate),
             subTotal:       Number(i.qty) * Number(i.rate),
@@ -300,6 +317,7 @@ const createSales = async (req, res) => {
             taxAmount:      Number(i.taxAmount || 0),
             discountAmount: Number(i.discountAmount || 0),
             amount:         Number(i.qty) * Number(i.rate) + Number(i.taxAmount || 0) - Number(i.discountAmount || 0),
+            remark:         i.remark || null,
           })),
         },
       },
