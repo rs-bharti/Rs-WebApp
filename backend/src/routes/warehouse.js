@@ -5,9 +5,17 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticate);
 
-router.get('/', async (_req, res) => {
+const getBranchId = (req) => {
+  const headerBranch = req.headers['x-branch-id'];
+  if (headerBranch) return Number(headerBranch);
+  return req.user.branchId || null;
+};
+
+router.get('/', async (req, res) => {
   try {
-    const warehouses = await prisma.warehouseMaster.findMany({ orderBy: { createdAt: 'desc' } });
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
+    const warehouses = await prisma.warehouseMaster.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json(warehouses);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -18,12 +26,14 @@ router.post('/', async (req, res) => {
   const { name, address, cityId, areaId } = req.body;
   if (!name) return res.status(400).json({ message: 'Warehouse name is required' });
   try {
+    const branchId = getBranchId(req);
     const warehouse = await prisma.warehouseMaster.create({
       data: {
         name,
         address,
-        cityId: cityId ? parseInt(cityId) : undefined,
-        areaId: areaId ? parseInt(areaId) : undefined,
+        cityId:   cityId   ? parseInt(cityId)   : undefined,
+        areaId:   areaId   ? parseInt(areaId)   : undefined,
+        branchId: branchId || null,
       },
     });
     res.status(201).json(warehouse);

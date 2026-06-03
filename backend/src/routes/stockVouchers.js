@@ -5,6 +5,12 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticate);
 
+const getBranchId = (req) => {
+  const headerBranch = req.headers['x-branch-id'];
+  if (headerBranch) return Number(headerBranch);
+  return req.user.branchId || null;
+};
+
 // ── Helper: auto voucher number ───────────────────────────────
 async function nextNo(model, prefix) {
   const year = new Date().getFullYear();
@@ -23,10 +29,13 @@ router.get('/data/next-number', async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/data', async (_req, res) => {
+router.get('/data', async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const vouchers = await prisma.stockDataVoucher.findMany({
-      include: { warehouse: true, product: true, createdBy: { select: { name: true } } },
+      where,
+      include: { warehouse: true, product: true, createdBy: { select: { name: true } }, branch: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });
     res.json(vouchers);
@@ -39,6 +48,7 @@ router.post('/data', async (req, res) => {
   if (!productId)   return res.status(400).json({ message: 'Product is required' });
   if (!qty || qty <= 0) return res.status(400).json({ message: 'Qty must be > 0' });
   try {
+    const branchId = getBranchId(req);
     const voucher = await prisma.stockDataVoucher.create({
       data: {
         voucherNo:   await nextNo('stockDataVoucher', 'SDV'),
@@ -48,6 +58,7 @@ router.post('/data', async (req, res) => {
         productId:   parseInt(productId),
         qty:         parseFloat(qty),
         createdById: req.user.id,
+        branchId:    branchId || null,
       },
     });
     res.status(201).json(voucher);
@@ -60,10 +71,13 @@ router.get('/transfer/next-number', async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/transfer', async (_req, res) => {
+router.get('/transfer', async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const vouchers = await prisma.stockTransferVoucher.findMany({
-      include: { fromWarehouse: true, toWarehouse: true, product: true, createdBy: { select: { name: true } } },
+      where,
+      include: { fromWarehouse: true, toWarehouse: true, product: true, createdBy: { select: { name: true } }, branch: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });
     res.json(vouchers);
@@ -79,6 +93,7 @@ router.post('/transfer', async (req, res) => {
   if (!productId) return res.status(400).json({ message: 'Product is required' });
   if (!qty || qty <= 0) return res.status(400).json({ message: 'Qty must be > 0' });
   try {
+    const branchId = getBranchId(req);
     const [fromWH, toWH] = await Promise.all([
       prisma.warehouseMaster.findUnique({ where: { id: parseInt(fromWarehouseId) }, select: { name: true } }),
       prisma.warehouseMaster.findUnique({ where: { id: parseInt(toWarehouseId) },   select: { name: true } }),
@@ -95,6 +110,7 @@ router.post('/transfer', async (req, res) => {
         productId:         parseInt(productId),
         qty:               parseFloat(qty),
         createdById:       req.user.id,
+        branchId:          branchId || null,
       },
     });
     res.status(201).json(voucher);
@@ -102,9 +118,11 @@ router.post('/transfer', async (req, res) => {
 });
 
 // ── Products list (for dropdowns) ────────────────────────────
-router.get('/products', async (_req, res) => {
+router.get('/products', async (req, res) => {
   try {
-    const products = await prisma.product.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } });
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
+    const products = await prisma.product.findMany({ where, orderBy: { name: 'asc' }, select: { id: true, name: true } });
     res.json(products);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

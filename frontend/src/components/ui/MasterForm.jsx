@@ -9,6 +9,7 @@ import {
   createSupplier, createCustomer, createProduct,
   createPaymentMethod,
 } from '../../api/masters';
+import { useAuth } from '../../context/AuthContext';
 
 const PHONE_CONFIG = {
   // Asia
@@ -125,6 +126,9 @@ const validateLocationName = (name, label) => {
 };
 const sanitizeLocationInput = (val) => val.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿ\s\-'.]/g, '');
 
+// These master types are branch-specific (business data, not geographic reference)
+const BRANCH_SCOPED_TYPES = ['Customer', 'Supplier', 'Product', 'Category', 'Payment Method'];
+
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const isDetailed = type === 'Supplier';
   const isCustomer = type === 'Customer';
@@ -132,6 +136,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const isBranch   = type === 'Branch' || type === 'Branches';
   const isUnit     = type === 'Unit';
   const isAdmin    = userRole === 'admin';
+  const isBranchScoped = BRANCH_SCOPED_TYPES.includes(type);
+
+  const { activeBranch } = useAuth();
 
   // ── Form state ───────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState({});
@@ -663,6 +670,17 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       </div>
 
       <form className="p-8 space-y-12" onSubmit={handleSubmit}>
+        {/* Branch badge (business masters only, not for geographic/structural masters) */}
+        {isBranchScoped && activeBranch && (
+          <div className={cn(
+            'flex items-center gap-3 px-4 py-2 rounded-lg border max-w-xs',
+            isAdmin ? 'bg-brand-bg/10 border-brand-bg' : 'bg-stone-50 border-stone-100'
+          )}>
+            <span className={cn('text-[10px] uppercase font-bold tracking-widest', isAdmin ? 'text-brand-primary/60' : 'text-rs-text-muted')}>Branch</span>
+            <span className={cn('text-sm font-semibold', isAdmin ? 'text-brand-primary' : 'text-rs-text-primary')}>{activeBranch.name}</span>
+          </div>
+        )}
+
         {/* Feedback banners */}
         {error && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">

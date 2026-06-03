@@ -5,9 +5,11 @@ import {
   getCountries, getStates, getCities, getAreas,
   getWarehouses, createWarehouse, deleteWarehouse,
 } from '../../api/masters';
+import { useAuth } from '../../context/AuthContext';
 
 const WarehouseMaster = ({ userRole = 'admin' }) => {
   const isAdmin = userRole === 'admin';
+  const { activeBranch } = useAuth();
 
   const [warehouses, setWarehouses] = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -135,6 +137,17 @@ const WarehouseMaster = ({ userRole = 'admin' }) => {
 
       {/* Create form */}
       <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        {/* Branch (read-only) */}
+        {activeBranch && (
+          <div className={cn(
+            'flex items-center gap-3 px-4 py-2 rounded-lg border max-w-xs',
+            isAdmin ? 'bg-brand-bg/10 border-brand-bg' : 'bg-stone-50 border-stone-100'
+          )}>
+            <span className={cn('text-[10px] uppercase font-bold tracking-widest', isAdmin ? 'text-brand-primary/60' : 'text-rs-text-muted')}>Branch</span>
+            <span className={cn('text-sm font-semibold', isAdmin ? 'text-brand-primary' : 'text-rs-text-primary')}>{activeBranch.name}</span>
+          </div>
+        )}
+
         {error && (
           <div className="px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
         )}

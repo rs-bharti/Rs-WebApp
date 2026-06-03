@@ -1,7 +1,13 @@
 const prisma = require('../utils/prisma');
 
+const getBranchId = (req) => {
+  const headerBranch = req.headers['x-branch-id'];
+  if (headerBranch) return Number(headerBranch);
+  return req.user.branchId || null;
+};
+
 // ── Countries ──────────────────────────────────────────────────────────────────
-const getCountries = async (req, res) => {
+const getCountries = async (_req, res) => {
   try {
     const rows = await prisma.countryMaster.findMany({
       select: { id: true, name: true },
@@ -257,7 +263,10 @@ const deleteBranch = async (req, res) => {
 // ── Categories ─────────────────────────────────────────────────────────────────
 const getCategories = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.categoryMaster.findMany({
+      where,
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
@@ -269,8 +278,9 @@ const createCategory = async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
+    const branchId = getBranchId(req);
     const row = await prisma.categoryMaster.create({
-      data: { name: name.trim() },
+      data: { name: name.trim(), branchId: branchId || null },
       select: { id: true, name: true },
     });
     res.status(201).json(row);
@@ -300,7 +310,7 @@ const deleteCategory = async (req, res) => {
 };
 
 // ── Units ──────────────────────────────────────────────────────────────────────
-const getUnits = async (req, res) => {
+const getUnits = async (_req, res) => {
   try {
     const rows = await prisma.unitMaster.findMany({
       select: { id: true, unitName: true, shortName: true },
@@ -347,7 +357,10 @@ const deleteUnit = async (req, res) => {
 // ── Suppliers ──────────────────────────────────────────────────────────────────
 const getSuppliers = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.supplier.findMany({
+      where,
       orderBy: { name: 'asc' },
       select: {
         id: true, name: true, phone: true, email: true, gstNo: true, address: true,
@@ -366,7 +379,8 @@ const createSupplier = async (req, res) => {
     if (!name || !cityId || !stateId || !countryId) {
       return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
     }
-    const data = { name: name.trim(), cityId: Number(cityId), stateId: Number(stateId), countryId: Number(countryId) };
+    const branchId = getBranchId(req);
+    const data = { name: name.trim(), cityId: Number(cityId), stateId: Number(stateId), countryId: Number(countryId), branchId: branchId || null };
     if (address) data.address = address.trim();
     if (phone)   data.phone   = phone.trim();
     if (email)   data.email   = email.toLowerCase().trim();
@@ -412,7 +426,10 @@ const deleteSupplier = async (req, res) => {
 // ── Customers ──────────────────────────────────────────────────────────────────
 const getCustomers = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.customer.findMany({
+      where,
       orderBy: { name: 'asc' },
       select: {
         id: true, name: true, phone: true, email: true, gstNo: true, address: true,
@@ -431,7 +448,8 @@ const createCustomer = async (req, res) => {
     if (!name || !cityId || !stateId || !countryId) {
       return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
     }
-    const data = { name: name.trim(), cityId: Number(cityId), stateId: Number(stateId), countryId: Number(countryId) };
+    const branchId = getBranchId(req);
+    const data = { name: name.trim(), cityId: Number(cityId), stateId: Number(stateId), countryId: Number(countryId), branchId: branchId || null };
     if (address) data.address = address.trim();
     if (phone)   data.phone   = phone.trim();
     if (email)   data.email   = email.toLowerCase().trim();
@@ -477,7 +495,10 @@ const deleteCustomer = async (req, res) => {
 // ── Products ───────────────────────────────────────────────────────────────────
 const getProducts = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.product.findMany({
+      where,
       orderBy: { name: 'asc' },
       select: {
         id: true, name: true, purchasePrice: true, sellingPrice: true, barcode: true,
@@ -495,12 +516,14 @@ const createProduct = async (req, res) => {
     if (!name || !categoryId || !unitId || purchasePrice == null || sellingPrice == null) {
       return res.status(400).json({ message: 'name, categoryId, unitId, purchasePrice, and sellingPrice are required' });
     }
+    const branchId = getBranchId(req);
     const data = {
       name: name.trim(),
       categoryId:    Number(categoryId),
       unitId:        Number(unitId),
       purchasePrice: Number(purchasePrice),
       sellingPrice:  Number(sellingPrice),
+      branchId:      branchId || null,
     };
     if (barcode) data.barcode = barcode.trim();
     const row = await prisma.product.create({
@@ -543,7 +566,10 @@ const deleteProduct = async (req, res) => {
 // ── Payment Methods ────────────────────────────────────────────────────────────
 const getPaymentMethods = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.paymentMethodMaster.findMany({
+      where,
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
@@ -555,7 +581,10 @@ const createPaymentMethod = async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
-    const row = await prisma.paymentMethodMaster.create({ data: { name } });
+    const branchId = getBranchId(req);
+    const row = await prisma.paymentMethodMaster.create({
+      data: { name, branchId: branchId || null },
+    });
     res.status(201).json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };

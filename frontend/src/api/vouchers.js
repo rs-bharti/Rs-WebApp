@@ -1,9 +1,13 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
+const authHeaders = () => {
+  const activeBranch = JSON.parse(localStorage.getItem('activeBranch') || 'null');
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+    ...(activeBranch?.id ? { 'X-Branch-Id': String(activeBranch.id) } : {}),
+  };
+};
 
 const apiFetch = async (path, options = {}) => {
   const res = await fetch(`${API_URL}${path}`, { headers: authHeaders(), ...options });

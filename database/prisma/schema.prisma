@@ -73,11 +73,13 @@ model WarehouseMaster {
   updatedAt         DateTime               @updatedAt
   areaId            Int?
   cityId            Int?
+  branchId          Int?
   stockDataVouchers StockDataVoucher[]
   stockTransferFrom StockTransferVoucher[] @relation("TransferFrom")
   stockTransferTo   StockTransferVoucher[] @relation("TransferTo")
   area              AreaMaster?            @relation(fields: [areaId], references: [id])
   city              CityMaster?            @relation(fields: [cityId], references: [id])
+  branch            Branch?                @relation(fields: [branchId], references: [id])
 }
 
 model Branch {
@@ -94,19 +96,34 @@ model Branch {
   city      CityMaster        @relation(fields: [cityId], references: [id])
   country   CountryMaster     @relation(fields: [countryId], references: [id])
   state     StateMaster       @relation(fields: [stateId], references: [id])
-  purchases       PurchaseVoucher[]
-  sales           SalesVoucher[]
-  purchaseReturns PurchaseReturnVoucher[]
-  salesReturns    SalesReturnVoucher[]
-  users           User[]
+  purchases         PurchaseVoucher[]
+  sales             SalesVoucher[]
+  purchaseReturns   PurchaseReturnVoucher[]
+  salesReturns      SalesReturnVoucher[]
+  contraVouchers    ContraVoucher[]
+  receiptVouchers   ReceiptVoucher[]
+  paymentVouchers   PaymentVoucher[]
+  stockDataVouchers StockDataVoucher[]
+  stockTransfers    StockTransferVoucher[]
+  categories        CategoryMaster[]
+  suppliers         Supplier[]
+  customers         Customer[]
+  products          Product[]
+  paymentMethods    PaymentMethodMaster[]
+  warehouses        WarehouseMaster[]
+  users             User[]
 }
 
 model CategoryMaster {
   id        Int       @id @default(autoincrement())
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  name      String    @unique
+  name      String
+  branchId  Int?
+  branch    Branch?   @relation(fields: [branchId], references: [id])
   products  Product[]
+
+  @@unique([name, branchId])
 }
 
 model UnitMaster {
@@ -129,6 +146,7 @@ model Supplier {
   cityId    Int
   stateId   Int
   countryId Int
+  branchId  Int?
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   purchases       PurchaseVoucher[]
@@ -138,6 +156,7 @@ model Supplier {
   city            CityMaster        @relation(fields: [cityId], references: [id])
   country         CountryMaster     @relation(fields: [countryId], references: [id])
   state           StateMaster       @relation(fields: [stateId], references: [id])
+  branch          Branch?           @relation(fields: [branchId], references: [id])
 }
 
 model Product {
@@ -148,10 +167,12 @@ model Product {
   purchasePrice         Float
   sellingPrice          Float
   barcode               String?                @unique
+  branchId              Int?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   category              CategoryMaster         @relation(fields: [categoryId], references: [id])
   unit                  UnitMaster             @relation(fields: [unitId], references: [id])
+  branch                Branch?                @relation(fields: [branchId], references: [id])
   purchaseItems         PurchaseVoucherItem[]
   salesItems            SalesVoucherItem[]
   stockDataVouchers     StockDataVoucher[]
@@ -171,12 +192,14 @@ model Customer {
   cityId    Int
   stateId   Int
   countryId Int
+  branchId  Int?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   area      AreaMaster?    @relation(fields: [areaId], references: [id])
   city      CityMaster     @relation(fields: [cityId], references: [id])
   country   CountryMaster  @relation(fields: [countryId], references: [id])
   state           StateMaster    @relation(fields: [stateId], references: [id])
+  branch          Branch?        @relation(fields: [branchId], references: [id])
   sales           SalesVoucher[]
   receiptVouchers ReceiptVoucher[]
   salesReturns    SalesReturnVoucher[]
@@ -244,7 +267,9 @@ model PaymentMethodMaster {
   id              Int                    @id @default(autoincrement())
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
-  name            String                 @unique
+  name            String
+  branchId        Int?
+  branch          Branch?                @relation(fields: [branchId], references: [id])
   purchases       PurchaseVoucher[]
   sales           SalesVoucher[]
   contraFrom      ContraVoucher[]        @relation("ContraFrom")
@@ -253,6 +278,8 @@ model PaymentMethodMaster {
   paymentVouchers PaymentVoucher[]
   purchaseReturns PurchaseReturnVoucher[]
   salesReturns    SalesReturnVoucher[]
+
+  @@unique([name, branchId])
 }
 
 model PurchaseVoucher {
@@ -338,9 +365,11 @@ model StockDataVoucher {
   narration   String?
   productId   Int
   qty         Float
+  branchId    Int?
   createdBy   User            @relation(fields: [createdById], references: [id])
   product     Product         @relation(fields: [productId], references: [id])
   warehouse   WarehouseMaster @relation(fields: [warehouseId], references: [id])
+  branch      Branch?         @relation(fields: [branchId], references: [id])
 }
 
 model StockTransferVoucher {
@@ -357,10 +386,12 @@ model StockTransferVoucher {
   narration          String?
   productId          Int
   qty                Float
+  branchId           Int?
   createdBy          User            @relation(fields: [createdById], references: [id])
   fromWarehouse      WarehouseMaster @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
   product            Product         @relation(fields: [productId], references: [id])
   toWarehouse        WarehouseMaster @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  branch             Branch?         @relation(fields: [branchId], references: [id])
 }
 
 // ─── Contra Voucher ───────────────────────────────────────────────────────────
@@ -375,11 +406,13 @@ model ContraVoucher {
   narration           String?
   date                DateTime
   createdById         Int
+  branchId            Int?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   createdBy           User                @relation(fields: [createdById], references: [id])
   fromPaymentMethod   PaymentMethodMaster @relation("ContraFrom", fields: [fromPaymentMethodId], references: [id])
   toPaymentMethod     PaymentMethodMaster @relation("ContraTo", fields: [toPaymentMethodId], references: [id])
+  branch              Branch?             @relation(fields: [branchId], references: [id])
 }
 
 // ─── Receipt Voucher ─────────────────────────────────────────────────────────
@@ -394,11 +427,13 @@ model ReceiptVoucher {
   narration       String?
   date            DateTime
   createdById     Int
+  branchId        Int?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   createdBy       User                @relation(fields: [createdById], references: [id])
   customer        Customer            @relation(fields: [customerId], references: [id])
   paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+  branch          Branch?             @relation(fields: [branchId], references: [id])
 }
 
 // ─── Payment Voucher ─────────────────────────────────────────────────────────
@@ -413,11 +448,13 @@ model PaymentVoucher {
   narration       String?
   date            DateTime
   createdById     Int
+  branchId        Int?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   createdBy       User                @relation(fields: [createdById], references: [id])
   supplier        Supplier            @relation(fields: [supplierId], references: [id])
   paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+  branch          Branch?             @relation(fields: [branchId], references: [id])
 }
 
 // ─── Purchase Return Voucher ──────────────────────────────────────────────────

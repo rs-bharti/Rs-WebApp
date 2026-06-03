@@ -11,10 +11,20 @@ async function nextNo(model, prefix) {
   return `${fullPrefix}${String(seq).padStart(3, '0')}`;
 }
 
+// Extract active branch from request (header takes priority over JWT)
+const getBranchId = (req) => {
+  const headerBranch = req.headers['x-branch-id'];
+  if (headerBranch) return Number(headerBranch);
+  return req.user.branchId || null;
+};
+
 // ── Payment Methods ────────────────────────────────────────────────────────────
-const getPaymentMethods = async (_req, res) => {
+const getPaymentMethods = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.paymentMethodMaster.findMany({
+      where,
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
@@ -28,13 +38,17 @@ const getContraNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getContras = async (_req, res) => {
+const getContras = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.contraVoucher.findMany({
+      where,
       include: {
         fromPaymentMethod: { select: { id: true, name: true } },
         toPaymentMethod:   { select: { id: true, name: true } },
         createdBy:         { select: { name: true } },
+        branch:            { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -50,6 +64,7 @@ const createContra = async (req, res) => {
     if (Number(fromPaymentMethodId) === Number(toPaymentMethodId))
       return res.status(400).json({ message: 'From and To accounts must be different' });
 
+    const branchId = getBranchId(req);
     const voucher = await prisma.contraVoucher.create({
       data: {
         voucherNo:           await nextNo('contraVoucher', 'CV'),
@@ -59,6 +74,7 @@ const createContra = async (req, res) => {
         narration:           narration || null,
         date:                date ? new Date(date) : new Date(),
         createdById:         req.user.id,
+        branchId:            branchId || null,
       },
     });
     res.status(201).json(voucher);
@@ -71,13 +87,17 @@ const getReceiptNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getReceipts = async (_req, res) => {
+const getReceipts = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.receiptVoucher.findMany({
+      where,
       include: {
         customer:      { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
         createdBy:     { select: { name: true } },
+        branch:        { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -91,6 +111,7 @@ const createReceipt = async (req, res) => {
     if (!customerId || !paymentMethodId || amount == null)
       return res.status(400).json({ message: 'customerId, paymentMethodId, and amount are required' });
 
+    const branchId = getBranchId(req);
     const voucher = await prisma.receiptVoucher.create({
       data: {
         voucherNo:       await nextNo('receiptVoucher', 'RV'),
@@ -100,6 +121,7 @@ const createReceipt = async (req, res) => {
         narration:       narration || null,
         date:            date ? new Date(date) : new Date(),
         createdById:     req.user.id,
+        branchId:        branchId || null,
       },
     });
     res.status(201).json(voucher);
@@ -112,13 +134,17 @@ const getPaymentNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getPayments = async (_req, res) => {
+const getPayments = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.paymentVoucher.findMany({
+      where,
       include: {
         supplier:      { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
         createdBy:     { select: { name: true } },
+        branch:        { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -132,6 +158,7 @@ const createPayment = async (req, res) => {
     if (!supplierId || !paymentMethodId || amount == null)
       return res.status(400).json({ message: 'supplierId, paymentMethodId, and amount are required' });
 
+    const branchId = getBranchId(req);
     const voucher = await prisma.paymentVoucher.create({
       data: {
         voucherNo:       await nextNo('paymentVoucher', 'PV'),
@@ -141,6 +168,7 @@ const createPayment = async (req, res) => {
         narration:       narration || null,
         date:            date ? new Date(date) : new Date(),
         createdById:     req.user.id,
+        branchId:        branchId || null,
       },
     });
     res.status(201).json(voucher);
@@ -153,9 +181,12 @@ const getPurchaseNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getPurchases = async (_req, res) => {
+const getPurchases = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.purchaseVoucher.findMany({
+      where,
       include: {
         supplier:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
@@ -171,10 +202,11 @@ const getPurchases = async (_req, res) => {
 
 const createPurchase = async (req, res) => {
   try {
-    const { supplierId, branchId, paymentMethodId, date, items, narration } = req.body;
+    const { supplierId, paymentMethodId, date, items, narration } = req.body;
     if (!supplierId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
 
+    const branchId = getBranchId(req);
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
@@ -184,7 +216,7 @@ const createPurchase = async (req, res) => {
       data: {
         voucherNo:       await nextNo('purchaseVoucher', 'PUR'),
         supplierId:      Number(supplierId),
-        branchId:        Number(branchId) || req.user.branchId,
+        branchId:        branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -218,9 +250,12 @@ const getSalesNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getSales = async (_req, res) => {
+const getSales = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.salesVoucher.findMany({
+      where,
       include: {
         customer:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
@@ -236,10 +271,11 @@ const getSales = async (_req, res) => {
 
 const createSales = async (req, res) => {
   try {
-    const { customerId, branchId, paymentMethodId, date, items, narration } = req.body;
+    const { customerId, paymentMethodId, date, items, narration } = req.body;
     if (!customerId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
 
+    const branchId = getBranchId(req);
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
@@ -249,7 +285,7 @@ const createSales = async (req, res) => {
       data: {
         voucherNo:       await nextNo('salesVoucher', 'SV'),
         customerId:      Number(customerId),
-        branchId:        Number(branchId) || req.user.branchId,
+        branchId:        branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -283,9 +319,12 @@ const getPurchaseReturnNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getPurchaseReturns = async (_req, res) => {
+const getPurchaseReturns = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.purchaseReturnVoucher.findMany({
+      where,
       include: {
         supplier:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
@@ -301,10 +340,11 @@ const getPurchaseReturns = async (_req, res) => {
 
 const createPurchaseReturn = async (req, res) => {
   try {
-    const { supplierId, branchId, paymentMethodId, date, items, narration } = req.body;
+    const { supplierId, paymentMethodId, date, items, narration } = req.body;
     if (!supplierId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
 
+    const branchId = getBranchId(req);
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
@@ -314,7 +354,7 @@ const createPurchaseReturn = async (req, res) => {
       data: {
         voucherNo:       await nextNo('purchaseReturnVoucher', 'PRV'),
         supplierId:      Number(supplierId),
-        branchId:        Number(branchId) || req.user.branchId,
+        branchId:        branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -349,9 +389,12 @@ const getSalesReturnNextNo = async (_req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-const getSalesReturns = async (_req, res) => {
+const getSalesReturns = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.salesReturnVoucher.findMany({
+      where,
       include: {
         customer:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
@@ -367,10 +410,11 @@ const getSalesReturns = async (_req, res) => {
 
 const createSalesReturn = async (req, res) => {
   try {
-    const { customerId, branchId, paymentMethodId, date, items, narration } = req.body;
+    const { customerId, paymentMethodId, date, items, narration } = req.body;
     if (!customerId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
 
+    const branchId = getBranchId(req);
     const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
     const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
@@ -380,7 +424,7 @@ const createSalesReturn = async (req, res) => {
       data: {
         voucherNo:       await nextNo('salesReturnVoucher', 'SRV'),
         customerId:      Number(customerId),
-        branchId:        Number(branchId) || req.user.branchId,
+        branchId:        branchId,
         paymentMethodId: Number(paymentMethodId),
         date:            date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
@@ -410,21 +454,24 @@ const createSalesReturn = async (req, res) => {
 };
 
 // ── Dashboard ──────────────────────────────────────────────────────────────────
-const getDashboard = async (_req, res) => {
+const getDashboard = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const branchFilter = branchId ? { branchId } : {};
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
     const [salesAgg, purchaseAgg, recentSales, customers, suppliers, products] = await Promise.all([
-      prisma.salesVoucher.aggregate({ where: { date: { gte: startOfMonth } }, _sum: { totalAmount: true } }),
-      prisma.purchaseVoucher.aggregate({ where: { date: { gte: startOfMonth } }, _sum: { totalAmount: true } }),
+      prisma.salesVoucher.aggregate({ where: { ...branchFilter, date: { gte: startOfMonth } }, _sum: { totalAmount: true } }),
+      prisma.purchaseVoucher.aggregate({ where: { ...branchFilter, date: { gte: startOfMonth } }, _sum: { totalAmount: true } }),
       prisma.salesVoucher.findMany({
+        where: { ...branchFilter },
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: { voucherNo: true, totalAmount: true, date: true, customer: { select: { name: true } } },
       }),
-      prisma.customer.count(),
-      prisma.supplier.count(),
-      prisma.product.count(),
+      prisma.customer.count({ where: branchFilter }),
+      prisma.supplier.count({ where: branchFilter }),
+      prisma.product.count({ where: branchFilter }),
     ]);
 
     res.json({

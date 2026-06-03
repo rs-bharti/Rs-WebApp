@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ArrowRight } from 'lucide-react';
 import { getProducts } from '../../../api/masters';
+import { useAuth } from '../../../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
+const authHeaders = () => {
+  const activeBranch = JSON.parse(localStorage.getItem('activeBranch') || 'null');
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+    ...(activeBranch?.id ? { 'X-Branch-Id': String(activeBranch.id) } : {}),
+  };
+};
 
 const emptyRow = () => ({ id: Date.now(), productId: '', qty: 1 });
 
 const StockTransferVoucherForm = () => {
+  const { activeBranch } = useAuth();
   const [voucherNo,       setVoucherNo]       = useState('');
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
   const [fromWarehouseId, setFromWarehouseId] = useState('');
@@ -54,7 +60,6 @@ const StockTransferVoucherForm = () => {
     setSubmitting(true);
     setMessage(null);
     try {
-      // Each row becomes a separate Stock Transfer Voucher (schema stores one product per record)
       for (const row of validRows) {
         const res = await fetch(`${API_URL}/api/stock-vouchers/transfer`, {
           method: 'POST',
@@ -66,6 +71,7 @@ const StockTransferVoucherForm = () => {
             productId:       Number(row.productId),
             qty:             parseFloat(row.qty),
             narration,
+            branchId:        activeBranch?.id,
           }),
         });
         const data = await res.json();
@@ -98,6 +104,15 @@ const StockTransferVoucherForm = () => {
       )}
 
       <form className="p-8 space-y-10" onSubmit={handleSubmit}>
+
+        {/* Branch (read-only) */}
+        {activeBranch && (
+          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-stone-50 border border-stone-100 max-w-xs">
+            <span className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Branch</span>
+            <span className="text-sm font-semibold text-rs-text-primary">{activeBranch.name}</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-xl">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>

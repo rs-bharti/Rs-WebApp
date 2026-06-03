@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { getPaymentMethods } from '../../../api/masters';
 import { getContraVoucherNextNo, saveContraVoucher } from '../../../api/vouchers';
+import { useAuth } from '../../../context/AuthContext';
 
 const ContraVoucherForm = () => {
   const type = 'Contra';
+  const { activeBranch } = useAuth();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo, setVoucherNo] = useState('');
@@ -44,6 +46,7 @@ const ContraVoucherForm = () => {
         toPaymentMethodId:   parseInt(toPaymentMethodId),
         amount:              parseFloat(amount),
         narration:           narration || undefined,
+        branchId:            activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
       setFromPaymentMethodId('');
@@ -80,6 +83,14 @@ const ContraVoucherForm = () => {
       <form className="p-8 space-y-10" onSubmit={handleSubmit}>
         {error   && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
         {success && <p className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">{success}</p>}
+
+        {/* Branch (read-only) */}
+        {activeBranch && (
+          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-stone-50 border border-stone-100 max-w-xs">
+            <span className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Branch</span>
+            <span className="text-sm font-semibold text-rs-text-primary">{activeBranch.name}</span>
+          </div>
+        )}
 
         {/* Date + Voucher No */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-xl">
