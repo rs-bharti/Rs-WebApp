@@ -551,6 +551,15 @@ const getPaymentMethods = async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
+const createPaymentMethod = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ message: 'name is required' });
+    const row = await prisma.paymentMethodMaster.create({ data: { name } });
+    res.status(201).json(row);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
 module.exports = {
   getCountries, createCountry, updateCountry, deleteCountry,
   getStates,    createState,   updateState,   deleteState,
@@ -562,5 +571,5 @@ module.exports = {
   getSuppliers, createSupplier, updateSupplier, deleteSupplier,
   getCustomers, createCustomer, updateCustomer, deleteCustomer,
   getProducts,  createProduct,  updateProduct,  deleteProduct,
-  getPaymentMethods,
+  getPaymentMethods, createPaymentMethod,
 };

@@ -79,4 +79,5 @@ export const updateWarehouse = (id, body) => apiFetch(`/api/warehouses/${id}`, {
 export const deleteWarehouse = (id)       => apiFetch(`/api/warehouses/${id}`, { method: 'DELETE' });
 
 // ── Payment Methods ────────────────────────────────────────────────────────────
-export const getPaymentMethods = () => apiFetch('/api/masters/payment-methods');
+export const getPaymentMethods    = ()     => apiFetch('/api/masters/payment-methods');
+export const createPaymentMethod  = (body) => apiFetch('/api/masters/payment-methods', { method: 'POST', body: JSON.stringify(body) });

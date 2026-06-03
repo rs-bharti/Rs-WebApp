@@ -7,7 +7,123 @@ import {
   createCountry, createState, createCity, createArea,
   createBranch, createCategory, createUnit,
   createSupplier, createCustomer, createProduct,
+  createPaymentMethod,
 } from '../../api/masters';
+
+const PHONE_CONFIG = {
+  // Asia
+  'india':                { dialCode: '+91',  digits: 10, format: [5, 5],          placeholder: '98765 43210' },
+  'pakistan':             { dialCode: '+92',  digits: 10, format: [3, 7],          placeholder: '300 1234567' },
+  'bangladesh':           { dialCode: '+880', digits: 10, format: [2, 4, 4],       placeholder: '17 1234 5678' },
+  'nepal':                { dialCode: '+977', digits: 10, format: [3, 7],          placeholder: '984 1234567' },
+  'sri lanka':            { dialCode: '+94',  digits: 9,  format: [2, 3, 4],       placeholder: '71 234 5678' },
+  'china':                { dialCode: '+86',  digits: 11, format: [3, 4, 4],       placeholder: '139 1234 5678' },
+  'japan':                { dialCode: '+81',  digits: 10, format: [2, 4, 4],       placeholder: '90 1234 5678' },
+  'south korea':          { dialCode: '+82',  digits: 10, format: [2, 4, 4],       placeholder: '10 1234 5678' },
+  'singapore':            { dialCode: '+65',  digits: 8,  format: [4, 4],          placeholder: '8123 4567' },
+  'malaysia':             { dialCode: '+60',  digits: 9,  format: [2, 3, 4],       placeholder: '12 345 6789' },
+  'indonesia':            { dialCode: '+62',  digits: 10, format: [3, 4, 4],       placeholder: '812 3456 7890' },
+  'thailand':             { dialCode: '+66',  digits: 9,  format: [2, 3, 4],       placeholder: '81 234 5678' },
+  'vietnam':              { dialCode: '+84',  digits: 9,  format: [3, 3, 3],       placeholder: '912 345 678' },
+  'philippines':          { dialCode: '+63',  digits: 10, format: [3, 3, 4],       placeholder: '912 345 6789' },
+  'myanmar':              { dialCode: '+95',  digits: 9,  format: [2, 3, 4],       placeholder: '91 234 5678' },
+  'cambodia':             { dialCode: '+855', digits: 9,  format: [2, 3, 4],       placeholder: '12 345 678' },
+  'taiwan':               { dialCode: '+886', digits: 9,  format: [2, 4, 3],       placeholder: '912 345 678' },
+  'hong kong':            { dialCode: '+852', digits: 8,  format: [4, 4],          placeholder: '9123 4567' },
+  // Middle East
+  'united arab emirates': { dialCode: '+971', digits: 9,  format: [2, 3, 4],       placeholder: '50 123 4567' },
+  'saudi arabia':         { dialCode: '+966', digits: 9,  format: [2, 3, 4],       placeholder: '50 123 4567' },
+  'qatar':                { dialCode: '+974', digits: 8,  format: [4, 4],          placeholder: '5512 3456' },
+  'kuwait':               { dialCode: '+965', digits: 8,  format: [4, 4],          placeholder: '5012 3456' },
+  'bahrain':              { dialCode: '+973', digits: 8,  format: [4, 4],          placeholder: '3600 1234' },
+  'oman':                 { dialCode: '+968', digits: 8,  format: [4, 4],          placeholder: '9212 3456' },
+  'jordan':               { dialCode: '+962', digits: 9,  format: [1, 4, 4],       placeholder: '7 9012 3456' },
+  'lebanon':              { dialCode: '+961', digits: 8,  format: [2, 3, 3],       placeholder: '71 123 456' },
+  'israel':               { dialCode: '+972', digits: 9,  format: [2, 3, 4],       placeholder: '50 123 4567' },
+  'iran':                 { dialCode: '+98',  digits: 10, format: [3, 3, 4],       placeholder: '912 345 6789' },
+  'iraq':                 { dialCode: '+964', digits: 10, format: [3, 3, 4],       placeholder: '771 234 5678' },
+  // Europe
+  'united kingdom':       { dialCode: '+44',  digits: 10, format: [4, 3, 3],       placeholder: '7911 123 456' },
+  'germany':              { dialCode: '+49',  digits: 10, format: [3, 4, 3],       placeholder: '151 2345 678' },
+  'france':               { dialCode: '+33',  digits: 9,  format: [1, 2, 2, 2, 2], placeholder: '6 12 34 56 78' },
+  'italy':                { dialCode: '+39',  digits: 10, format: [3, 3, 4],       placeholder: '312 345 6789' },
+  'spain':                { dialCode: '+34',  digits: 9,  format: [3, 3, 3],       placeholder: '612 345 678' },
+  'netherlands':          { dialCode: '+31',  digits: 9,  format: [1, 4, 4],       placeholder: '6 1234 5678' },
+  'belgium':              { dialCode: '+32',  digits: 9,  format: [3, 2, 2, 2],    placeholder: '470 12 34 56' },
+  'switzerland':          { dialCode: '+41',  digits: 9,  format: [2, 3, 2, 2],    placeholder: '78 123 45 67' },
+  'sweden':               { dialCode: '+46',  digits: 9,  format: [2, 3, 2, 2],    placeholder: '70 123 45 67' },
+  'norway':               { dialCode: '+47',  digits: 8,  format: [3, 2, 3],       placeholder: '400 12 345' },
+  'denmark':              { dialCode: '+45',  digits: 8,  format: [2, 2, 2, 2],    placeholder: '20 12 34 56' },
+  'finland':              { dialCode: '+358', digits: 9,  format: [2, 3, 4],       placeholder: '40 123 4567' },
+  'poland':               { dialCode: '+48',  digits: 9,  format: [3, 3, 3],       placeholder: '512 345 678' },
+  'russia':               { dialCode: '+7',   digits: 10, format: [3, 3, 4],       placeholder: '912 345 6789' },
+  'turkey':               { dialCode: '+90',  digits: 10, format: [3, 3, 4],       placeholder: '532 123 4567' },
+  'ukraine':              { dialCode: '+380', digits: 9,  format: [2, 3, 4],       placeholder: '67 123 4567' },
+  'portugal':             { dialCode: '+351', digits: 9,  format: [3, 3, 3],       placeholder: '912 345 678' },
+  'greece':               { dialCode: '+30',  digits: 10, format: [3, 3, 4],       placeholder: '694 123 4567' },
+  'romania':              { dialCode: '+40',  digits: 9,  format: [3, 3, 3],       placeholder: '712 345 678' },
+  // Americas
+  'united states':        { dialCode: '+1',   digits: 10, format: [3, 3, 4],       placeholder: '212 555 1234' },
+  'canada':               { dialCode: '+1',   digits: 10, format: [3, 3, 4],       placeholder: '416 555 1234' },
+  'mexico':               { dialCode: '+52',  digits: 10, format: [2, 4, 4],       placeholder: '55 1234 5678' },
+  'brazil':               { dialCode: '+55',  digits: 11, format: [2, 5, 4],       placeholder: '11 91234 5678' },
+  'argentina':            { dialCode: '+54',  digits: 10, format: [3, 3, 4],       placeholder: '911 234 5678' },
+  'colombia':             { dialCode: '+57',  digits: 10, format: [3, 3, 4],       placeholder: '312 345 6789' },
+  'chile':                { dialCode: '+56',  digits: 9,  format: [1, 4, 4],       placeholder: '9 1234 5678' },
+  'peru':                 { dialCode: '+51',  digits: 9,  format: [3, 3, 3],       placeholder: '912 345 678' },
+  // Africa
+  'south africa':         { dialCode: '+27',  digits: 9,  format: [2, 3, 4],       placeholder: '71 234 5678' },
+  'nigeria':              { dialCode: '+234', digits: 10, format: [3, 3, 4],       placeholder: '802 123 4567' },
+  'kenya':                { dialCode: '+254', digits: 9,  format: [3, 3, 3],       placeholder: '712 345 678' },
+  'ghana':                { dialCode: '+233', digits: 9,  format: [2, 3, 4],       placeholder: '24 123 4567' },
+  'ethiopia':             { dialCode: '+251', digits: 9,  format: [2, 3, 4],       placeholder: '91 234 5678' },
+  'egypt':                { dialCode: '+20',  digits: 10, format: [2, 4, 4],       placeholder: '10 1234 5678' },
+  'tanzania':             { dialCode: '+255', digits: 9,  format: [3, 3, 3],       placeholder: '712 345 678' },
+  'uganda':               { dialCode: '+256', digits: 9,  format: [3, 3, 3],       placeholder: '712 345 678' },
+  'zimbabwe':             { dialCode: '+263', digits: 9,  format: [2, 3, 4],       placeholder: '71 234 5678' },
+  'zambia':               { dialCode: '+260', digits: 9,  format: [2, 3, 4],       placeholder: '96 123 4567' },
+  'morocco':              { dialCode: '+212', digits: 9,  format: [1, 4, 4],       placeholder: '6 1234 5678' },
+  'algeria':              { dialCode: '+213', digits: 9,  format: [2, 3, 4],       placeholder: '55 123 4567' },
+  'tunisia':              { dialCode: '+216', digits: 8,  format: [2, 3, 3],       placeholder: '20 123 456' },
+  // Oceania
+  'australia':            { dialCode: '+61',  digits: 9,  format: [3, 3, 3],       placeholder: '412 345 678' },
+  'new zealand':          { dialCode: '+64',  digits: 9,  format: [2, 3, 4],       placeholder: '21 234 5678' },
+};
+
+const DEFAULT_PHONE = { dialCode: '', digits: 15, format: [], placeholder: 'Enter phone number' };
+
+const lookupPhoneConfig = (countryName) => {
+  if (!countryName) return DEFAULT_PHONE;
+  const n = countryName.toLowerCase().trim();
+  // exact match first
+  if (PHONE_CONFIG[n]) return PHONE_CONFIG[n];
+  // partial match: key inside name or name inside key
+  const entry = Object.entries(PHONE_CONFIG).find(([key]) => n.includes(key) || key.includes(n));
+  return entry ? entry[1] : DEFAULT_PHONE;
+};
+
+const applyPhoneFormat = (digits, format) => {
+  if (!format || !format.length) return digits;
+  let result = '';
+  let pos = 0;
+  for (let i = 0; i < format.length; i++) {
+    const chunk = digits.slice(pos, pos + format[i]);
+    if (!chunk) break;
+    result += (i > 0 ? ' ' : '') + chunk;
+    pos += format[i];
+  }
+  return result;
+};
+
+// Only letters, spaces, hyphens, apostrophes, dots (handles St. Louis, Côte d'Ivoire, etc.)
+const LOCATION_NAME_RE = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s\-'.]+$/;
+const validateLocationName = (name, label) => {
+  const trimmed = (name || '').trim();
+  if (trimmed.length < 2)              return `${label} name must be at least 2 characters.`;
+  if (!LOCATION_NAME_RE.test(trimmed)) return `${label} name can only contain letters, spaces, hyphens, or apostrophes — no numbers or symbols.`;
+  return null;
+};
+const sanitizeLocationInput = (val) => val.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿ\s\-'.]/g, '');
 
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const isDetailed = type === 'Supplier';
@@ -41,6 +157,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [selState,   setSelState]   = useState('');
   const [selCity,    setSelCity]    = useState('');
   const [selArea,    setSelArea]    = useState('');
+
+  // ── Phone config (derived from selected country) ─────────────────────────────
+  const selectedCountryObj = countries.find(c => String(c.id) === String(selCountry));
+  const phoneInfo = lookupPhoneConfig(selectedCountryObj?.name);
+
+  const handlePhoneChange = (field) => (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, phoneInfo.digits);
+    setFormData(prev => ({ ...prev, [field]: applyPhoneFormat(digits, phoneInfo.format) }));
+  };
 
   // ── Product dropdowns ─────────────────────────────────────────────────────────
   const [categories,  setCategories]  = useState([]);
@@ -90,6 +215,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     if (!selCountry) { setStates([]); setSelState(''); setCities([]); setSelCity(''); setAreas([]); setSelArea(''); return; }
     getStates(selCountry).then(setStates).catch(console.error);
     setSelState(''); setCities([]); setSelCity(''); setAreas([]); setSelArea('');
+    setFormData(prev => ({ ...prev, phone: '' }));
+    setContacts(prev => prev.map(c => ({ ...c, phone: '' })));
   }, [selCountry]);
 
   // ── Cascading: state → cities ─────────────────────────────────────────────────
@@ -112,6 +239,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setError(''); setSuccess('');
     setSaving(true);
     try {
+      const simpleNameTypes = ['Country', 'State', 'City', 'Area', 'Category', 'Payment Method'];
+      if (simpleNameTypes.includes(type)) {
+        const nameErr = validateLocationName(f('name'), type);
+        if (nameErr) { setError(nameErr); setSaving(false); return; }
+      }
+
       if (type === 'Country') {
         await createCountry({ name: f('name') });
       } else if (type === 'State') {
@@ -169,6 +302,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           sellingPrice:  f('sellingPrice'),
           ...(f('barcode') && { barcode: f('barcode') }),
         });
+      } else if (type === 'Payment Method') {
+        await createPaymentMethod({ name: f('name') });
       }
 
       clearFields();
@@ -194,6 +329,33 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       : 'border-rs-accent-bg bg-rs-cream/10 text-rs-text-primary'
   );
   const labelCls = cn('block text-sm font-semibold mb-2', isAdmin ? 'text-brand-primary' : 'text-rs-text-primary');
+
+  // ── Phone input with dial-code badge ─────────────────────────────────────────
+  const phoneInput = (field) => (
+    <div className={cn(
+      'flex items-stretch rounded-lg border overflow-hidden transition-all',
+      isAdmin ? 'border-brand-bg bg-brand-bg/20' : 'border-rs-accent-bg bg-rs-cream/10'
+    )}>
+      {phoneInfo.dialCode && (
+        <span className={cn(
+          'flex items-center px-3 text-sm font-semibold border-r shrink-0',
+          isAdmin ? 'text-brand-primary/70 border-brand-bg' : 'text-rs-text-muted border-stone-200'
+        )}>
+          {phoneInfo.dialCode}
+        </span>
+      )}
+      <input
+        className={cn(
+          'flex-1 bg-transparent px-4 py-3 text-sm outline-none min-w-0',
+          isAdmin ? 'text-brand-primary placeholder:text-brand-primary/40' : 'text-rs-text-primary placeholder:text-rs-text-primary/40'
+        )}
+        type="tel"
+        placeholder={phoneInfo.placeholder}
+        value={f(field)}
+        onChange={handlePhoneChange(field)}
+      />
+    </div>
+  );
 
   // ── Reusable select helper (called as function, not component) ────────────────
   const mkSelect = (label, value, onChange, options, opts = {}) => (
@@ -245,7 +407,21 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             {contacts.map((c) => (
               <tr key={c.id} className={cn('border-b transition-colors', isAdmin ? 'border-brand-bg/50 hover:bg-brand-bg/5' : 'border-rs-accent-bg/50 hover:bg-rs-cream/10')}>
                 <td className="p-2"><input type="text" value={c.name} onChange={(e) => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors" /></td>
-                <td className="p-2"><input type="tel" value={c.phone} onChange={(e) => updContact(c.id, 'phone', e.target.value)} placeholder="+91 ..." className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors" /></td>
+                <td className="p-2">
+                  <div className="flex items-center">
+                    {phoneInfo.dialCode && <span className="text-xs text-stone-400 mr-1 shrink-0">{phoneInfo.dialCode}</span>}
+                    <input
+                      type="tel"
+                      value={c.phone}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, phoneInfo.digits);
+                        updContact(c.id, 'phone', applyPhoneFormat(digits, phoneInfo.format));
+                      }}
+                      placeholder={phoneInfo.placeholder}
+                      className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm transition-colors"
+                    />
+                  </div>
+                </td>
                 <td className="p-2">
                   <select value={c.designation} onChange={(e) => updContact(c.id, 'designation', e.target.value)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm cursor-pointer">
                     <option value="">Select</option>
@@ -254,12 +430,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </td>
                 <td className="p-2">
                   <input
-                    type="text"
-                    onFocus={(e) => { e.target.type = 'date'; }}
-                    onBlur={(e) => { if (!e.target.value) e.target.type = 'text'; }}
+                    type="date"
                     value={c.dob}
                     onChange={(e) => updContact(c.id, 'dob', e.target.value)}
-                    placeholder="dd-mm-yyyy"
+                    min="1900-01-01"
+                    max={new Date().toISOString().split('T')[0]}
                     className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm text-stone-500"
                   />
                 </td>
@@ -287,7 +462,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Phone</label>
-            <input className={inputCls} type="tel" placeholder="+91 ..." value={f('phone')} onChange={upd('phone')} />
+            {phoneInput('phone')}
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -326,7 +501,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
             <div className="space-y-2">
               <label className={labelCls}>Phone</label>
-              <input className={inputCls} type="tel" placeholder="+91 ..." value={f('phone')} onChange={upd('phone')} />
+              {phoneInput('phone')}
             </div>
             <div className="space-y-2">
               <label className={labelCls}>Email</label>
@@ -435,7 +610,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
         <div className="space-y-2">
           <label className={labelCls}>{nameLabel} <span className="text-red-400">*</span></label>
-          <input className={inputCls} type="text" placeholder={`Enter ${type.toLowerCase()} name`} value={f('name')} onChange={upd('name')} required />
+          <input
+            className={inputCls}
+            type="text"
+            placeholder={`Enter ${type.toLowerCase()} name`}
+            value={f('name')}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: sanitizeLocationInput(e.target.value) }))}
+            required
+          />
         </div>
         {parentLabel && (
           <div className="space-y-2">

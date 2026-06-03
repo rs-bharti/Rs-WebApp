@@ -11,7 +11,7 @@ const {
   getSuppliers,  createSupplier, updateSupplier, deleteSupplier,
   getCustomers,  createCustomer, updateCustomer, deleteCustomer,
   getProducts,   createProduct,  updateProduct,  deleteProduct,
-  getPaymentMethods,
+  getPaymentMethods, createPaymentMethod,
 } = require('../controllers/masterController');
 
 const router = express.Router();
@@ -70,5 +70,6 @@ router.put('/products/:id',     requireAdmin, updateProduct);
 router.delete('/products/:id',  requireAdmin, deleteProduct);
 
 router.get('/payment-methods',  getPaymentMethods);
+router.post('/payment-methods', requireAdmin, createPaymentMethod);
 
 module.exports = router;

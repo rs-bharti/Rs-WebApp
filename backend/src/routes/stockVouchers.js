@@ -79,16 +79,22 @@ router.post('/transfer', async (req, res) => {
   if (!productId) return res.status(400).json({ message: 'Product is required' });
   if (!qty || qty <= 0) return res.status(400).json({ message: 'Qty must be > 0' });
   try {
+    const [fromWH, toWH] = await Promise.all([
+      prisma.warehouseMaster.findUnique({ where: { id: parseInt(fromWarehouseId) }, select: { name: true } }),
+      prisma.warehouseMaster.findUnique({ where: { id: parseInt(toWarehouseId) },   select: { name: true } }),
+    ]);
     const voucher = await prisma.stockTransferVoucher.create({
       data: {
-        voucherNo:       await nextNo('stockTransferVoucher', 'STV'),
-        date:            date ? new Date(date) : new Date(),
+        voucherNo:         await nextNo('stockTransferVoucher', 'STV'),
+        date:              date ? new Date(date) : new Date(),
         narration,
-        fromWarehouseId: parseInt(fromWarehouseId),
-        toWarehouseId:   parseInt(toWarehouseId),
-        productId:       parseInt(productId),
-        qty:             parseFloat(qty),
-        createdById:     req.user.id,
+        fromWarehouseId:   parseInt(fromWarehouseId),
+        toWarehouseId:     parseInt(toWarehouseId),
+        fromWarehouseName: fromWH?.name ?? null,
+        toWarehouseName:   toWH?.name   ?? null,
+        productId:         parseInt(productId),
+        qty:               parseFloat(qty),
+        createdById:       req.user.id,
       },
     });
     res.status(201).json(voucher);
