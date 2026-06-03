@@ -4,6 +4,7 @@ import { getProducts, getWarehouses } from '../../../api/masters';
 import { getStockDataVoucherNextNo, saveStockDataVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
+
 const StockDataVoucherForm = () => {
   const type = 'Stock Data';
   const { activeBranch } = useAuth();
@@ -54,20 +55,14 @@ const StockDataVoucherForm = () => {
     if (!validRows.length) return setError('Please add at least one product with quantity');
     setSaving(true);
     try {
-      // StockDataVoucher stores one product per record — create one per row
-      const results = await Promise.all(
-        validRows.map(r =>
-          saveStockDataVoucher({
-            date,
-            warehouseId: parseInt(warehouseId),
-            productId:   parseInt(r.productId),
-            qty:         parseFloat(r.qty),
-            narration:   narration || undefined,
-            branchId:    activeBranch?.id,
-          })
-        )
-      );
-      setSuccess(`${results.length} stock record(s) saved. Last: ${results[results.length - 1].voucherNo}`);
+      const voucher = await saveStockDataVoucher({
+        date,
+        warehouseId: parseInt(warehouseId),
+        narration:   narration || undefined,
+        branchId:    activeBranch?.id,
+        items:       validRows.map(r => ({ productId: parseInt(r.productId), qty: parseFloat(r.qty) })),
+      });
+      setSuccess(`Voucher ${voucher.voucherNo} saved with ${validRows.length} item(s)`);
       setRows([{ id: 1, productId: '', qty: 1 }]);
       setWarehouseId('');
       setNarration('');

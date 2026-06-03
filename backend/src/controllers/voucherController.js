@@ -191,6 +191,7 @@ const getPurchases = async (req, res) => {
         supplier:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
+        warehouse:     { select: { id: true, name: true } },
         items:         { include: { product: { select: { id: true, name: true } } } },
         createdBy:     { select: { name: true } },
       },
@@ -202,28 +203,45 @@ const getPurchases = async (req, res) => {
 
 const createPurchase = async (req, res) => {
   try {
-    const { supplierId, paymentMethodId, date, items, narration } = req.body;
+    const { supplierId, paymentMethodId, warehouseId, date, items, narration } = req.body;
     if (!supplierId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
 
     const branchId = getBranchId(req);
-    const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
-    const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
+
+    const productIds = [...new Set(items.map(i => Number(i.productId)))];
+    const [supplierRecord, paymentMethodRecord, warehouseRecord, productRecords] = await Promise.all([
+      prisma.supplier.findUnique({ where: { id: Number(supplierId) }, select: { name: true } }),
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
+      warehouseId
+        ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
+        : Promise.resolve(null),
+      prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
+    ]);
+    const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
+
+    const subTotal       = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
+    const taxAmount      = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
-    const totalAmount   = subTotal + taxAmount - discountAmount;
+    const totalAmount    = subTotal + taxAmount - discountAmount;
 
     const voucher = await prisma.purchaseVoucher.create({
       data: {
-        voucherNo:       await nextNo('purchaseVoucher', 'PUR'),
-        supplierId:      Number(supplierId),
-        branchId:        branchId,
-        paymentMethodId: Number(paymentMethodId),
-        date:            date ? new Date(date) : new Date(),
+        voucherNo:         await nextNo('purchaseVoucher', 'PUR'),
+        supplierId:        Number(supplierId),
+        supplierName:      supplierRecord?.name || null,
+        branchId:          branchId,
+        warehouseId:       warehouseId ? Number(warehouseId) : null,
+        warehouseName:     warehouseRecord?.name || null,
+        paymentMethodId:   Number(paymentMethodId),
+        paymentMethodName: paymentMethodRecord?.name || null,
+        date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        createdById:     req.user.id,
+        createdById:       req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
+            productName:    productNameMap[Number(i.productId)] || null,
             qty:            Number(i.qty),
             rate:           Number(i.rate),
             subTotal:       Number(i.qty) * Number(i.rate),
@@ -238,6 +256,7 @@ const createPurchase = async (req, res) => {
         items:    { include: { product: { select: { name: true } } } },
         supplier: { select: { name: true } },
         branch:   { select: { name: true } },
+        warehouse: { select: { name: true } },
       },
     });
     res.status(201).json(voucher);
@@ -260,6 +279,7 @@ const getSales = async (req, res) => {
         customer:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
+        warehouse:     { select: { id: true, name: true } },
         items:         { include: { product: { select: { id: true, name: true } } } },
         createdBy:     { select: { name: true } },
       },
@@ -278,34 +298,35 @@ const createSales = async (req, res) => {
     const branchId = getBranchId(req);
 
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const lookups = [
+    const [productRecords, customerRecord, warehouseRecord, paymentMethodRecord] = await Promise.all([
       prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
       prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
         : Promise.resolve(null),
-    ];
-    const [productRecords, customerRecord, warehouseRecord] = await Promise.all(lookups);
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
+    ]);
     const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
 
-    const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
-    const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
+    const subTotal       = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
+    const taxAmount      = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
-    const totalAmount   = subTotal + taxAmount - discountAmount;
+    const totalAmount    = subTotal + taxAmount - discountAmount;
 
     const voucher = await prisma.salesVoucher.create({
       data: {
-        voucherNo:       await nextNo('salesVoucher', 'SV'),
-        customerId:      Number(customerId),
-        customerName:    customerRecord?.name || null,
-        branchId:        branchId,
-        warehouseId:     warehouseId ? Number(warehouseId) : null,
-        warehouseName:   warehouseRecord?.name || null,
-        paymentMethodId: Number(paymentMethodId),
-        date:            date ? new Date(date) : new Date(),
+        voucherNo:         await nextNo('salesVoucher', 'SV'),
+        customerId:        Number(customerId),
+        customerName:      customerRecord?.name || null,
+        branchId:          branchId,
+        warehouseId:       warehouseId ? Number(warehouseId) : null,
+        warehouseName:     warehouseRecord?.name || null,
+        paymentMethodId:   Number(paymentMethodId),
+        paymentMethodName: paymentMethodRecord?.name || null,
+        date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        narration:       narration || null,
-        createdById:     req.user.id,
+        narration:         narration || null,
+        createdById:       req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
@@ -325,6 +346,7 @@ const createSales = async (req, res) => {
         items:    { include: { product: { select: { name: true } } } },
         customer: { select: { name: true } },
         branch:   { select: { name: true } },
+        warehouse: { select: { name: true } },
       },
     });
     res.status(201).json(voucher);
@@ -347,6 +369,7 @@ const getPurchaseReturns = async (req, res) => {
         supplier:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
+        warehouse:     { select: { id: true, name: true } },
         items:         { include: { product: { select: { id: true, name: true } } } },
         createdBy:     { select: { name: true } },
       },
@@ -358,29 +381,46 @@ const getPurchaseReturns = async (req, res) => {
 
 const createPurchaseReturn = async (req, res) => {
   try {
-    const { supplierId, paymentMethodId, date, items, narration } = req.body;
+    const { supplierId, paymentMethodId, warehouseId, date, items, narration } = req.body;
     if (!supplierId || !paymentMethodId || !items?.length)
       return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
 
     const branchId = getBranchId(req);
-    const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
-    const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
+
+    const productIds = [...new Set(items.map(i => Number(i.productId)))];
+    const [supplierRecord, paymentMethodRecord, warehouseRecord, productRecords] = await Promise.all([
+      prisma.supplier.findUnique({ where: { id: Number(supplierId) }, select: { name: true } }),
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
+      warehouseId
+        ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
+        : Promise.resolve(null),
+      prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
+    ]);
+    const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
+
+    const subTotal       = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
+    const taxAmount      = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
-    const totalAmount   = subTotal + taxAmount - discountAmount;
+    const totalAmount    = subTotal + taxAmount - discountAmount;
 
     const voucher = await prisma.purchaseReturnVoucher.create({
       data: {
-        voucherNo:       await nextNo('purchaseReturnVoucher', 'PRV'),
-        supplierId:      Number(supplierId),
-        branchId:        branchId,
-        paymentMethodId: Number(paymentMethodId),
-        date:            date ? new Date(date) : new Date(),
+        voucherNo:         await nextNo('purchaseReturnVoucher', 'PRV'),
+        supplierId:        Number(supplierId),
+        supplierName:      supplierRecord?.name || null,
+        branchId:          branchId,
+        warehouseId:       warehouseId ? Number(warehouseId) : null,
+        warehouseName:     warehouseRecord?.name || null,
+        paymentMethodId:   Number(paymentMethodId),
+        paymentMethodName: paymentMethodRecord?.name || null,
+        date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        narration:       narration || null,
-        createdById:     req.user.id,
+        narration:         narration || null,
+        createdById:       req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
+            productName:    productNameMap[Number(i.productId)] || null,
             qty:            Number(i.qty),
             rate:           Number(i.rate),
             subTotal:       Number(i.qty) * Number(i.rate),
@@ -395,6 +435,7 @@ const createPurchaseReturn = async (req, res) => {
         items:    { include: { product: { select: { name: true } } } },
         supplier: { select: { name: true } },
         branch:   { select: { name: true } },
+        warehouse: { select: { name: true } },
       },
     });
     res.status(201).json(voucher);
@@ -433,24 +474,36 @@ const createSalesReturn = async (req, res) => {
       return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
 
     const branchId = getBranchId(req);
-    const subTotal      = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
-    const taxAmount     = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
+
+    const productIds = [...new Set(items.map(i => Number(i.productId)))];
+    const [customerRecord, paymentMethodRecord, productRecords] = await Promise.all([
+      prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
+      prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
+    ]);
+    const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
+
+    const subTotal       = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
+    const taxAmount      = items.reduce((s, i) => s + Number(i.taxAmount || 0), 0);
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
-    const totalAmount   = subTotal + taxAmount - discountAmount;
+    const totalAmount    = subTotal + taxAmount - discountAmount;
 
     const voucher = await prisma.salesReturnVoucher.create({
       data: {
-        voucherNo:       await nextNo('salesReturnVoucher', 'SRV'),
-        customerId:      Number(customerId),
-        branchId:        branchId,
-        paymentMethodId: Number(paymentMethodId),
-        date:            date ? new Date(date) : new Date(),
+        voucherNo:         await nextNo('salesReturnVoucher', 'SRV'),
+        customerId:        Number(customerId),
+        customerName:      customerRecord?.name || null,
+        branchId:          branchId,
+        paymentMethodId:   Number(paymentMethodId),
+        paymentMethodName: paymentMethodRecord?.name || null,
+        date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        narration:       narration || null,
-        createdById:     req.user.id,
+        narration:         narration || null,
+        createdById:       req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
+            productName:    productNameMap[Number(i.productId)] || null,
             qty:            Number(i.qty),
             rate:           Number(i.rate),
             subTotal:       Number(i.qty) * Number(i.rate),

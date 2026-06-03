@@ -1,17 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ArrowRight } from 'lucide-react';
-import { getProducts } from '../../../api/masters';
+import { getProducts, getWarehouses } from '../../../api/masters';
+import { getStockTransferVoucherNextNo, saveStockTransferVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const authHeaders = () => {
-  const activeBranch = JSON.parse(localStorage.getItem('activeBranch') || 'null');
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-    ...(activeBranch?.id ? { 'X-Branch-Id': String(activeBranch.id) } : {}),
-  };
-};
 
 const emptyRow = () => ({ id: Date.now(), productId: '', qty: 1 });
 
@@ -30,9 +21,9 @@ const StockTransferVoucherForm = () => {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/api/warehouses`, { headers: authHeaders() }).then(r => r.json()),
+      getWarehouses(),
       getProducts(),
-      fetch(`${API_URL}/api/stock-vouchers/transfer/next-number`, { headers: authHeaders() }).then(r => r.json()),
+      getStockTransferVoucherNextNo(),
     ])
       .then(([wh, prods, { voucherNo: no }]) => {
         setWarehouses(wh);
@@ -48,7 +39,14 @@ const StockTransferVoucherForm = () => {
 
   const totalQty = rows.reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
 
-  const reset = () => { setFromWarehouseId(''); setToWarehouseId(''); setNarration(''); setRows([emptyRow()]); setMessage(null); setDate(new Date().toISOString().split('T')[0]); };
+  const reset = () => {
+    setFromWarehouseId('');
+    setToWarehouseId('');
+    setNarration('');
+    setRows([emptyRow()]);
+    setMessage(null);
+    setDate(new Date().toISOString().split('T')[0]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,26 +58,17 @@ const StockTransferVoucherForm = () => {
     setSubmitting(true);
     setMessage(null);
     try {
-      for (const row of validRows) {
-        const res = await fetch(`${API_URL}/api/stock-vouchers/transfer`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({
-            date,
-            fromWarehouseId: Number(fromWarehouseId),
-            toWarehouseId:   Number(toWarehouseId),
-            productId:       Number(row.productId),
-            qty:             parseFloat(row.qty),
-            narration,
-            branchId:        activeBranch?.id,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to save');
-      }
-      const { voucherNo: no } = await fetch(`${API_URL}/api/stock-vouchers/transfer/next-number`, { headers: authHeaders() }).then(r => r.json());
-      setVoucherNo(no);
-      setMessage({ type: 'success', text: `${validRows.length} Stock Transfer Voucher(s) saved successfully!` });
+      const voucher = await saveStockTransferVoucher({
+        date,
+        fromWarehouseId: Number(fromWarehouseId),
+        toWarehouseId:   Number(toWarehouseId),
+        narration:       narration || undefined,
+        branchId:        activeBranch?.id,
+        items:           validRows.map(r => ({ productId: Number(r.productId), qty: parseFloat(r.qty) })),
+      });
+      const nextVoucherNo = await getStockTransferVoucherNextNo();
+      setVoucherNo(nextVoucherNo.voucherNo);
+      setMessage({ type: 'success', text: `Voucher ${voucher.voucherNo} saved with ${validRows.length} item(s)` });
       reset();
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -105,7 +94,6 @@ const StockTransferVoucherForm = () => {
 
       <form className="p-8 space-y-10" onSubmit={handleSubmit}>
 
-        {/* Branch (read-only) */}
         {activeBranch && (
           <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-stone-50 border border-stone-100 max-w-xs">
             <span className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Branch</span>
