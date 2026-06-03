@@ -581,12 +581,16 @@ const createPaymentMethod = async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
-    const branchId = getBranchId(req);
     const row = await prisma.paymentMethodMaster.create({
-      data: { name, branchId: branchId || null },
+      data: { name: name.trim() },
+      select: { id: true, name: true },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'P2002') return res.status(409).json({ message: `Payment method "${req.body.name}" already exists.` });
+    res.status(500).json({ message: err.message || 'Server error' });
+  }
 };
 
 module.exports = {
