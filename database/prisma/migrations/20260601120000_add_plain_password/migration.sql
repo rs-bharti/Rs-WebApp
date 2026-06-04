@@ -1,2 +1,0 @@
--- AlterTable: add optional plainPassword column to User
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "plainPassword" TEXT;
