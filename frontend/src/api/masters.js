@@ -40,12 +40,6 @@ export const createCity = (body)      => apiFetch('/api/masters/cities',     { m
 export const updateCity = (id, body)  => apiFetch(`/api/masters/cities/${id}`, { method: 'PUT',  body: JSON.stringify(body) });
 export const deleteCity = (id)        => apiFetch(`/api/masters/cities/${id}`,  { method: 'DELETE' });
 
-// ── Areas ──────────────────────────────────────────────────────────────────────
-export const getAreas  = (cityId)     => apiFetch(`/api/masters/areas${cityId ? `?cityId=${cityId}` : ''}`);
-export const createArea = (body)      => apiFetch('/api/masters/areas',     { method: 'POST',   body: JSON.stringify(body) });
-export const updateArea = (id, body)  => apiFetch(`/api/masters/areas/${id}`, { method: 'PUT',  body: JSON.stringify(body) });
-export const deleteArea = (id)        => apiFetch(`/api/masters/areas/${id}`,  { method: 'DELETE' });
-
 // ── Branches ───────────────────────────────────────────────────────────────────
 export const getMasterBranches = ()        => apiFetch('/api/masters/branches');
 export const createBranch      = (body)    => apiFetch('/api/masters/branches',     { method: 'POST',   body: JSON.stringify(body) });

@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
-  Repeat, Undo2, LogOut, Users, MapPin, Building, Globe,
+  Repeat, Undo2, LogOut, Users, Building, Globe,
   Database, Truck, Package, Layers, Box, Warehouse,
   ClipboardList, ArrowLeftRight
 } from 'lucide-react';
@@ -38,7 +38,6 @@ const VOUCHER_ROUTES = {
 
 const MASTER_ROUTES = {
   'Customer':        { slug: 'customer',       icon: Users },
-  'Area':            { slug: 'area',           icon: MapPin },
   'Warehouse':       { slug: 'warehouse',      icon: Warehouse },
   'Supplier':        { slug: 'supplier',       icon: Truck },
   'Product':         { slug: 'product',        icon: Package },

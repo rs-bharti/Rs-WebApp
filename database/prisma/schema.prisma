@@ -13,6 +13,8 @@ model CountryMaster {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   name      String        @unique
+  phoneCode String?
+  currency  String?
   branches  Branch[]
   customers Customer[]
   states    StateMaster[]
@@ -40,7 +42,6 @@ model CityMaster {
   stateId    Int
   updatedAt  DateTime          @updatedAt
   name       String
-  areas      AreaMaster[]
   branches   Branch[]
   state      StateMaster       @relation(fields: [stateId], references: [id])
   customers  Customer[]
@@ -50,28 +51,13 @@ model CityMaster {
   @@unique([name, stateId])
 }
 
-model AreaMaster {
-  id         Int               @id @default(autoincrement())
-  cityId     Int
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  name       String
-  city       CityMaster        @relation(fields: [cityId], references: [id])
-  branches   Branch[]
-  customers  Customer[]
-  suppliers  Supplier[]
-  warehouses WarehouseMaster[]
-
-  @@unique([name, cityId])
-}
-
 model WarehouseMaster {
   id                    Int                    @id @default(autoincrement())
   name                  String
   address               String?
+  area                  String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
-  areaId                Int?
   cityId                Int?
   branchId              Int?
   stockDataVouchers     StockDataVoucher[]
@@ -80,7 +66,6 @@ model WarehouseMaster {
   salesVouchers         SalesVoucher[]
   purchaseVouchers      PurchaseVoucher[]
   purchaseReturnVouchers PurchaseReturnVoucher[]
-  area                  AreaMaster?            @relation(fields: [areaId], references: [id])
   city                  CityMaster?            @relation(fields: [cityId], references: [id])
   branch                Branch?                @relation(fields: [branchId], references: [id])
 }
@@ -89,13 +74,12 @@ model Branch {
   id        Int               @id @default(autoincrement())
   name      String
   address   String?
-  areaId    Int?
+  area      String?
   cityId    Int
   stateId   Int
   countryId Int
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
-  area      AreaMaster?       @relation(fields: [areaId], references: [id])
   city      CityMaster        @relation(fields: [cityId], references: [id])
   country   CountryMaster     @relation(fields: [countryId], references: [id])
   state     StateMaster       @relation(fields: [stateId], references: [id])
@@ -139,27 +123,30 @@ model UnitMaster {
 }
 
 model Supplier {
-  id        Int               @id @default(autoincrement())
-  name      String
-  address   String?
-  phone     String?
-  email     String?
-  gstNo     String?
-  areaId    Int?
-  cityId    Int
-  stateId   Int
-  countryId Int
-  branchId  Int?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id          Int               @id @default(autoincrement())
+  name        String
+  address     String?
+  area        String?
+  phone       String?
+  email       String?
+  gstNo       String?
+  cityId      Int
+  cityName    String?
+  stateId     Int
+  stateName   String?
+  countryId   Int
+  countryName String?
+  branchId    Int?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   purchases       PurchaseVoucher[]
   paymentVouchers PaymentVoucher[]
   purchaseReturns PurchaseReturnVoucher[]
-  area            AreaMaster?       @relation(fields: [areaId], references: [id])
   city            CityMaster        @relation(fields: [cityId], references: [id])
   country         CountryMaster     @relation(fields: [countryId], references: [id])
   state           StateMaster       @relation(fields: [stateId], references: [id])
   branch          Branch?           @relation(fields: [branchId], references: [id])
+  contacts        ContactPerson[]
 }
 
 model Product {
@@ -185,20 +172,22 @@ model Product {
 }
 
 model Customer {
-  id        Int            @id @default(autoincrement())
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  gstNo     String?
-  areaId    Int?
-  cityId    Int
-  stateId   Int
-  countryId Int
-  branchId  Int?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  area      AreaMaster?    @relation(fields: [areaId], references: [id])
+  id          Int            @id @default(autoincrement())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  area        String?
+  gstNo       String?
+  cityId      Int
+  cityName    String?
+  stateId     Int
+  stateName   String?
+  countryId   Int
+  countryName String?
+  branchId    Int?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   city      CityMaster     @relation(fields: [cityId], references: [id])
   country   CountryMaster  @relation(fields: [countryId], references: [id])
   state           StateMaster    @relation(fields: [stateId], references: [id])
@@ -206,6 +195,21 @@ model Customer {
   sales           SalesVoucher[]
   receiptVouchers ReceiptVoucher[]
   salesReturns    SalesReturnVoucher[]
+  contacts        ContactPerson[]
+}
+
+model ContactPerson {
+  id          Int       @id @default(autoincrement())
+  name        String
+  phone       String?
+  designation String?
+  dob         String?
+  customerId  Int?
+  supplierId  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplier    Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 }
 
 model Role {
