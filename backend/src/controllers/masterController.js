@@ -196,7 +196,7 @@ const createBranch = async (req, res) => {
   } catch (err) {
     console.error('createBranch error:', err);
     if (err.code === 'P2003') return res.status(400).json({ message: 'Invalid city, state, or country — please re-select from the dropdowns.' });
-    if (err.code === 'P2002') return res.status(409).json({ message: 'A branch with this name already exists.' });
+    if (err.code === 'P2002') return res.status(409).json({ message: 'Database sequence out of sync. Run: cd backend && node fix-sequences.js' });
     res.status(500).json({ message: err.message || 'Server error' });
   }
 };
