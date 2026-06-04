@@ -55,5 +55,10 @@ export const getContraVouchers      = ()     => apiFetch('/api/vouchers/contra')
 export const getStockDataVoucherNextNo = ()     => apiFetch('/api/stock-vouchers/data/next-number');
 export const saveStockDataVoucher      = (body) => apiFetch('/api/stock-vouchers/data', { method: 'POST', body: JSON.stringify(body) });
 
+// ── Stock Transfer Voucher ─────────────────────────────────────────────────────
+export const getStockTransferVoucherNextNo = ()     => apiFetch('/api/stock-vouchers/transfer/next-number');
+export const saveStockTransferVoucher      = (body) => apiFetch('/api/stock-vouchers/transfer', { method: 'POST', body: JSON.stringify(body) });
+export const getStockTransferVouchers      = ()     => apiFetch('/api/stock-vouchers/transfer');
+
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 export const getDashboard = () => apiFetch('/api/vouchers/dashboard');

@@ -73,6 +73,7 @@ const PurchaseReturnVoucherForm = () => {
         date,
         supplierId:      parseInt(supplierId),
         paymentMethodId: parseInt(paymentMethodId),
+        warehouseId:     warehouseId ? parseInt(warehouseId) : undefined,
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({

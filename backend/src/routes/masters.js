@@ -1,43 +1,25 @@
 const express = require('express');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const {
-  getCountries,  createCountry,  updateCountry,  deleteCountry,
-  getStates,     createState,    updateState,    deleteState,
-  getCities,     createCity,     updateCity,     deleteCity,
-  getAreas,      createArea,     updateArea,     deleteArea,
+  getCountries,
+  getStates,
+  getCities,
   getBranches,   createBranch,   updateBranch,   deleteBranch,
   getCategories, createCategory, updateCategory, deleteCategory,
   getUnits,      createUnit,     updateUnit,     deleteUnit,
   getSuppliers,  createSupplier, updateSupplier, deleteSupplier,
   getCustomers,  createCustomer, updateCustomer, deleteCustomer,
   getProducts,   createProduct,  updateProduct,  deleteProduct,
-  getPaymentMethods, createPaymentMethod,
+  getPaymentMethods,
 } = require('../controllers/masterController');
 
 const router = express.Router();
-
-// All master endpoints require a logged-in user; writes require admin
 router.use(authenticate);
 
-router.get('/countries',       getCountries);
-router.post('/countries',      requireAdmin, createCountry);
-router.put('/countries/:id',   requireAdmin, updateCountry);
-router.delete('/countries/:id', requireAdmin, deleteCountry);
-
-router.get('/states',          getStates);
-router.post('/states',         requireAdmin, createState);
-router.put('/states/:id',      requireAdmin, updateState);
-router.delete('/states/:id',   requireAdmin, deleteState);
-
-router.get('/cities',          getCities);
-router.post('/cities',         requireAdmin, createCity);
-router.put('/cities/:id',      requireAdmin, updateCity);
-router.delete('/cities/:id',   requireAdmin, deleteCity);
-
-router.get('/areas',           getAreas);
-router.post('/areas',          requireAdmin, createArea);
-router.put('/areas/:id',       requireAdmin, updateArea);
-router.delete('/areas/:id',    requireAdmin, deleteArea);
+// Country / State / City — read-only (data seeded from package)
+router.get('/countries', getCountries);
+router.get('/states',    getStates);
+router.get('/cities',    getCities);
 
 router.get('/branches',        getBranches);
 router.post('/branches',       requireAdmin, createBranch);
@@ -70,6 +52,5 @@ router.put('/products/:id',     requireAdmin, updateProduct);
 router.delete('/products/:id',  requireAdmin, deleteProduct);
 
 router.get('/payment-methods',  getPaymentMethods);
-router.post('/payment-methods', requireAdmin, createPaymentMethod);
 
 module.exports = router;

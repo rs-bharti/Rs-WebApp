@@ -23,16 +23,16 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { name, address, cityId, areaId } = req.body;
+  const { name, address, area, cityId } = req.body;
   if (!name) return res.status(400).json({ message: 'Warehouse name is required' });
   try {
     const branchId = getBranchId(req);
     const warehouse = await prisma.warehouseMaster.create({
       data: {
         name,
-        address,
-        cityId:   cityId   ? parseInt(cityId)   : undefined,
-        areaId:   areaId   ? parseInt(areaId)   : undefined,
+        address: address || null,
+        area:    area    || null,
+        cityId:  cityId  ? parseInt(cityId) : undefined,
         branchId: branchId || null,
       },
     });
@@ -43,11 +43,16 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { name, address, cityId, areaId } = req.body;
+  const { name, address, area, cityId } = req.body;
   try {
     const warehouse = await prisma.warehouseMaster.update({
       where: { id: parseInt(req.params.id) },
-      data: { name, address, cityId: cityId ? parseInt(cityId) : undefined, areaId: areaId ? parseInt(areaId) : undefined },
+      data: {
+        name,
+        address: address || null,
+        area:    area    || null,
+        cityId:  cityId  ? parseInt(cityId) : undefined,
+      },
     });
     res.json(warehouse);
   } catch (err) {
