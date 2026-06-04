@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from '../ui/Sidebar';
-import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark, Menu } from 'lucide-react';
+import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark, Menu, ChevronDown } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -53,6 +53,8 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const userName = user?.name || 'Admin User';
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Collapsed by default on mobile, open on desktop
+  const [statsOpen, setStatsOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
 
   return (
     <div className={cn(
@@ -112,24 +114,45 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
           </div>
         </header>
 
-        {/* Persistent Stat Cards Section */}
-        <section className="px-4 md:px-8 pt-6 md:pt-8 flex-shrink-0">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard 
+        {/* Collapsible Stat Cards Section */}
+        <section className="px-4 md:px-8 pt-4 md:pt-6 flex-shrink-0">
+          <button
+            onClick={() => setStatsOpen(prev => !prev)}
+            className={cn(
+              'w-full flex items-center justify-between py-1 mb-2 group cursor-pointer',
+            )}
+          >
+            <span className={cn(
+              'text-[10px] font-bold uppercase tracking-widest',
+              userRole === 'admin' ? 'text-brand-primary/40' : 'text-rs-text-muted'
+            )}>
+              Financial Overview
+            </span>
+            <ChevronDown className={cn(
+              'w-4 h-4 transition-transform duration-300',
+              userRole === 'admin' ? 'text-brand-primary/40' : 'text-rs-text-muted',
+              statsOpen ? 'rotate-180' : 'rotate-0'
+            )} />
+          </button>
+          <div className={cn(
+            'grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 overflow-hidden transition-all duration-300 ease-in-out',
+            statsOpen ? 'max-h-[600px] opacity-100 pb-2 md:pb-4' : 'max-h-0 opacity-0'
+          )}>
+            <StatCard
               title={userRole === 'admin' ? "Cash Position" : "Cash Balance"}
               amount={userRole === 'admin' ? "$42,850.00" : "$12,450.80"}
               trend="+2.4% FROM LAST MONTH"
               trendType="up"
               role={userRole}
             />
-            <StatCard 
+            <StatCard
               title="Bank Balance"
               amount={userRole === 'admin' ? "$1,284,900.00" : "$84,120.00"}
               trend={userRole === 'admin' ? "PRIMARY SAVINGS & ESCROW" : "LAST SYNCED: 2 MINS AGO"}
               trendType={userRole === 'admin' ? "neutral" : "up"}
               role={userRole}
             />
-            <StatCard 
+            <StatCard
               title={userRole === 'admin' ? "Digital Assets" : "Digital Wallet"}
               amount={userRole === 'admin' ? "$156,220.00" : "$3,205.50"}
               trend={userRole === 'admin' ? "-0.8% MARKET VOLATILITY" : "Main Operating Wallet"}
@@ -140,7 +163,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
         </section>
 
         {/* Scrollable Sub-Page Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-8 pb-8 mt-6 md:mt-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-8 pb-8 mt-2 md:mt-4">
           <Outlet />
         </div>
       </main>
