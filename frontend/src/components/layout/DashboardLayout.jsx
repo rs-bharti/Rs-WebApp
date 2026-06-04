@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from '../ui/Sidebar';
-import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark } from 'lucide-react';
+import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark, Menu } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -52,27 +52,32 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const { user, activeBranch, allowedBranches, isAdmin } = useAuth();
   const userName = user?.name || 'Admin User';
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className={cn(
       "h-screen flex overflow-hidden transition-colors duration-300",
       userRole === 'admin' ? "bg-brand-bg" : "bg-white"
     )}>
-      <Sidebar role={userRole} />
+      <Sidebar role={userRole} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navigation Bar */}
         <header className={cn(
-          "h-16 border-b flex items-center justify-between px-8 flex-shrink-0 transition-colors",
+          "h-14 md:h-16 border-b flex items-center justify-between px-4 md:px-8 flex-shrink-0 transition-colors",
           userRole === 'admin' ? "bg-brand-sidebar/50 border-brand-card" : "bg-white border-stone-100"
         )}>
           <div className="flex items-center space-x-4">
+            {/* Hamburger — mobile only */}
+            <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-stone-500 hover:text-brand-primary">
+              <Menu className="w-6 h-6" />
+            </button>
             <span className={cn(
               "text-lg transition-all",
               userRole === 'admin' ? "font-serif text-brand-primary" : "font-user-serif font-bold text-rs-text-primary"
             )}>{userName}</span>
-            <span className={cn("h-4 w-[1px]", userRole === 'admin' ? "bg-brand-primary/20" : "bg-stone-200")}></span>
+            <span className={cn("hidden md:block h-4 w-[1px]", userRole === 'admin' ? "bg-brand-primary/20" : "bg-stone-200")}></span>
             <span className={cn(
-              "text-sm font-medium",
+              "hidden md:inline text-sm font-medium",
               userRole === 'admin' ? "text-brand-primary/60" : "text-rs-text-muted"
             )}>
               {userRole === 'admin' ? 'Financial Overview' : 'Operational Workspace'}
@@ -81,9 +86,9 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
             {/* Active Branch indicator — shown for both admin and user */}
             {activeBranch && (
               <>
-                <span className={cn("h-4 w-[1px]", "bg-stone-200")}></span>
+                <span className={cn("hidden md:block h-4 w-[1px]", "bg-stone-200")}></span>
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-brand-primary/60" />
+                  <Building2 className="hidden md:block w-4 h-4 text-brand-primary/60" />
                   <span className="text-sm font-semibold text-brand-primary">
                     {activeBranch.name}
                   </span>
@@ -108,7 +113,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
         </header>
 
         {/* Persistent Stat Cards Section */}
-        <section className="px-8 pt-8 flex-shrink-0">
+        <section className="px-4 md:px-8 pt-6 md:pt-8 flex-shrink-0">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               title={userRole === 'admin' ? "Cash Position" : "Cash Balance"}
@@ -135,7 +140,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
         </section>
 
         {/* Scrollable Sub-Page Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 pb-8 mt-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-8 pb-8 mt-6 md:mt-8">
           <Outlet />
         </div>
       </main>

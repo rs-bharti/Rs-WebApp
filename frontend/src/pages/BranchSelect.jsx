@@ -47,7 +47,7 @@ const BranchSelect = () => {
 
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
-      <header className="w-full px-8 py-6 flex justify-between items-center border-b border-stone-200/50">
+      <header className="w-full px-4 py-4 md:px-8 md:py-6 flex justify-between items-center border-b border-stone-200/50">
         <div className="text-2xl font-serif tracking-wide text-brand-primary">RS Bharti</div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-stone-500">

@@ -79,7 +79,7 @@ const StockTransferVoucherForm = () => {
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="px-8 py-6 border-b border-stone-100 flex justify-between items-center">
+      <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New Stock Transfer Voucher</h2>
         <span className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest bg-rs-cream px-3 py-1 rounded-full">
           Ref: {voucherNo || '...'}
@@ -92,7 +92,7 @@ const StockTransferVoucherForm = () => {
         </div>
       )}
 
-      <form className="p-8 space-y-10" onSubmit={handleSubmit}>
+      <form className="p-4 md:p-8 space-y-6 md:space-y-10" onSubmit={handleSubmit}>
 
         {activeBranch && (
           <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-stone-50 border border-stone-100 max-w-xs">
@@ -101,7 +101,7 @@ const StockTransferVoucherForm = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-xl">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
@@ -198,7 +198,7 @@ const StockTransferVoucherForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end items-center gap-8 pt-8 border-t border-stone-100">
+        <div className="flex justify-end items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
           <button type="button" onClick={reset} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
             Discard
           </button>

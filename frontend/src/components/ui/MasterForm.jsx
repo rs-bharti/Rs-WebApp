@@ -422,7 +422,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     if (isDetailed) return (
       <div className="space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           <div className="space-y-6">
             <div className="space-y-2"><label className={labelCls}>Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter supplier full name" value={f('name')} onChange={upd('name')} required /></div>
             <div className="space-y-2"><label className={labelCls}>Address</label><textarea className={cn(inputCls, 'resize-none')} placeholder="Enter full postal address" rows={3} value={f('address')} onChange={upd('address')} /></div>
@@ -452,11 +452,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     if (isProduct) return (
       <div className="space-y-8 max-w-5xl">
         <div className="space-y-2"><label className={labelCls}>Product Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter product name" value={f('name')} onChange={upd('name')} required /></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           <div className="space-y-2"><label className={labelCls}>Category *</label><SearchableSelect value={selCategory} onChange={(id) => setSelCategory(id)} options={categories} placeholder="Category" /></div>
           <div className="space-y-2"><label className={labelCls}>Unit *</label><SearchableSelect value={selUnit} onChange={(id) => setSelUnit(id)} options={units} placeholder="Unit" displayFn={u => `${u.unitName}${u.shortName ? ` (${u.shortName})` : ''}`} /></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="space-y-2"><label className={labelCls}>Purchase Price <span className="text-red-400">*</span></label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('purchasePrice')} onChange={upd('purchasePrice')} required /></div></div>
           <div className="space-y-2"><label className={labelCls}>Selling Price <span className="text-red-400">*</span></label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('sellingPrice')} onChange={upd('sellingPrice')} required /></div></div>
           <div className="space-y-2"><label className={labelCls}>Barcode</label><input className={inputCls} type="text" placeholder="Scan or enter barcode" value={f('barcode')} onChange={upd('barcode')} /></div>
@@ -466,7 +466,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     if (isBranch) return (
       <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           <div className="space-y-2"><label className={labelCls}>Branch Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter branch name" value={f('name')} onChange={upd('name')} required /></div>
           <div className="space-y-2"><label className={labelCls}>Address</label><input className={inputCls} type="text" placeholder="Enter branch address" value={f('address')} onChange={upd('address')} /></div>
         </div>
@@ -509,13 +509,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         <>
           {/* ── Main records table ── */}
           <div className={dividerCls}>
-            <div className="px-8 py-4 flex items-center gap-2">
+            <div className="px-4 py-3 md:px-8 md:py-4 flex items-center gap-2">
               <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
               <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
                 {isCustomer ? 'Customer' : 'Supplier'} Master ({records.length})
               </h3>
             </div>
-            <div className="px-8 pb-8">
+            <div className="px-4 pb-4 md:px-8 md:pb-8">
               {loadingList ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
               ) : records.length === 0 ? (
@@ -559,13 +559,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
           {/* ── Contact Persons table ── */}
           <div className={dividerCls}>
-            <div className="px-8 py-4 flex items-center gap-2">
+            <div className="px-4 py-3 md:px-8 md:py-4 flex items-center gap-2">
               <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
               <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
                 Contact Persons ({allContacts.length})
               </h3>
             </div>
-            <div className="px-8 pb-8">
+            <div className="px-4 pb-4 md:px-8 md:pb-8">
               {loadingList ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
               ) : allContacts.length === 0 ? (
@@ -610,7 +610,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     if (isProduct) {
       return (
         <div className={dividerCls}>
-          <div className="px-8 py-4">
+          <div className="px-4 py-3 md:px-8 md:py-4">
             <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
               Product Master ({records.length})
             </h3>
@@ -712,7 +712,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   return (
     <section className={cn('rounded-2xl shadow-sm border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500', isAdmin ? 'bg-white border-brand-bg' : 'bg-white border-stone-100')}>
       {/* Header */}
-      <div className={cn('px-8 py-6 border-b flex justify-between items-center', isAdmin ? 'border-brand-bg' : 'border-stone-100', isProduct && 'bg-[#FDFCFB]')}>
+      <div className={cn('px-4 py-4 md:px-8 md:py-6 border-b flex justify-between items-center', isAdmin ? 'border-brand-bg' : 'border-stone-100', isProduct && 'bg-[#FDFCFB]')}>
         <h2 className={cn('text-2xl font-bold', isAdmin ? (isProduct ? 'font-product-serif text-brand-primary' : 'font-admin-serif text-brand-primary') : 'font-user-serif text-rs-text-primary')}>
           {formTitle}
         </h2>
@@ -722,13 +722,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       </div>
 
       {/* Form */}
-      <form className="p-8 space-y-12" onSubmit={handleSubmit}>
+      <form className="p-4 md:p-8 space-y-8 md:space-y-12" onSubmit={handleSubmit}>
         {error   && <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"><XCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
         {success && <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm"><CheckCircle className="w-4 h-4 flex-shrink-0" />{success}</div>}
 
         <div className="min-h-[250px]">{renderFields()}</div>
 
-        <div className={cn('flex justify-end items-center gap-8 pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
+        <div className={cn('flex justify-end items-center gap-8 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
           <button type="button" onClick={resetForm} className={cn('text-sm font-semibold', isAdmin ? 'text-brand-primary/60' : 'text-rs-text-muted')}>Discard</button>
           <button type="submit" disabled={saving}
             className={cn('px-10 py-3 rounded-lg font-bold text-sm shadow-md transition-opacity', saving && 'opacity-60 cursor-not-allowed', isAdmin ? 'bg-brand-primary text-ivory' : 'bg-rs-text-primary text-white')}>

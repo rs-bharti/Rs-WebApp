@@ -6,12 +6,13 @@ import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
   Repeat, Undo2, LogOut, Users, Building, Globe,
   Database, Truck, Package, Layers, Box, Warehouse,
-  ClipboardList, ArrowLeftRight
+  ClipboardList, ArrowLeftRight, X
 } from 'lucide-react';
 
-const SidebarItem = ({ to, icon: Icon, children, role }) => (
+const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
   <NavLink
     to={to}
+    onClick={onClose}
     className={({ isActive }) => cn(
       'flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 rounded-md',
       role === 'admin'
@@ -57,12 +58,15 @@ const OTHER_ROUTES = {
   'All Balance Stock':    { slug: 'other/all-balance-stock',      icon: Database },
 };
 
-const Sidebar = ({ role = 'admin' }) => {
+const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
   const navigate = useNavigate();
   const { logout, canAccessVoucher, canAccessMaster, canAccessOther, isAdmin } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => setShowLogoutConfirm(true);
+  const handleLogout = () => {
+    onClose();
+    setShowLogoutConfirm(true);
+  };
 
   const confirmLogout = () => {
     logout();
@@ -70,17 +74,40 @@ const Sidebar = ({ role = 'admin' }) => {
   };
 
   return (
-    <aside className={cn(
-      'w-64 flex-shrink-0 border-r border-stone-200/50 flex flex-col h-screen overflow-hidden transition-colors duration-300',
-      role === 'admin' ? 'bg-brand-sidebar' : 'bg-rs-sidebar'
-    )}>
-      <div className="p-8 pb-4 flex-shrink-0">
-        <h1 className={cn('text-2xl tracking-tight transition-all', role === 'admin' ? 'font-serif text-brand-primary' : 'font-user-serif font-bold text-rs-text-primary')}>
-          RS Bharti
-        </h1>
-        <p className={cn('text-[10px] uppercase tracking-[0.2em] font-semibold mt-1', role === 'admin' ? 'text-brand-primary/60' : 'text-rs-text-muted')}>
-          {role === 'admin' ? 'Admin Dashboard' : 'Institutional Portal'}
-        </p>
+    <>
+      {/* Mobile overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={cn(
+        'flex flex-col h-screen overflow-hidden transition-all duration-300',
+        'fixed inset-y-0 left-0 z-40 w-72',
+        open ? 'translate-x-0' : '-translate-x-full',
+        'md:relative md:translate-x-0 md:w-64 md:flex-shrink-0 md:z-auto',
+        'border-r border-stone-200/50',
+        role === 'admin' ? 'bg-brand-sidebar' : 'bg-rs-sidebar'
+      )}>
+      <div className="p-8 pb-4 flex-shrink-0 flex items-center justify-between">
+        <div>
+          <h1 className={cn('text-2xl tracking-tight transition-all', role === 'admin' ? 'font-serif text-brand-primary' : 'font-user-serif font-bold text-rs-text-primary')}>
+            RS Bharti
+          </h1>
+          <p className={cn('text-[10px] uppercase tracking-[0.2em] font-semibold mt-1', role === 'admin' ? 'text-brand-primary/60' : 'text-rs-text-muted')}>
+            {role === 'admin' ? 'Admin Dashboard' : 'Institutional Portal'}
+          </p>
+        </div>
+        {/* Mobile close button */}
+        <button
+          onClick={onClose}
+          className={cn('md:hidden p-1 rounded-md transition-colors', role === 'admin' ? 'text-brand-primary/60 hover:text-brand-primary hover:bg-brand-primary/5' : 'text-rs-text-muted hover:text-rs-text-primary hover:bg-rs-accent-bg')}
+          aria-label="Close sidebar"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-8 overflow-y-auto custom-scrollbar">
@@ -88,6 +115,7 @@ const Sidebar = ({ role = 'admin' }) => {
         {isAdmin && (
           <div className="space-y-1">
             <NavLink to="/dashboard/registration"
+              onClick={onClose}
               className={({ isActive }) => cn(
                 'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200',
                 isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-brand-primary border-stone-200 hover:bg-stone-50'
@@ -96,6 +124,7 @@ const Sidebar = ({ role = 'admin' }) => {
               Add User
             </NavLink>
             <NavLink to="/dashboard/master/branches"
+              onClick={onClose}
               className={({ isActive }) => cn(
                 'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
                 isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-brand-primary border-stone-200 hover:bg-stone-50'
@@ -117,7 +146,7 @@ const Sidebar = ({ role = 'admin' }) => {
               </h3>
               <ul className="space-y-1">
                 {allowed.map(([name, { slug, icon }]) => (
-                  <SidebarItem key={slug} to={`/dashboard/${slug}`} icon={icon} role={role}>
+                  <SidebarItem key={slug} to={`/dashboard/${slug}`} icon={icon} role={role} onClose={onClose}>
                     {name} Voucher
                   </SidebarItem>
                 ))}
@@ -137,7 +166,7 @@ const Sidebar = ({ role = 'admin' }) => {
               </h3>
               <ul className="space-y-1">
                 {allowed.map(([name, { slug, icon }]) => (
-                  <SidebarItem key={slug} to={`/dashboard/master/${slug}`} icon={icon} role={role}>
+                  <SidebarItem key={slug} to={`/dashboard/master/${slug}`} icon={icon} role={role} onClose={onClose}>
                     {name} Master
                   </SidebarItem>
                 ))}
@@ -157,7 +186,7 @@ const Sidebar = ({ role = 'admin' }) => {
               </h3>
               <ul className="space-y-1">
                 {allowed.map(([name, { slug, icon }]) => (
-                  <SidebarItem key={slug} to={`/dashboard/${slug}`} icon={icon} role={role}>
+                  <SidebarItem key={slug} to={`/dashboard/${slug}`} icon={icon} role={role} onClose={onClose}>
                     {name}
                   </SidebarItem>
                 ))}
@@ -203,7 +232,8 @@ const Sidebar = ({ role = 'admin' }) => {
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   );
 };
 

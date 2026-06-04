@@ -54,7 +54,7 @@ const Login = () => {
 
   return (
     <div className="bg-canvas min-h-screen flex flex-col">
-      <header className="w-full px-8 md:px-12 py-6 flex justify-between items-center bg-transparent">
+      <header className="w-full px-4 md:px-12 py-6 flex justify-between items-center bg-transparent">
         <div className="text-2xl font-serif tracking-wide text-brand-primary">
           RS Bharti
         </div>
@@ -63,8 +63,8 @@ const Login = () => {
         </div>
       </header>
 
-      <main className="flex-grow flex items-center justify-center px-6 py-20">
-        <section className="w-full max-w-[480px] bg-white border border-brand-bg shadow-brand-card rounded-sm p-12 md:p-16">
+      <main className="flex-grow flex items-center justify-center px-6 py-10 md:py-20">
+        <section className="w-full max-w-[480px] bg-white border border-brand-bg shadow-brand-card rounded-sm p-8 md:p-16">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-serif text-brand-primary mb-2">RS Bharti</h1>
             <p className="text-[11px] font-bold tracking-[0.25em] text-stone-500 uppercase">
