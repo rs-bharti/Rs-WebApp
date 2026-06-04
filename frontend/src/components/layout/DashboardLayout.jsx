@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from '../ui/Sidebar';
 import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -51,6 +51,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const navigate  = useNavigate();
   const { user, activeBranch, allowedBranches, isAdmin } = useAuth();
   const userName = user?.name || 'Admin User';
+  const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
 
   return (
     <div className={cn(
@@ -89,7 +90,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
                   {/* Admin always gets switch, user only if multiple branches */}
                   {(isAdmin || allowedBranches.length > 1) && (
                     <button
-                      onClick={() => navigate('/select-branch')}
+                      onClick={() => setShowSwitchConfirm(true)}
                       className="text-[10px] uppercase tracking-widest text-brand-primary/50 hover:text-brand-primary border border-brand-primary/20 hover:border-brand-primary/50 px-2 py-0.5 rounded transition-all"
                     >
                       Switch
@@ -138,6 +139,32 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
           <Outlet />
         </div>
       </main>
+
+      {showSwitchConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className={cn('text-lg font-bold mb-2', userRole === 'admin' ? 'text-brand-primary' : 'text-rs-text-primary')}>Switch Branch?</h3>
+            <p className="text-sm text-stone-500 mb-8">Are you sure you want to switch to a different branch?</p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowSwitchConfirm(false)}
+                className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setShowSwitchConfirm(false); navigate('/select-branch'); }}
+                className={cn(
+                  'px-6 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:brightness-110 cursor-pointer',
+                  userRole === 'admin' ? 'bg-brand-primary' : 'bg-rs-text-primary'
+                )}
+              >
+                Yes, Switch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,15 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2 } from 'lucide-react';
+import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2 } from 'lucide-react';
 import {
   getCountries, getStates, getCities,
   getCategories, getUnits,
+  getMasterBranches,
   getSuppliers, getCustomers, getProducts,
   createBranch, createCategory, createUnit,
   createSupplier, createCustomer, createProduct,
 } from '../../api/masters';
 
-// ── Searchable Select — filters from the FIRST letter ────────────────────────
+// Phone number max digits by country code
+const PHONE_MAX_LENGTHS = {
+  '91': 10, '1': 10, '44': 10, '61': 9, '86': 11,
+  '33': 9,  '49': 12, '81': 11, '55': 11, '7': 11,
+  '34': 9,  '39': 10, '92': 10, '880': 10, '65': 8,
+  '60': 9,  '66': 9,  '62': 12, '63': 10, '84': 10,
+};
+const phoneMaxLength = (prefix) => {
+  const code = (prefix || '').replace('+', '').trim();
+  return PHONE_MAX_LENGTHS[code] || 15;
+};
+
+// ── Searchable Select ─────────────────────────────────────────────────────────
 const SearchableSelect = ({ value, onChange, options, placeholder, disabled, displayFn }) => {
   const [search, setSearch] = useState('');
   const [open,   setOpen]   = useState(false);
@@ -19,7 +32,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
   const selected = options.find(o => String(o.id) === String(value));
 
   const filtered = options
-    .filter(o => display(o).toLowerCase().startsWith(search.toLowerCase()))
+    .filter(o => display(o).toLowerCase().includes(search.toLowerCase()))
     .slice(0, 60);
 
   useEffect(() => {
@@ -77,7 +90,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const isBranch   = type === 'Branch' || type === 'Branches';
   const isUnit     = type === 'Unit';
   const isAdmin    = userRole === 'admin';
-  const showList   = isCustomer || isDetailed || isProduct;
+  const showList   = isCustomer || isDetailed || isProduct || isBranch;
 
   const [formData, setFormData] = useState({});
   const [saving,   setSaving]   = useState(false);
@@ -111,6 +124,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [records,     setRecords]     = useState([]);
   const [loadingList, setLoadingList] = useState(false);
 
+  // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
+  const skipCityEffectsRef = useRef(false);
+
   const clearFields = () => {
     setFormData({});
     setSelCountry(''); setSelState(''); setCities([]); setSelCity('');
@@ -134,9 +150,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (showList) {
           setLoadingList(true);
           let rows = [];
-          if (isCustomer) rows = await getCustomers();
+          if (isCustomer)  rows = await getCustomers();
           else if (isDetailed) rows = await getSuppliers();
-          else if (isProduct) rows = await getProducts();
+          else if (isProduct)  rows = await getProducts();
+          else if (isBranch)   rows = await getMasterBranches();
           setRecords(rows);
         }
       } catch (err) { console.error('Failed to load data:', err); }
@@ -145,19 +162,21 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     load();
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Country → states
+  // Country → states (skipped when handleCityChange auto-fills to avoid cascade reset)
   useEffect(() => {
+    if (skipCityEffectsRef.current) return;
     if (!selCountry) { setStates([]); setSelState(''); setCities([]); setSelCity(''); return; }
     getStates(selCountry).then(setStates).catch(console.error);
     setSelState(''); setCities([]); setSelCity('');
-  }, [selCountry]);
+  }, [selCountry]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // State → cities
+  // State → cities (skipped when handleCityChange auto-fills; ref reset here as 2nd effect)
   useEffect(() => {
+    if (skipCityEffectsRef.current) { skipCityEffectsRef.current = false; return; }
     if (!selState) { setCities([]); setSelCity(''); return; }
     getCities({ stateId: selState }).then(setCities).catch(console.error);
     setSelCity('');
-  }, [selState]);
+  }, [selState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCountryChange = (id, obj) => {
     setSelCountry(id);
@@ -169,19 +188,25 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   const handleCityChange = (id, cityObj) => {
+    // Suppress cascade: setting selCountry/selState from here must NOT clear the city we just picked
+    skipCityEffectsRef.current = true;
     setSelCity(id);
     if (cityObj?.state) {
-      setSelState(String(cityObj.state.id));
-      if (cityObj.state.country) {
-        const c = cityObj.state.country;
-        setSelCountry(String(c.id));
+      const newStateId   = String(cityObj.state.id);
+      const c            = cityObj.state.country;
+      const newCountryId = c ? String(c.id) : selCountry;
+      setSelState(newStateId);
+      setSelCountry(newCountryId);
+      if (c) {
         setFormData(prev => ({
           ...prev,
           phonePrefix: c.phoneCode ? `+${c.phoneCode}` : prev.phonePrefix,
           currency:    c.currency  || prev.currency,
         }));
-        getStates(c.id).then(setStates).catch(console.error);
-        getCities({ stateId: cityObj.state.id }).then(setCities).catch(console.error);
+        // Load the correct states list for the auto-detected country without cascading
+        if (newCountryId !== String(selCountry)) {
+          getStates(newCountryId).then(setStates).catch(console.error);
+        }
       }
     }
   };
@@ -192,8 +217,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setSaving(true);
     try {
       const validContacts = contacts.filter(c => c.name.trim()).map(c => ({
-        name: c.name.trim(), phone: c.phone || undefined,
-        designation: c.designation || undefined, dob: c.dob || undefined,
+        name: c.name.trim(),
+        phone: c.phone ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${c.phone}`.trim() : undefined,
+        designation: c.designation || undefined,
+        dob: c.dob || undefined,
       }));
 
       let newRow;
@@ -202,27 +229,33 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       } else if (isUnit) {
         await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
       } else if (isBranch) {
+        if (!f('name'))  return setError('Branch name is required');
+        if (!selCountry) return setError('Please select a country');
+        if (!selState)   return setError('Please select a state');
+        if (!selCity)    return setError('Please select a city');
         newRow = await createBranch({
           name: f('name'), countryId: selCountry, stateId: selState, cityId: selCity,
           ...(f('area')    && { area:    f('area') }),
           ...(f('address') && { address: f('address') }),
         });
       } else if (isDetailed) {
+        const fullPhone = f('phone') ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${f('phone')}`.trim() : undefined;
         newRow = await createSupplier({
           name: f('name'), countryId: selCountry, stateId: selState, cityId: selCity,
           ...(f('area')    && { area:    f('area') }),
           ...(f('address') && { address: f('address') }),
-          ...(f('phone')   && { phone:   f('phone') }),
+          ...(fullPhone    && { phone:   fullPhone }),
           ...(f('email')   && { email:   f('email') }),
           ...(f('gstNo')   && { gstNo:   f('gstNo') }),
           contacts: validContacts,
         });
       } else if (isCustomer) {
+        const fullPhone = f('phone') ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${f('phone')}`.trim() : undefined;
         newRow = await createCustomer({
           name: f('name'), countryId: selCountry, stateId: selState, cityId: selCity,
           ...(f('area')    && { area:    f('area') }),
           ...(f('address') && { address: f('address') }),
-          ...(f('phone')   && { phone:   f('phone') }),
+          ...(fullPhone    && { phone:   fullPhone }),
           ...(f('email')   && { email:   f('email') }),
           ...(f('gstNo')   && { gstNo:   f('gstNo') }),
           contacts: validContacts,
@@ -316,7 +349,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             {contacts.map((c) => (
               <tr key={c.id} className={trHoverCls}>
                 <td className="p-2"><input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" /></td>
-                <td className="p-2"><input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder={f('phonePrefix') ? `${f('phonePrefix')} …` : '+91 …'} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" /></td>
+                <td className="p-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-stone-500 whitespace-nowrap flex-shrink-0">{f('phonePrefix') || '+91'}</span>
+                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(f('phonePrefix'))} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" />
+                  </div>
+                </td>
                 <td className="p-2">
                   <select value={c.designation} onChange={e => updContact(c.id, 'designation', e.target.value)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm cursor-pointer">
                     <option value="">Select</option>
@@ -324,11 +362,21 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                   </select>
                 </td>
                 <td className="p-2">
-                  <input type="text"
-                    onFocus={e => { e.target.type = 'date'; }}
-                    onBlur={e => { if (!e.target.value) e.target.type = 'text'; }}
-                    value={c.dob} onChange={e => updContact(c.id, 'dob', e.target.value)} placeholder="dd-mm-yyyy"
-                    className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm text-stone-500" />
+                  <input
+                    type="date"
+                    min="1900-01-01"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={c.dob}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (!val) { updContact(c.id, 'dob', ''); return; }
+                      const picked = new Date(val + 'T00:00:00');
+                      const today  = new Date(); today.setHours(23, 59, 59, 999);
+                      if (isNaN(picked.getTime()) || picked > today) return;
+                      updContact(c.id, 'dob', val);
+                    }}
+                    className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm text-stone-500"
+                  />
                 </td>
                 <td className="p-2 text-center">
                   <button type="button" onClick={() => removeContact(c.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 className="w-4 h-4" /></button>
@@ -351,7 +399,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Phone</label>
-            <input className={inputCls} type="tel" placeholder={f('phonePrefix') ? `${f('phonePrefix')} …` : '+91 …'} value={f('phone')} onChange={upd('phone')} />
+            <div className="flex gap-2 items-stretch">
+              <div className={cn(
+                'flex items-center justify-center px-3 rounded-lg border text-sm font-bold min-w-[64px] text-center flex-shrink-0',
+                isAdmin ? 'border-brand-bg bg-brand-bg/30 text-brand-primary' : 'border-rs-accent-bg bg-rs-cream/30 text-rs-text-primary'
+              )}>
+                {f('phonePrefix') || '+91'}
+              </div>
+              <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -372,7 +428,18 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <div className="space-y-2"><label className={labelCls}>Address</label><textarea className={cn(inputCls, 'resize-none')} placeholder="Enter full postal address" rows={3} value={f('address')} onChange={upd('address')} /></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
-            <div className="space-y-2"><label className={labelCls}>Phone</label><input className={inputCls} type="tel" placeholder={f('phonePrefix') ? `${f('phonePrefix')} …` : '+91 …'} value={f('phone')} onChange={upd('phone')} /></div>
+            <div className="space-y-2">
+              <label className={labelCls}>Phone</label>
+              <div className="flex gap-2 items-stretch">
+                <div className={cn(
+                  'flex items-center justify-center px-3 rounded-lg border text-sm font-bold min-w-[64px] text-center flex-shrink-0',
+                  isAdmin ? 'border-brand-bg bg-brand-bg/30 text-brand-primary' : 'border-rs-accent-bg bg-rs-cream/30 text-rs-text-primary'
+                )}>
+                  {f('phonePrefix') || '+91'}
+                </div>
+                <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
+              </div>
+            </div>
             <div className="space-y-2"><label className={labelCls}>Email</label><input className={inputCls} type="email" placeholder="supplier@email.com" value={f('email')} onChange={upd('email')} /></div>
             <div className="space-y-2 sm:col-span-2"><label className={labelCls}>GST No</label><input className={inputCls} type="text" placeholder="Enter GST number" value={f('gstNo')} onChange={upd('gstNo')} /></div>
           </div>
@@ -526,7 +593,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                           <td className={cn(tdCls, 'font-semibold')}>{cp.name}</td>
                           <td className={tdCls}>{cp.phone || '—'}</td>
                           <td className={tdCls}>{cp.designation || '—'}</td>
-                          <td className={tdCls}>{cp.dob || '—'}</td>
+                          <td className={tdCls}>{cp.dob ? cp.dob.split('-').reverse().join('/') : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -577,6 +644,54 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <td className={tdCls}>₹ {Number(r.purchasePrice).toLocaleString()}</td>
                         <td className={tdCls}>₹ {Number(r.sellingPrice).toLocaleString()}</td>
                         <td className={tdCls}>{r.barcode || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Branch list ──────────────────────────────────────────────────────────
+    if (isBranch) {
+      return (
+        <div className={dividerCls}>
+          <div className="px-8 py-4 flex items-center gap-2">
+            <Building2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
+            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+              Branch Master ({records.length})
+            </h3>
+          </div>
+          <div className="px-8 pb-8">
+            {loadingList ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
+            ) : records.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No branches yet. Add one above.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className={headCls}>
+                      <th className={thCls}>#</th>
+                      <th className={thCls}>Branch Name</th>
+                      <th className={thCls}>Country</th>
+                      <th className={thCls}>State</th>
+                      <th className={thCls}>City</th>
+                      <th className={thCls}>Address</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={tdCls}>{r.country?.name || '—'}</td>
+                        <td className={tdCls}>{r.state?.name || '—'}</td>
+                        <td className={cn(tdCls, 'font-medium')}>{r.city?.name || '—'}</td>
+                        <td className={tdCls}>{r.address || '—'}</td>
                       </tr>
                     ))}
                   </tbody>

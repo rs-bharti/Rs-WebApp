@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -60,8 +60,11 @@ const OTHER_ROUTES = {
 const Sidebar = ({ role = 'admin' }) => {
   const navigate = useNavigate();
   const { logout, canAccessVoucher, canAccessMaster, canAccessOther, isAdmin } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = () => setShowLogoutConfirm(true);
+
+  const confirmLogout = () => {
     logout();
     navigate('/login');
   };
@@ -174,6 +177,32 @@ const Sidebar = ({ role = 'admin' }) => {
           Logout
         </button>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className={cn('text-lg font-bold mb-2', role === 'admin' ? 'text-brand-primary' : 'text-rs-text-primary')}>Confirm Logout</h3>
+            <p className="text-sm text-stone-500 mb-8">Are you sure you want to log out of your account?</p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className={cn(
+                  'px-6 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:brightness-110 cursor-pointer',
+                  role === 'admin' ? 'bg-brand-primary' : 'bg-rs-text-primary'
+                )}
+              >
+                Yes, Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

@@ -111,7 +111,7 @@ const getCities = async (req, res) => {
     const rows = await prisma.cityMaster.findMany({
       where,
       orderBy: { name: 'asc' },
-      take: search && !stateId ? 20 : undefined,
+      take: 300,
       select: {
         id: true, name: true,
         state: {
@@ -190,10 +190,15 @@ const createBranch = async (req, res) => {
     if (area)    data.area    = area.trim();
     const row = await prisma.branch.create({
       data,
-      select: { id: true, name: true, city: { select: { id: true, name: true } }, state: { select: { id: true, name: true } }, country: { select: { id: true, name: true } } },
+      select: { id: true, name: true, address: true, area: true, city: { select: { id: true, name: true } }, state: { select: { id: true, name: true } }, country: { select: { id: true, name: true } } },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) {
+    console.error('createBranch error:', err);
+    if (err.code === 'P2003') return res.status(400).json({ message: 'Invalid city, state, or country — please re-select from the dropdowns.' });
+    if (err.code === 'P2002') return res.status(409).json({ message: 'A branch with this name already exists.' });
+    res.status(500).json({ message: err.message || 'Server error' });
+  }
 };
 
 const updateBranch = async (req, res) => {
