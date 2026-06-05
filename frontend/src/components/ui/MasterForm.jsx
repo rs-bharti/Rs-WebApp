@@ -6,8 +6,10 @@ import {
   getCategories, getUnits,
   getMasterBranches,
   getSuppliers, getCustomers, getProducts,
+  getPaymentMethods,
   createBranch, createCategory, createUnit,
   createSupplier, createCustomer, createProduct,
+  createPaymentMethod,
 } from '../../api/masters';
 
 // Phone number max digits by country code
@@ -84,13 +86,14 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
-  const isDetailed = type === 'Supplier';
-  const isCustomer = type === 'Customer';
-  const isProduct  = type === 'Product';
-  const isBranch   = type === 'Branch' || type === 'Branches';
-  const isUnit     = type === 'Unit';
-  const isAdmin    = userRole === 'admin';
-  const showList   = isCustomer || isDetailed || isProduct || isBranch;
+  const isDetailed       = type === 'Supplier';
+  const isCustomer       = type === 'Customer';
+  const isProduct        = type === 'Product';
+  const isBranch         = type === 'Branch' || type === 'Branches';
+  const isUnit           = type === 'Unit';
+  const isPaymentMethod  = type === 'Payment Method';
+  const isAdmin          = userRole === 'admin';
+  const showList         = isCustomer || isDetailed || isProduct || isBranch || isPaymentMethod;
 
   const [formData, setFormData] = useState({});
   const [saving,   setSaving]   = useState(false);
@@ -150,10 +153,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (showList) {
           setLoadingList(true);
           let rows = [];
-          if (isCustomer)  rows = await getCustomers();
-          else if (isDetailed) rows = await getSuppliers();
-          else if (isProduct)  rows = await getProducts();
-          else if (isBranch)   rows = await getMasterBranches();
+          if (isCustomer)         rows = await getCustomers();
+          else if (isDetailed)    rows = await getSuppliers();
+          else if (isProduct)     rows = await getProducts();
+          else if (isBranch)      rows = await getMasterBranches();
+          else if (isPaymentMethod) rows = await getPaymentMethods();
           setRecords(rows);
         }
       } catch (err) { console.error('Failed to load data:', err); }
@@ -224,7 +228,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       }));
 
       let newRow;
-      if (type === 'Category') {
+      if (isPaymentMethod) {
+        if (!f('name')) return setError('Payment method name is required');
+        newRow = await createPaymentMethod({ name: f('name') });
+      } else if (type === 'Category') {
         await createCategory({ name: f('name') });
       } else if (isUnit) {
         await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
@@ -484,6 +491,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       </div>
     );
 
+    if (isPaymentMethod) return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
+        <div className="space-y-2"><label className={labelCls}>Payment Method Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Cash, Bank Transfer, UPI" value={f('name')} onChange={upd('name')} required /></div>
+      </div>
+    );
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
         <div className="space-y-2"><label className={labelCls}>Category Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter category name" value={f('name')} onChange={upd('name')} required /></div>
@@ -644,6 +657,45 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <td className={tdCls}>₹ {Number(r.purchasePrice).toLocaleString()}</td>
                         <td className={tdCls}>₹ {Number(r.sellingPrice).toLocaleString()}</td>
                         <td className={tdCls}>{r.barcode || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Payment Method list ──────────────────────────────────────────────────
+    if (isPaymentMethod) {
+      return (
+        <div className={dividerCls}>
+          <div className="px-4 py-3 md:px-8 md:py-4">
+            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+              Payment Method Master ({records.length})
+            </h3>
+          </div>
+          <div className="px-8 pb-8">
+            {loadingList ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
+            ) : records.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No payment methods yet. Add one above.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse max-w-sm">
+                  <thead>
+                    <tr className={headCls}>
+                      <th className={thCls}>#</th>
+                      <th className={thCls}>Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
                       </tr>
                     ))}
                   </tbody>

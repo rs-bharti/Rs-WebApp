@@ -135,12 +135,6 @@ async function main() {
   });
   const unit = await prisma.unitMaster.findFirst({ where: { id: 1 } });
 
-  // ── 9. Payment Methods ────────────────────────────────────────────────────────
-  // PaymentMethodMaster also has @@unique([name, branchId])
-  for (const name of ['Cash', 'Bank Transfer', 'Cheque', 'UPI', 'Credit Card', 'Debit Card']) {
-    await upsertByName('paymentMethodMaster', name);
-  }
-
   // ── 10. Sample data ───────────────────────────────────────────────────────────
   await prisma.supplier.upsert({
     where:  { id: 1 },
