@@ -168,6 +168,15 @@ async function main() {
     create: { id: 1, name: 'Main Warehouse', address: 'Mumbai, Maharashtra', cityId: mumbai.id, area: 'Andheri' },
   });
 
+  // Reset sequences for tables that received explicit IDs above
+  console.log('\n  Resetting sequences…');
+  for (const table of ['Branch', 'UnitMaster', 'Supplier', 'Customer', 'WarehouseMaster', 'Role']) {
+    await prisma.$executeRawUnsafe(
+      `SELECT setval(pg_get_serial_sequence('"${table}"', 'id'), COALESCE((SELECT MAX(id) FROM "${table}"), 1))`
+    );
+  }
+  console.log('  ✓ Sequences reset');
+
   console.log('\n✓ Seed complete!');
   console.log('  admin@gmail.com / admin123');
   console.log('  admin@rsbharti.com / admin123');

@@ -8,7 +8,7 @@ const SalesVoucherForm = () => {
   const type = 'Sales';
   const { activeBranch } = useAuth();
 
-  const [rows, setRows] = useState([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
+  const [rows, setRows] = useState([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo, setVoucherNo] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -42,7 +42,7 @@ const SalesVoucherForm = () => {
   }, []);
 
   const addRow = () =>
-    setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
+    setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1, rate: 0, amount: 0 }]);
 
   const removeRow = (id) => {
     if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id));
@@ -80,11 +80,10 @@ const SalesVoucherForm = () => {
           productId: parseInt(r.productId),
           qty:       parseFloat(r.qty),
           rate:      parseFloat(r.rate),
-          remark:    r.remark || undefined,
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0, remark: '' }]);
+      setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
       setCustomerId('');
       setWarehouseId('');
       setPaymentMethodId('');
@@ -110,14 +109,14 @@ const SalesVoucherForm = () => {
 
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="px-8 py-6 border-b border-stone-100 flex justify-between items-center">
+      <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New {type} Voucher</h2>
         <span className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest bg-rs-cream px-3 py-1 rounded-full">
           Ref: {voucherNo || '…'}
         </span>
       </div>
 
-      <form className="p-8 space-y-10" onSubmit={handleSubmit}>
+      <form className="p-4 md:p-8 space-y-6 md:space-y-10" onSubmit={handleSubmit}>
         {error   && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
         {success && <p className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">{success}</p>}
 
@@ -130,7 +129,7 @@ const SalesVoucherForm = () => {
         )}
 
         {/* Header Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
@@ -184,14 +183,13 @@ const SalesVoucherForm = () => {
         <div className="space-y-4">
           <h5 className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Product Details</h5>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse min-w-[1000px]">
+            <table className="w-full text-sm text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-20">Qty</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Rate</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Total</th>
-                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-48">Remark</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -215,15 +213,6 @@ const SalesVoucherForm = () => {
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-rs-text-primary">
                       ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-4">
-                      <input
-                        className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none text-sm text-rs-text-secondary placeholder:text-stone-300"
-                        type="text"
-                        placeholder="Remark…"
-                        value={row.remark}
-                        onChange={e => updateRow(row.id, 'remark', e.target.value)}
-                      />
                     </td>
                     <td className="px-2 py-4 text-center">
                       <button type="button" onClick={() => removeRow(row.id)} className="text-stone-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">
@@ -258,7 +247,7 @@ const SalesVoucherForm = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end items-center gap-8 pt-8 border-t border-stone-100">
+        <div className="flex justify-end items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
           <button type="button" onClick={handleDiscard} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
             Discard
           </button>
