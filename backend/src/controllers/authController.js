@@ -25,7 +25,7 @@ const login = async (req, res) => {
     if (user.role.name === 'admin') permissions = { isAdmin: true };
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role.name, branchId: user.branchId },
+      { id: user.id, email: user.email, role: user.role.name, branchId: user.branchId, permissions },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
