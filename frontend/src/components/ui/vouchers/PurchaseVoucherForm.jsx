@@ -26,6 +26,8 @@ const PurchaseVoucherForm = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
+    setPaymentMethodId('');
+    setPaymentMethods([]);
     Promise.all([
       getSuppliers(),
       getProducts(),
@@ -39,7 +41,7 @@ const PurchaseVoucherForm = () => {
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
     }).catch(() => setError('Failed to load form data'));
-  }, []);
+  }, [activeBranch?.id]);
 
   const addRow = () =>
     setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1, rate: 0, amount: 0 }]);
