@@ -12,13 +12,6 @@ export const getUsers = async () => {
   return data;
 };
 
-export const getUser = async (id) => {
-  const res = await fetch(`${API_URL}/api/users/${id}`, { headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch user');
-  return data;
-};
-
 export const createUser = async (userData) => {
   const res = await fetch(`${API_URL}/api/users`, {
     method: 'POST',
@@ -27,27 +20,6 @@ export const createUser = async (userData) => {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Failed to create user');
-  return data;
-};
-
-export const updateUser = async (id, userData) => {
-  const res = await fetch(`${API_URL}/api/users/${id}`, {
-    method: 'PUT',
-    headers: authHeaders(),
-    body: JSON.stringify(userData),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to update user');
-  return data;
-};
-
-export const deleteUser = async (id) => {
-  const res = await fetch(`${API_URL}/api/users/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to delete user');
   return data;
 };
 

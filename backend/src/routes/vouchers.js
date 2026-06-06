@@ -1,7 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
 const {
-  getPaymentMethods,
   getContraNextNo,        getContras,        createContra,
   getReceiptNextNo,       getReceipts,       createReceipt,
   getPaymentNextNo,       getPayments,       createPayment,
@@ -17,7 +16,6 @@ const {
 const router = express.Router();
 router.use(authenticate);
 
-router.get('/payment-methods',          getPaymentMethods);
 router.get('/dashboard',                getDashboard);
 
 router.get('/contra/next-number',       getContraNextNo);

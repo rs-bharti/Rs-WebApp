@@ -18,19 +18,6 @@ const getBranchId = (req) => {
   return req.user.branchId || null;
 };
 
-// ── Payment Methods ────────────────────────────────────────────────────────────
-const getPaymentMethods = async (req, res) => {
-  try {
-    const branchId = getBranchId(req);
-    const where = branchId ? { branchId } : {};
-    const rows = await prisma.paymentMethodMaster.findMany({
-      where,
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    });
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
-};
 
 // ── Contra Voucher ─────────────────────────────────────────────────────────────
 const getContraNextNo = async (_req, res) => {
@@ -703,7 +690,6 @@ const createStockTransfer = async (req, res) => {
 };
 
 module.exports = {
-  getPaymentMethods,
   getContraNextNo,        getContras,        createContra,
   getReceiptNextNo,       getReceipts,       createReceipt,
   getPaymentNextNo,       getPayments,       createPayment,
