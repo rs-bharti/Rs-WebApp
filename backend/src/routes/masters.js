@@ -10,7 +10,8 @@ const {
   getSuppliers,  createSupplier, updateSupplier, deleteSupplier,
   getCustomers,  createCustomer, updateCustomer, deleteCustomer,
   getProducts,   createProduct,  updateProduct,  deleteProduct,
-  getPaymentMethods,
+  getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+  getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
 } = require('../controllers/masterController');
 
 const router = express.Router();
@@ -51,6 +52,14 @@ router.post('/products',        requireAdmin, createProduct);
 router.put('/products/:id',     requireAdmin, updateProduct);
 router.delete('/products/:id',  requireAdmin, deleteProduct);
 
-router.get('/payment-methods',  getPaymentMethods);
+router.get('/payment-methods',        getPaymentMethods);
+router.post('/payment-methods',       requireAdmin, createPaymentMethod);
+router.put('/payment-methods/:id',    requireAdmin, updatePaymentMethod);
+router.delete('/payment-methods/:id', requireAdmin, deletePaymentMethod);
+
+router.get('/warehouses',        getWarehouses);
+router.post('/warehouses',       createWarehouse);
+router.put('/warehouses/:id',    updateWarehouse);
+router.delete('/warehouses/:id', deleteWarehouse);
 
 module.exports = router;

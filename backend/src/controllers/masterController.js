@@ -640,6 +640,57 @@ const deletePaymentMethod = async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
+// ── Warehouses ─────────────────────────────────────────────────────────────────
+const getWarehouses = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
+    const rows = await prisma.warehouseMaster.findMany({ where, orderBy: { createdAt: 'desc' } });
+    res.json(rows);
+  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+};
+
+const createWarehouse = async (req, res) => {
+  const { name, address, area, cityId } = req.body;
+  if (!name) return res.status(400).json({ message: 'Warehouse name is required' });
+  try {
+    const branchId = getBranchId(req);
+    const row = await prisma.warehouseMaster.create({
+      data: {
+        name,
+        address: address || null,
+        area:    area    || null,
+        cityId:  cityId  ? parseInt(cityId) : undefined,
+        branchId: branchId || null,
+      },
+    });
+    res.status(201).json(row);
+  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+};
+
+const updateWarehouse = async (req, res) => {
+  const { name, address, area, cityId } = req.body;
+  try {
+    const row = await prisma.warehouseMaster.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        name,
+        address: address || null,
+        area:    area    || null,
+        cityId:  cityId  ? parseInt(cityId) : undefined,
+      },
+    });
+    res.json(row);
+  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+};
+
+const deleteWarehouse = async (req, res) => {
+  try {
+    await prisma.warehouseMaster.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Warehouse deleted' });
+  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+};
+
 module.exports = {
   getCountries, createCountry, updateCountry, deleteCountry,
   getStates,    createState,   updateState,   deleteState,
@@ -651,4 +702,5 @@ module.exports = {
   getCustomers, createCustomer, updateCustomer, deleteCustomer,
   getProducts,  createProduct,  updateProduct,  deleteProduct,
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+  getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
 };

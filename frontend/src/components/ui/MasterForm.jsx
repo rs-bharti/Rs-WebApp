@@ -6,8 +6,11 @@ import {
   getCategories, getUnits,
   getMasterBranches,
   getSuppliers, getCustomers, getProducts,
+  getPaymentMethods,
+  getWarehouses, createWarehouse, deleteWarehouse,
   createBranch, createCategory, createUnit,
   createSupplier, createCustomer, createProduct,
+  createPaymentMethod,
 } from '../../api/masters';
 
 // Phone number max digits by country code
@@ -84,13 +87,15 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
-  const isDetailed = type === 'Supplier';
-  const isCustomer = type === 'Customer';
-  const isProduct  = type === 'Product';
-  const isBranch   = type === 'Branch' || type === 'Branches';
-  const isUnit     = type === 'Unit';
-  const isAdmin    = userRole === 'admin';
-  const showList   = isCustomer || isDetailed || isProduct || isBranch;
+  const isDetailed       = type === 'Supplier';
+  const isCustomer       = type === 'Customer';
+  const isProduct        = type === 'Product';
+  const isBranch         = type === 'Branch' || type === 'Branches';
+  const isUnit           = type === 'Unit';
+  const isPaymentMethod  = type === 'Payment Method';
+  const isWarehouse      = type === 'Warehouse';
+  const isAdmin          = userRole === 'admin';
+  const showList         = isCustomer || isDetailed || isProduct || isBranch || isPaymentMethod || isWarehouse;
 
   const [formData, setFormData] = useState({});
   const [saving,   setSaving]   = useState(false);
@@ -123,6 +128,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   // List of existing records
   const [records,     setRecords]     = useState([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [deletingId,  setDeletingId]  = useState(null);
 
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
@@ -135,6 +141,18 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
   const resetForm = () => { clearFields(); setError(''); setSuccess(''); };
 
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      await deleteWarehouse(id);
+      setRecords(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { resetForm(); }, [type]);
 
@@ -142,7 +160,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        if (isCustomer || isDetailed || isBranch) setCountries(await getCountries());
+        if (isCustomer || isDetailed || isBranch || isWarehouse) setCountries(await getCountries());
         if (isProduct) {
           const [cats, us] = await Promise.all([getCategories(), getUnits()]);
           setCategories(cats); setUnits(us);
@@ -150,10 +168,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (showList) {
           setLoadingList(true);
           let rows = [];
-          if (isCustomer)  rows = await getCustomers();
-          else if (isDetailed) rows = await getSuppliers();
-          else if (isProduct)  rows = await getProducts();
-          else if (isBranch)   rows = await getMasterBranches();
+          if (isCustomer)         rows = await getCustomers();
+          else if (isDetailed)    rows = await getSuppliers();
+          else if (isProduct)     rows = await getProducts();
+          else if (isBranch)      rows = await getMasterBranches();
+          else if (isPaymentMethod) rows = await getPaymentMethods();
+          else if (isWarehouse)     rows = await getWarehouses();
           setRecords(rows);
         }
       } catch (err) { console.error('Failed to load data:', err); }
@@ -224,7 +244,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       }));
 
       let newRow;
-      if (type === 'Category') {
+      if (isPaymentMethod) {
+        if (!f('name')) return setError('Payment method name is required');
+        newRow = await createPaymentMethod({ name: f('name') });
+      } else if (type === 'Category') {
         await createCategory({ name: f('name') });
       } else if (isUnit) {
         await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
@@ -265,6 +288,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           name: f('name'), categoryId: selCategory, unitId: selUnit,
           purchasePrice: f('purchasePrice'), sellingPrice: f('sellingPrice'),
           ...(f('barcode') && { barcode: f('barcode') }),
+        });
+      } else if (isWarehouse) {
+        if (!f('name')) return setError('Warehouse name is required');
+        newRow = await createWarehouse({
+          name: f('name'),
+          ...(f('address') && { address: f('address') }),
+          ...(f('area')    && { area:    f('area') }),
+          ...(selCity      && { cityId:  selCity }),
         });
       }
 
@@ -484,6 +515,22 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       </div>
     );
 
+    if (isPaymentMethod) return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
+        <div className="space-y-2"><label className={labelCls}>Payment Method Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Cash, Bank Transfer, UPI" value={f('name')} onChange={upd('name')} required /></div>
+      </div>
+    );
+
+    if (isWarehouse) return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+          <div className="space-y-2"><label className={labelCls}>Warehouse Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter warehouse name" value={f('name')} onChange={upd('name')} required /></div>
+          <div className="space-y-2"><label className={labelCls}>Address</label><input className={inputCls} type="text" placeholder="Enter full address" value={f('address')} onChange={upd('address')} /></div>
+        </div>
+        {locationBlock()}
+      </div>
+    );
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
         <div className="space-y-2"><label className={labelCls}>Category Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter category name" value={f('name')} onChange={upd('name')} required /></div>
@@ -655,6 +702,45 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       );
     }
 
+    // ── Payment Method list ──────────────────────────────────────────────────
+    if (isPaymentMethod) {
+      return (
+        <div className={dividerCls}>
+          <div className="px-4 py-3 md:px-8 md:py-4">
+            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+              Payment Method Master ({records.length})
+            </h3>
+          </div>
+          <div className="px-8 pb-8">
+            {loadingList ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
+            ) : records.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No payment methods yet. Add one above.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse max-w-sm">
+                  <thead>
+                    <tr className={headCls}>
+                      <th className={thCls}>#</th>
+                      <th className={thCls}>Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // ── Branch list ──────────────────────────────────────────────────────────
     if (isBranch) {
       return (
@@ -692,6 +778,60 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <td className={tdCls}>{r.state?.name || '—'}</td>
                         <td className={cn(tdCls, 'font-medium')}>{r.city?.name || '—'}</td>
                         <td className={tdCls}>{r.address || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Warehouse list ───────────────────────────────────────────────────────
+    if (isWarehouse) {
+      return (
+        <div className={dividerCls}>
+          <div className="px-4 py-3 md:px-8 md:py-4">
+            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+              Warehouse Master ({records.length})
+            </h3>
+          </div>
+          <div className="px-8 pb-8">
+            {loadingList ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
+            ) : records.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No warehouses yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className={headCls}>
+                      <th className={thCls}>#</th>
+                      <th className={thCls}>Name</th>
+                      <th className={thCls}>Area</th>
+                      <th className={thCls}>Address</th>
+                      <th className={thCls}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={tdCls}>{r.area || '—'}</td>
+                        <td className={tdCls}>{r.address || '—'}</td>
+                        <td className="p-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(r.id)}
+                            disabled={deletingId === r.id}
+                            className="flex items-center gap-1.5 text-xs font-bold text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
