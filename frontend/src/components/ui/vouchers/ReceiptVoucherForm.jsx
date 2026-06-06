@@ -23,6 +23,8 @@ const ReceiptVoucherForm = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
+    setPaymentMethodId('');
+    setPaymentMethods([]);
     Promise.all([
       getCustomers(),
       getPaymentMethods(),
@@ -32,7 +34,7 @@ const ReceiptVoucherForm = () => {
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
     }).catch(() => setError('Failed to load form data'));
-  }, []);
+  }, [activeBranch?.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
