@@ -77,10 +77,10 @@ export const updateProduct = (id, body) => apiFetch(`/api/masters/products/${id}
 export const deleteProduct = (id)     => apiFetch(`/api/masters/products/${id}`,  { method: 'DELETE' });
 
 // ── Warehouses ─────────────────────────────────────────────────────────────────
-export const getWarehouses   = ()         => apiFetch('/api/warehouses');
-export const createWarehouse = (body)     => apiFetch('/api/warehouses',       { method: 'POST',   body: JSON.stringify(body) });
-export const updateWarehouse = (id, body) => apiFetch(`/api/warehouses/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteWarehouse = (id)       => apiFetch(`/api/warehouses/${id}`, { method: 'DELETE' });
+export const getWarehouses   = ()         => apiFetch('/api/masters/warehouses');
+export const createWarehouse = (body)     => apiFetch('/api/masters/warehouses',       { method: 'POST',   body: JSON.stringify(body) });
+export const updateWarehouse = (id, body) => apiFetch(`/api/masters/warehouses/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
+export const deleteWarehouse = (id)       => apiFetch(`/api/masters/warehouses/${id}`, { method: 'DELETE' });
 
 // ── Payment Methods ────────────────────────────────────────────────────────────
 export const getPaymentMethods    = ()         => apiFetch('/api/masters/payment-methods');

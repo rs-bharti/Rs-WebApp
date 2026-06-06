@@ -10,6 +10,8 @@ const {
   getPurchaseReturnNextNo, getPurchaseReturns, createPurchaseReturn,
   getSalesReturnNextNo,   getSalesReturns,   createSalesReturn,
   getDashboard,
+  getStockDataNextNo,    getStockData,    createStockData,
+  getStockTransferNextNo, getStockTransfers, createStockTransfer,
 } = require('../controllers/voucherController');
 
 const router = express.Router();
@@ -45,5 +47,13 @@ router.post('/purchase-return',         createPurchaseReturn);
 router.get('/sales-return/next-number', getSalesReturnNextNo);
 router.get('/sales-return',             getSalesReturns);
 router.post('/sales-return',            createSalesReturn);
+
+router.get('/data/next-number',         getStockDataNextNo);
+router.get('/data',                     getStockData);
+router.post('/data',                    createStockData);
+
+router.get('/transfer/next-number',     getStockTransferNextNo);
+router.get('/transfer',                 getStockTransfers);
+router.post('/transfer',                createStockTransfer);
 
 module.exports = router;
