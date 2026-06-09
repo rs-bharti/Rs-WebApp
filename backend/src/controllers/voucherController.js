@@ -520,6 +520,7 @@ const createSalesReturn = async (req, res) => {
           create: items.map(i => ({
             productId:      Number(i.productId),
             productName:    productNameMap[Number(i.productId)] || null,
+            warehouseId:    i.warehouseId ? Number(i.warehouseId) : null,
             qty:            Number(i.qty),
             rate:           Number(i.rate),
             subTotal:       Number(i.qty) * Number(i.rate),
@@ -732,6 +733,7 @@ const getStockQty = async (req, res) => {
       stockDataSum,
       purchaseSum,
       salesSum,
+      salesReturnSum,
       purchaseReturnSum,
       transferInSum,
       transferOutSum,
@@ -749,6 +751,11 @@ const getStockQty = async (req, res) => {
       // Sales remove stock from that warehouse
       prisma.salesVoucherItem.aggregate({
         where: { productId: pid, voucher: { warehouseId: wid } },
+        _sum: { qty: true },
+      }),
+      // Sales returns add stock back to that warehouse
+      prisma.salesReturnVoucherItem.aggregate({
+        where: { productId: pid, warehouseId: wid },
         _sum: { qty: true },
       }),
       // Purchase returns remove stock from that warehouse
@@ -769,12 +776,13 @@ const getStockQty = async (req, res) => {
     ]);
 
     const qty =
-      (stockDataSum._sum.qty     || 0) +
-      (purchaseSum._sum.qty      || 0) +
-      (transferInSum._sum.qty    || 0) -
-      (salesSum._sum.qty         || 0) -
+      (stockDataSum._sum.qty      || 0) +
+      (purchaseSum._sum.qty       || 0) +
+      (transferInSum._sum.qty     || 0) +
+      (salesReturnSum._sum.qty    || 0) -
+      (salesSum._sum.qty          || 0) -
       (purchaseReturnSum._sum.qty || 0) -
-      (transferOutSum._sum.qty   || 0);
+      (transferOutSum._sum.qty    || 0);
 
     res.json({ qty: Math.max(0, qty) });
   } catch (err) {

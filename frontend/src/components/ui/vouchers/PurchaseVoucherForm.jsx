@@ -63,7 +63,7 @@ const PurchaseVoucherForm = () => {
       if (pId && wId) {
         getStockQty(pId, wId)
           .then(data => setRows(curr => curr.map(r => r.id === id ? { ...r, stockQty: data.qty ?? 0 } : r)))
-          .catch(() => {});
+          .catch(() => setRows(curr => curr.map(r => r.id === id ? { ...r, stockQty: 0 } : r)));
       }
     }
   };
@@ -196,11 +196,12 @@ const PurchaseVoucherForm = () => {
         <div className="space-y-4">
           <h5 className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Product Details</h5>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse min-w-[1000px]">
+            <table className="w-full text-sm text-left border-collapse min-w-[1100px]">
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-40">Warehouse</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Avl. Stock</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Qty</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Rate</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Total</th>
@@ -231,16 +232,15 @@ const PurchaseVoucherForm = () => {
                           </select>
                           <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
                         </div>
-                        {row.warehouseId && row.productId && (
-                          <div className="text-[10px] mt-0.5 font-semibold">
-                            {row.stockQty === null
-                              ? <span className="text-stone-400">Loading…</span>
-                              : <span className={row.stockQty <= 0 ? 'text-red-500' : 'text-emerald-600'}>
-                                  Avl: {row.stockQty}
-                                </span>
-                            }
-                          </div>
-                        )}
+                      </td>
+
+                      {/* Avl. Stock */}
+                      <td className="px-4 py-4 text-right">
+                        {row.warehouseId && row.productId ? (
+                          row.stockQty === null
+                            ? <span className="text-[10px] text-stone-400">…</span>
+                            : <span className={`font-bold text-sm ${row.stockQty <= 0 ? 'text-red-500' : 'text-emerald-600'}`}>{row.stockQty}</span>
+                        ) : <span className="text-stone-300">—</span>}
                       </td>
 
                       <td className="px-4 py-4 text-right">

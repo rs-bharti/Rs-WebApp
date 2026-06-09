@@ -60,12 +60,13 @@ model WarehouseMaster {
   cityId                 Int?
   branchId               Int?
   area                   String?
-  purchaseReturnVouchers PurchaseReturnVoucher[]
-  purchaseVouchers       PurchaseVoucher[]
-  salesVouchers          SalesVoucher[]
-  stockDataVouchers      StockDataVoucher[]
-  stockTransferFrom      StockTransferVoucher[]  @relation("TransferFrom")
-  stockTransferTo        StockTransferVoucher[]  @relation("TransferTo")
+  purchaseReturnVouchers  PurchaseReturnVoucher[]
+  purchaseVouchers        PurchaseVoucher[]
+  salesVouchers           SalesVoucher[]
+  salesReturnItems        SalesReturnVoucherItem[]
+  stockDataVouchers       StockDataVoucher[]
+  stockTransferFrom       StockTransferVoucher[]  @relation("TransferFrom")
+  stockTransferTo         StockTransferVoucher[]  @relation("TransferTo")
   branch                 Branch?                 @relation(fields: [branchId], references: [id])
   city                   CityMaster?             @relation(fields: [cityId], references: [id])
 }
@@ -566,6 +567,7 @@ model SalesReturnVoucherItem {
   id             Int                @id @default(autoincrement())
   voucherId      Int
   productId      Int
+  warehouseId    Int?
   qty            Float
   rate           Float
   subTotal       Float              @default(0)
@@ -575,5 +577,6 @@ model SalesReturnVoucherItem {
   amount         Float
   productName    String?
   product        Product            @relation(fields: [productId], references: [id])
+  warehouse      WarehouseMaster?   @relation(fields: [warehouseId], references: [id])
   voucher        SalesReturnVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 }
