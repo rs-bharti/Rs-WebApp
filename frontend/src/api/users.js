@@ -48,7 +48,7 @@ export const deleteUser = async (userId) => {
 };
 
 export const updateUserPermissions = async (userId, permissions) => {
-  const res = await fetch(`${API_URL}/api/users/${userId}/permissions`, {
+  const res = await fetch(`${API_URL}/api/users/${userId}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ permissions }),
