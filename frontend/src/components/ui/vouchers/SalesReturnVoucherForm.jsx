@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
-import { getCustomers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
+import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
 import { getSalesReturnNextNo, saveSalesReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -14,21 +14,18 @@ const SalesReturnVoucherForm = () => {
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo,       setVoucherNo]       = useState('');
   const [customerId,      setCustomerId]      = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
   const [narration,       setNarration]       = useState('');
   const [customers,       setCustomers]       = useState([]);
   const [products,        setProducts]        = useState([]);
   const [warehouses,      setWarehouses]      = useState([]);
-  const [paymentMethods,  setPaymentMethods]  = useState([]);
   const [saving,          setSaving]          = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
 
   useEffect(() => {
-    setPaymentMethodId(''); setPaymentMethods([]);
-    Promise.all([getCustomers(), getProducts(), getWarehouses(), getPaymentMethods(), getSalesReturnNextNo()])
-      .then(([cust, prod, wh, pm, vn]) => {
-        setCustomers(cust); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setVoucherNo(vn.voucherNo);
+    Promise.all([getCustomers(), getProducts(), getWarehouses(), getSalesReturnNextNo()])
+      .then(([cust, prod, wh, vn]) => {
+        setCustomers(cust); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo);
       }).catch(() => setError('Failed to load form data'));
   }, [activeBranch?.id]);
 
@@ -49,16 +46,14 @@ const SalesReturnVoucherForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    if (!customerId)      return setError('Please select a customer');
-    if (!paymentMethodId) return setError('Please select a payment method');
+    if (!customerId) return setError('Please select a customer');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
     setSaving(true);
     try {
       const voucher = await saveSalesReturnVoucher({
         date,
-        customerId:      parseInt(customerId),
-        paymentMethodId: parseInt(paymentMethodId),
+        customerId: parseInt(customerId),
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
@@ -69,7 +64,7 @@ const SalesReturnVoucherForm = () => {
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([emptyRow()]); setCustomerId(''); setPaymentMethodId(''); setNarration('');
+      setRows([emptyRow()]); setCustomerId(''); setNarration('');
       const vn = await getSalesReturnNextNo();
       setVoucherNo(vn.voucherNo);
     } catch (err) {
@@ -80,7 +75,7 @@ const SalesReturnVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([emptyRow()]); setCustomerId(''); setPaymentMethodId(''); setNarration('');
+    setRows([emptyRow()]); setCustomerId(''); setNarration('');
     setError(''); setSuccess('');
   };
 
@@ -127,18 +122,6 @@ const SalesReturnVoucherForm = () => {
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
-          </div>
-        </div>
-
-        <div className="max-w-xs space-y-2">
-          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Method</label>
-          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-            <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-              value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
-              <option value="" disabled>Select Payment Method</option>
-              {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-            </select>
-            <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
           </div>
         </div>
 

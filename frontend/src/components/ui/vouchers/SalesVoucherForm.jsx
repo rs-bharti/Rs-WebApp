@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
-import { getCustomers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
+import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
 import { getSalesVoucherNextNo, saveSalesVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -14,21 +14,19 @@ const SalesVoucherForm = () => {
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo,       setVoucherNo]       = useState('');
   const [customerId,      setCustomerId]      = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [paymentTerms,    setPaymentTerms]    = useState('');
   const [narration,       setNarration]       = useState('');
   const [customers,       setCustomers]       = useState([]);
   const [products,        setProducts]        = useState([]);
   const [warehouses,      setWarehouses]      = useState([]);
-  const [paymentMethods,  setPaymentMethods]  = useState([]);
   const [saving,          setSaving]          = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
 
   useEffect(() => {
-    setPaymentMethodId(''); setPaymentMethods([]);
-    Promise.all([getCustomers(), getProducts(), getWarehouses(), getPaymentMethods(), getSalesVoucherNextNo()])
-      .then(([cust, prod, wh, pm, vn]) => {
-        setCustomers(cust); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setVoucherNo(vn.voucherNo);
+    Promise.all([getCustomers(), getProducts(), getWarehouses(), getSalesVoucherNextNo()])
+      .then(([cust, prod, wh, vn]) => {
+        setCustomers(cust); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo);
       }).catch(() => setError('Failed to load form data'));
   }, [activeBranch?.id]);
 
@@ -54,8 +52,8 @@ const SalesVoucherForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    if (!customerId)      return setError('Please select a customer');
-    if (!paymentMethodId) return setError('Please select a payment method');
+    if (!customerId)    return setError('Please select a customer');
+    if (!paymentTerms)  return setError('Please select payment terms');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
 
@@ -63,8 +61,8 @@ const SalesVoucherForm = () => {
     try {
       const voucher = await saveSalesVoucher({
         date,
-        customerId:      parseInt(customerId),
-        paymentMethodId: parseInt(paymentMethodId),
+        customerId:   parseInt(customerId),
+        paymentTerms,
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
@@ -75,7 +73,7 @@ const SalesVoucherForm = () => {
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([emptyRow()]); setCustomerId(''); setPaymentMethodId(''); setNarration('');
+      setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
       const vn = await getSalesVoucherNextNo();
       setVoucherNo(vn.voucherNo);
     } catch (err) {
@@ -86,7 +84,7 @@ const SalesVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([emptyRow()]); setCustomerId(''); setPaymentMethodId(''); setNarration('');
+    setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
     setError(''); setSuccess('');
   };
 
@@ -137,12 +135,16 @@ const SalesVoucherForm = () => {
         </div>
 
         <div className="max-w-xs space-y-2">
-          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Method</label>
+          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Terms</label>
           <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
             <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-              value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
-              <option value="" disabled>Select Payment Method</option>
-              {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
+              value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} required>
+              <option value="" disabled>Select Payment Terms</option>
+              <option value="60 Days Consignment Basis">60 Days Consignment Basis</option>
+              <option value="45 Days Consignment Basis">45 Days Consignment Basis</option>
+              <option value="30 Days Consignment Basis">30 Days Consignment Basis</option>
+              <option value="15 Days Consignment Basis">15 Days Consignment Basis</option>
+              <option value="Cash">Cash</option>
             </select>
             <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
           </div>
