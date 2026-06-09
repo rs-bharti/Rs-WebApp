@@ -482,16 +482,51 @@ const getCustomers = async (req, res) => {
       select: {
         id: true, name: true, phone: true, email: true, gstNo: true, address: true, area: true,
         cityName: true, stateName: true, countryName: true,
-        contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
+        contacts:     { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
+        transactions: { select: { type: true, amount: true } },
       },
+    });
+    const result = rows.map(r => {
+      const balance = r.transactions.reduce((sum, t) => sum + (t.type === 'CR' ? t.amount : -t.amount), 0);
+      const { transactions, ...rest } = r;
+      return { ...rest, balance };
+    });
+    res.json(result);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
+const getCustomerTransactions = async (req, res) => {
+  try {
+    const rows = await prisma.customerTransaction.findMany({
+      where: { customerId: Number(req.params.id) },
+      orderBy: { createdAt: 'desc' },
     });
     res.json(rows);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
+const createCustomerTransaction = async (req, res) => {
+  try {
+    const { type, amount, note, date } = req.body;
+    if (!type || !amount || !['CR', 'DR'].includes(type))
+      return res.status(400).json({ message: 'type (CR or DR) and amount are required' });
+    const row = await prisma.customerTransaction.create({
+      data: {
+        customerId: Number(req.params.id),
+        type,
+        amount:     Number(amount),
+        note:       note || null,
+        source:     'manual',
+        date:       date ? new Date(date) : new Date(),
+      },
+    });
+    res.status(201).json(row);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
 const createCustomer = async (req, res) => {
   try {
-    const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts } = req.body;
+    const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts, openingBalance, openingBalanceType } = req.body;
     if (!name || !cityId || !stateId || !countryId) {
       return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
     }
@@ -535,7 +570,25 @@ const createCustomer = async (req, res) => {
         contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true } },
       },
     });
-    res.status(201).json(row);
+
+    let balance = 0;
+    const obAmt = parseFloat(openingBalance);
+    if (!isNaN(obAmt) && obAmt > 0) {
+      const obType = openingBalanceType === 'DR' ? 'DR' : 'CR';
+      await prisma.customerTransaction.create({
+        data: {
+          customerId: row.id,
+          type:       obType,
+          amount:     obAmt,
+          note:       'Opening balance',
+          source:     'opening_balance',
+          date:       new Date(),
+        },
+      });
+      balance = obType === 'CR' ? obAmt : -obAmt;
+    }
+
+    res.status(201).json({ ...row, balance });
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
@@ -754,6 +807,7 @@ module.exports = {
   getSuppliers, createSupplier, updateSupplier, deleteSupplier,
   getSupplierTransactions, createSupplierTransaction,
   getCustomers, createCustomer, updateCustomer, deleteCustomer,
+  getCustomerTransactions, createCustomerTransaction,
   getProducts,  createProduct,  updateProduct,  deleteProduct,
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,

@@ -415,6 +415,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         });
       } else if (isCustomer) {
         const fullPhone = f('phone') ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${f('phone')}`.trim() : undefined;
+        const obAmt = parseFloat(f('openingBalance'));
         newRow = await createCustomer({
           name: f('name'), countryId: selCountry, stateId: selState, cityId: selCity,
           ...(f('area')    && { area:    f('area') }),
@@ -422,6 +423,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           ...(fullPhone    && { phone:   fullPhone }),
           ...(f('email')   && { email:   f('email') }),
           ...(f('gstNo')   && { gstNo:   f('gstNo') }),
+          ...(!isNaN(obAmt) && obAmt > 0 && { openingBalance: obAmt, openingBalanceType: f('obType') === 'DR' ? 'DR' : 'CR' }),
           contacts: validContacts,
         });
       } else if (isProduct) {
@@ -619,23 +621,52 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const renderFields = () => {
     if (isCustomer) return (
       <div className="space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-2">
-            <label className={labelCls}>Customer Name <span className="text-red-400">*</span></label>
-            <input className={inputCls} type="text" placeholder="Enter customer full name" value={f('name')} onChange={upd('name')} required />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+          <div className="space-y-6">
+            <div className="space-y-2"><label className={labelCls}>Customer Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter customer full name" value={f('name')} onChange={upd('name')} required /></div>
+            <div className="space-y-2"><label className={labelCls}>Address</label><textarea className={cn(inputCls, 'resize-none')} placeholder="Enter full postal address" rows={3} value={f('address')} onChange={upd('address')} /></div>
           </div>
-          <div className="space-y-2">
-            <label className={labelCls}>Phone</label>
-            <div className="flex gap-2 items-stretch">
-              <PhonePrefixSelect value={f('phonePrefix')} onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))} countries={countries} isAdmin={isAdmin} />
-              <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
+            <div className="space-y-2">
+              <label className={labelCls}>Phone</label>
+              <div className="flex gap-2 items-stretch">
+                <PhonePrefixSelect value={f('phonePrefix')} onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))} countries={countries} isAdmin={isAdmin} />
+                <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
+              </div>
+            </div>
+            <div className="space-y-2"><label className={labelCls}>Email</label><input className={inputCls} type="email" placeholder="customer@email.com" value={f('email')} onChange={upd('email')} /></div>
+            <div className="space-y-2 sm:col-span-2"><label className={labelCls}>GST No</label><input className={inputCls} type="text" placeholder="Enter GST number" value={f('gstNo')} onChange={upd('gstNo')} /></div>
+            <div className="space-y-2 sm:col-span-2">
+              <label className={labelCls}>Opening Balance</label>
+              <div className="flex gap-2 items-stretch">
+                <div className="flex rounded-lg overflow-hidden border border-stone-200 flex-shrink-0">
+                  <button type="button"
+                    onClick={() => setFormData(p => ({ ...p, obType: 'CR' }))}
+                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', (f('obType') || 'CR') === 'CR' ? 'bg-green-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
+                    CR
+                  </button>
+                  <button type="button"
+                    onClick={() => setFormData(p => ({ ...p, obType: 'DR' }))}
+                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', f('obType') === 'DR' ? 'bg-red-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
+                    DR
+                  </button>
+                </div>
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span>
+                  <input
+                    className={cn(inputCls, 'pl-8', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
+                    type="number" min="0" step="0.01" placeholder="0.00"
+                    value={f('openingBalance')} onChange={upd('openingBalance')}
+                  />
+                </div>
+                {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
+                  <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
+                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} ₹{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2"><label className={labelCls}>Email</label><input className={inputCls} type="email" placeholder="customer@email.com" value={f('email')} onChange={upd('email')} /></div>
-          <div className="space-y-2"><label className={labelCls}>GST No</label><input className={inputCls} type="text" placeholder="Enter GST number" value={f('gstNo')} onChange={upd('gstNo')} /></div>
-          <div className="space-y-2"><label className={labelCls}>Address</label><input className={inputCls} type="text" placeholder="Full postal address" value={f('address')} onChange={upd('address')} /></div>
         </div>
         {locationBlock()}
         {contactsTable()}
@@ -808,7 +839,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <th className={thCls}>Area</th>
                         <th className={thCls}>GST No</th>
                         <th className={thCls}>Email</th>
-                        {isDetailed && <th className={thCls}>Balance</th>}
+                        {(isDetailed || isCustomer) && <th className={thCls}>Balance</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -827,7 +858,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                                 <td className="px-4 py-2"><input className={inlineCls} value={editData.area} onChange={e => setEditData(p => ({ ...p, area: e.target.value }))} placeholder="Area" /></td>
                                 <td className="px-4 py-2"><input className={inlineCls} value={editData.gstNo} onChange={e => setEditData(p => ({ ...p, gstNo: e.target.value }))} placeholder="GST No" /></td>
                                 <td className="px-4 py-2"><input className={inlineCls} value={editData.email} onChange={e => setEditData(p => ({ ...p, email: e.target.value }))} placeholder="Email" /></td>
-                                {isDetailed && <td className={tdCls}>{r.balance !== undefined ? (r.balance >= 0 ? 'CR' : 'DR') : '—'}</td>}
+                                {(isDetailed || isCustomer) && <td className={tdCls}>{r.balance !== undefined ? (r.balance >= 0 ? 'CR' : 'DR') : '—'}</td>}
                                 <td className="px-4 py-2">
                                   <div className="flex items-center gap-2">
                                     <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
@@ -845,7 +876,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                                 <td className={tdCls}>{r.area || '—'}</td>
                                 <td className={tdCls}>{r.gstNo || '—'}</td>
                                 <td className={tdCls}>{r.email || '—'}</td>
-                                {isDetailed && (
+                                {(isDetailed || isCustomer) && (
                                   <td className={tdCls}>
                                     {r.balance !== undefined && r.balance !== null ? (
                                       <span className={cn('text-xs font-bold px-2 py-1 rounded-full', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>

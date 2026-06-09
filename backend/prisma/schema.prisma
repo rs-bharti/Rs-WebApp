@@ -205,6 +205,7 @@ model Customer {
   stateName       String?
   countryName     String?
   contacts        ContactPerson[]
+  transactions    CustomerTransaction[]
   branch          Branch?              @relation(fields: [branchId], references: [id])
   city            CityMaster           @relation(fields: [cityId], references: [id])
   country         CountryMaster        @relation(fields: [countryId], references: [id])
@@ -212,6 +213,20 @@ model Customer {
   receiptVouchers ReceiptVoucher[]
   salesReturns    SalesReturnVoucher[]
   sales           SalesVoucher[]
+}
+
+model CustomerTransaction {
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  type         String   // 'CR' or 'DR'
+  amount       Float
+  note         String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  source       String?  // 'manual', 'sales', 'sales_return', 'opening_balance'
+  refVoucherNo String?
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model ContactPerson {

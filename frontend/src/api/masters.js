@@ -62,6 +62,8 @@ export const getCustomers   = ()          => apiFetch('/api/masters/customers');
 export const createCustomer = (body)      => apiFetch('/api/masters/customers', { method: 'POST',   body: JSON.stringify(body) });
 export const updateCustomer = (id, body)  => apiFetch(`/api/masters/customers/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
 export const deleteCustomer = (id)        => apiFetch(`/api/masters/customers/${id}`, { method: 'DELETE' });
+export const getCustomerTransactions   = (id)       => apiFetch(`/api/masters/customers/${id}/transactions`);
+export const createCustomerTransaction = (id, body) => apiFetch(`/api/masters/customers/${id}/transactions`, { method: 'POST', body: JSON.stringify(body) });
 
 // ── Products ───────────────────────────────────────────────────────────────────
 export const getProducts   = ()           => apiFetch('/api/masters/products');
