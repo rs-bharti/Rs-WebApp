@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { getCustomers, getPaymentMethods } from '../../../api/masters';
 import { getReceiptVoucherNextNo, saveReceiptVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -114,7 +115,10 @@ const ReceiptVoucherForm = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Customer Name</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Customer Name</label>
+              <Link to="/dashboard/master/customer" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Customer Master"><ExternalLink className="w-4 h-4" /></Link>
+            </div>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
               <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={customerId} onChange={e => setCustomerId(e.target.value)} required>
                 <option value="" disabled>Select Customer</option>
@@ -128,7 +132,10 @@ const ReceiptVoucherForm = () => {
         {/* Payment Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-2xl">
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Method</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
+              <Link to="/dashboard/master/payment-method" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Payment Method Master"><ExternalLink className="w-4 h-4" /></Link>
+            </div>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
               <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
                 <option value="" disabled>Select Method</option>
