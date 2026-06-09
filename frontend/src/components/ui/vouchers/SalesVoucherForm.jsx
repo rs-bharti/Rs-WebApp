@@ -81,6 +81,7 @@ const SalesVoucherForm = () => {
         date,
         customerId:   parseInt(customerId),
         paymentTerms,
+        warehouseId:  validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
