@@ -101,6 +101,53 @@
   background-color: #140E0B;
   background-image: radial-gradient(circle at 50% 50%, #1A1210 0%, #140E0B 100%);
 }
+.dark .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.2);
+}
+.dark .text-amber-700 {
+  color: #F59E0B;
+}
+.dark .border-amber-200 {
+  border-color: rgba(120, 53, 15, 0.4);
+}
+.dark .bg-stone-100 {
+  background-color: #2A1E1A;
+}
+.dark .bg-stone-200 {
+  background-color: #33221D;
+}
+.dark .text-stone-600,
+.dark .text-stone-700 {
+  color: var(--color-rs-text-muted);
+}
+.dark .text-stone-300 {
+  color: #5A4A42;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #5A4A42;
+}
+.dark .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.25);
+}
+.dark .text-emerald-700 {
+  color: #34D399;
+}
+.dark .hover\:bg-white:hover {
+  background-color: var(--color-brand-card);
+}
+/* Save buttons use bg-rs-text-primary — in dark mode that becomes cream, so flip to dark text */
+.dark .bg-rs-text-primary {
+  color: var(--color-rs-cream);
+}
+/* Border opacity variants (e.g. border-stone-200/50) */
+.dark [class*="border-stone-200"] {
+  border-color: rgba(58, 40, 32, 0.6);
+}
+/* Ensure focus:bg-white in dark mode goes to card color */
+.dark .focus\:bg-white:focus {
+  background-color: var(--color-brand-card) !important;
+}
 
 @utility bg-canvas {
   background-color: #F3E9DC;

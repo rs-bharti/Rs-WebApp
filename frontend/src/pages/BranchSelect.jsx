@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, LogOut, Search } from 'lucide-react';
+import { Building2, LogOut, Search, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { getBranches } from '../api/users';
 import { getMasterBranches } from '../api/masters';
 
 const BranchSelect = () => {
   const navigate = useNavigate();
   const { user, allowedBranches, selectBranch, logout, isAdmin } = useAuth();
+  const { isDark, toggle: toggleTheme } = useTheme();
 
   const [branches, setBranches] = useState([]);
   const [search, setSearch]     = useState('');
@@ -58,6 +60,13 @@ const BranchSelect = () => {
             {user?.name} &nbsp;·&nbsp;
             <span className="capitalize font-medium text-brand-primary">{user?.role}</span>
           </span>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-stone-400 hover:text-brand-primary hover:bg-brand-primary/5 transition-colors"
+            aria-label="Toggle dark mode"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-sm text-stone-400 hover:text-brand-primary transition-colors"

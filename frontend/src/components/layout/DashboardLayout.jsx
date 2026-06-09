@@ -154,23 +154,23 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
           )}>
             <StatCard
               title={userRole === 'admin' ? "Cash Position" : "Cash Balance"}
-              amount={userRole === 'admin' ? "$42,850.00" : "$12,450.80"}
+              amount={userRole === 'admin' ? "₹42,850" : "₹12,450"}
               trend="+2.4% FROM LAST MONTH"
               trendType="up"
               role={userRole}
             />
             <StatCard
               title="Bank Balance"
-              amount={userRole === 'admin' ? "$1,284,900.00" : "$84,120.00"}
+              amount={userRole === 'admin' ? "₹12,84,900" : "₹84,120"}
               trend={userRole === 'admin' ? "PRIMARY SAVINGS & ESCROW" : "LAST SYNCED: 2 MINS AGO"}
               trendType={userRole === 'admin' ? "neutral" : "up"}
               role={userRole}
             />
             <StatCard
-              title={userRole === 'admin' ? "Digital Assets" : "Digital Wallet"}
-              amount={userRole === 'admin' ? "$156,220.00" : "$3,205.50"}
-              trend={userRole === 'admin' ? "-0.8% MARKET VOLATILITY" : "Main Operating Wallet"}
-              trendType={userRole === 'admin' ? "down" : "neutral"}
+              title={userRole === 'admin' ? "Total Receivables" : "Digital Wallet"}
+              amount={userRole === 'admin' ? "₹1,56,220" : "₹3,205"}
+              trend={userRole === 'admin' ? "OUTSTANDING FROM CLIENTS" : "Main Operating Wallet"}
+              trendType={userRole === 'admin' ? "up" : "neutral"}
               role={userRole}
             />
           </div>

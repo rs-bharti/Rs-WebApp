@@ -15,11 +15,13 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLocked(false);
     setLoading(true);
 
     try {
@@ -48,7 +50,9 @@ const Login = () => {
       // Multiple branches → show branch selection screen
       navigate('/select-branch');
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      const msg = err.message || 'Login failed. Please try again.';
+      setError(msg);
+      setIsLocked(msg.includes('locked') || msg.includes('Too many'));
     } finally {
       setLoading(false);
     }
@@ -123,14 +127,14 @@ const Login = () => {
 
             {/* Error */}
             {error && (
-              <p className="text-rose-600 text-[12px] font-medium text-center -mt-4">
+              <p className={`text-[12px] font-medium text-center -mt-4 px-3 py-2 rounded ${isLocked ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-rose-600'}`}>
                 {error}
               </p>
             )}
 
             <div className="pt-2">
-              <Button type="submit" className="w-full py-4" disabled={loading}>
-                {loading ? 'Authenticating...' : 'Authenticate Access'}
+              <Button type="submit" className="w-full py-4" disabled={loading || isLocked}>
+                {loading ? 'Authenticating...' : isLocked ? 'Account Locked' : 'Authenticate Access'}
               </Button>
             </div>
 

@@ -50,10 +50,10 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
       <input
         type="text"
         className={cn(
-          'w-full rounded-lg border px-4 py-3 pr-9 text-sm outline-none transition-all',
+          'w-full rounded-xl border px-4 py-3 pr-9 text-sm outline-none transition-all',
           disabled
             ? 'opacity-50 cursor-not-allowed bg-stone-50 border-stone-200'
-            : 'cursor-pointer border-stone-200 bg-white focus:border-brand-primary'
+            : 'cursor-pointer border-stone-200 bg-stone-50 focus:border-rs-text-primary focus:ring-2 focus:ring-rs-text-primary/10 focus:bg-white'
         )}
         placeholder={open ? 'Type to search…' : (placeholder || 'Select…')}
         value={open ? search : (selected ? display(selected) : '')}
@@ -65,15 +65,15 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
       />
       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
       {open && (
-        <ul className="absolute z-50 mt-1 w-full bg-white border border-stone-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+        <ul className="absolute z-50 mt-1 w-full bg-white border border-stone-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
           {filtered.length === 0
             ? <li className="px-4 py-3 text-sm text-stone-400 italic">No results</li>
             : filtered.map(o => (
                 <li key={o.id}
                   onMouseDown={() => { onChange(o.id, o); setOpen(false); setSearch(''); }}
                   className={cn(
-                    'px-4 py-2.5 text-sm cursor-pointer hover:bg-stone-50',
-                    String(o.id) === String(value) && 'bg-brand-primary/5 font-semibold text-brand-primary'
+                    'px-4 py-2.5 text-sm cursor-pointer hover:bg-stone-50 transition-colors',
+                    String(o.id) === String(value) && 'bg-rs-text-primary/5 font-semibold text-rs-text-primary'
                   )}
                 >
                   {display(o)}
@@ -164,7 +164,7 @@ const ListSearch = ({ value, onChange, placeholder = 'Search…' }) => (
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 bg-white"
+      className="w-full pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-xl outline-none focus:border-rs-text-primary focus:ring-2 focus:ring-rs-text-primary/10 bg-stone-50 focus:bg-white transition-all"
     />
   </div>
 );
@@ -509,15 +509,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   const inputCls = cn(
-    'w-full rounded-lg border px-4 py-3 text-sm transition-all outline-none',
+    'w-full rounded-xl border px-4 py-3 text-sm transition-all outline-none',
     isAdmin
-      ? 'border-brand-bg bg-brand-bg/20 focus:border-brand-primary text-brand-primary placeholder:text-brand-primary/40'
-      : 'border-rs-accent-bg bg-rs-cream/10 focus:border-rs-text-primary text-rs-text-primary placeholder:text-rs-text-primary/40'
+      ? 'border-brand-bg bg-brand-bg/20 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 text-brand-primary placeholder:text-brand-primary/30'
+      : 'border-stone-200 bg-stone-50 focus:border-rs-text-primary focus:ring-2 focus:ring-rs-text-primary/10 text-rs-text-primary placeholder:text-rs-text-muted/60'
   );
-  const labelCls   = cn('block text-sm font-semibold mb-2', isAdmin ? 'text-brand-primary' : 'text-rs-text-primary');
-  const thCls      = cn('p-4 text-[10px] font-bold uppercase tracking-widest text-left', isAdmin ? 'text-brand-primary/60' : 'text-rs-text-muted');
-  const tdCls      = cn('p-4 text-sm', isAdmin ? 'text-brand-primary/80' : 'text-rs-text-primary/80');
-  const trHoverCls = cn('border-b transition-colors', isAdmin ? 'border-brand-bg/50 hover:bg-brand-bg/5' : 'border-rs-accent-bg/50 hover:bg-rs-cream/10');
+  const labelCls   = cn('block text-[11px] font-bold uppercase tracking-wider mb-2', isAdmin ? 'text-brand-primary/70' : 'text-rs-text-muted');
+  const thCls      = cn('px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-left', isAdmin ? 'text-brand-primary/60' : 'text-rs-text-muted');
+  const tdCls      = cn('px-4 py-3 text-sm', isAdmin ? 'text-brand-primary/80' : 'text-rs-text-primary/80');
+  const trHoverCls = cn('border-b transition-colors', isAdmin ? 'border-brand-bg/50 hover:bg-brand-bg/5' : 'border-stone-100 hover:bg-rs-cream/20');
 
   const locationBlock = () => (
     <div className="space-y-4">
@@ -552,12 +552,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const contactsTable = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className={cn('text-base font-bold', isAdmin ? 'text-brand-primary' : 'text-rs-text-primary')}>Contact Persons</h3>
-        <button type="button" onClick={addContact} className={cn('flex items-center text-xs font-bold uppercase tracking-wider gap-1', isAdmin ? 'text-brand-primary' : 'text-rs-text-primary')}>
-          <PlusCircle className="w-4 h-4" />Add Contact
+        <h3 className={cn('text-sm font-bold uppercase tracking-wider', isAdmin ? 'text-brand-primary/70' : 'text-rs-text-muted')}>Contact Persons</h3>
+        <button type="button" onClick={addContact}
+          className={cn('flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg border transition-all hover:shadow-sm active:scale-95', isAdmin ? 'border-brand-bg text-brand-primary hover:bg-brand-bg/30' : 'border-stone-200 text-rs-text-primary hover:bg-rs-cream/40')}>
+          <PlusCircle className="w-3.5 h-3.5" />Add Contact
         </button>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-stone-100">
+      <div className="overflow-x-auto rounded-xl border border-stone-100 shadow-sm">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className={cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20')}>
@@ -569,25 +570,25 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <tbody>
             {contacts.map((c) => (
               <tr key={c.id} className={trHoverCls}>
-                <td className="p-2"><input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" /></td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1">
+                <td className="px-3 py-2"><input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all placeholder:text-stone-300" /></td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1.5">
                     <PhonePrefixSelect
                       value={c.phonePrefix || '+91'}
                       onChange={(prefix) => updContact(c.id, 'phonePrefix', prefix)}
                       countries={countries}
                       isAdmin={isAdmin}
                     />
-                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(c.phonePrefix)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" />
+                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(c.phonePrefix)} className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all placeholder:text-stone-300" />
                   </div>
                 </td>
-                <td className="p-2">
-                  <select value={c.designation} onChange={e => updContact(c.id, 'designation', e.target.value)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm cursor-pointer">
-                    <option value="">Select</option>
+                <td className="px-3 py-2">
+                  <select value={c.designation} onChange={e => updContact(c.id, 'designation', e.target.value)} className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all cursor-pointer appearance-none">
+                    <option value="">Select role…</option>
                     {['Manager', 'Owner', 'Sales Head', 'Procurement Head', 'Sales Boy', 'President', 'CEO'].map(d => <option key={d}>{d}</option>)}
                   </select>
                 </td>
-                <td className="p-2">
+                <td className="px-3 py-2">
                   <input
                     type="date"
                     min="1900-01-01"
@@ -601,11 +602,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                       if (isNaN(picked.getTime()) || picked > today) return;
                       updContact(c.id, 'dob', val);
                     }}
-                    className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm text-stone-500"
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all text-rs-text-muted"
                   />
                 </td>
-                <td className="p-2 text-center">
-                  <button type="button" onClick={() => removeContact(c.id)} className="text-red-400 hover:text-red-600 p-2"><Trash2 className="w-4 h-4" /></button>
+                <td className="px-3 py-2 text-center">
+                  <button type="button" onClick={() => removeContact(c.id)} className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
                 </td>
               </tr>
             ))}
@@ -766,7 +767,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     const headCls    = cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20');
     const dividerCls = cn('border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100');
     const q          = listSearch.trim().toLowerCase();
-    const inlineCls  = 'w-full bg-white border border-stone-200 rounded px-2 py-1 text-sm outline-none focus:border-stone-400';
+    const inlineCls  = 'w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all';
 
     // ── Customer / Supplier table ────────────────────────────────────────────
     if (isCustomer || isDetailed) {
@@ -1376,12 +1377,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   return (
     <section className={cn('rounded-2xl shadow-sm border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500', isAdmin ? 'bg-white border-brand-bg' : 'bg-white border-stone-100')}>
       {/* Header */}
-      <div className={cn('px-4 py-4 md:px-8 md:py-6 border-b flex justify-between items-center', isAdmin ? 'border-brand-bg' : 'border-stone-100', isProduct && 'bg-[#FDFCFB]')}>
+      <div className={cn('px-4 py-4 md:px-8 md:py-6 border-b flex justify-between items-center', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
         <h2 className={cn('text-2xl font-bold', isAdmin ? (isProduct ? 'font-product-serif text-brand-primary' : 'font-admin-serif text-brand-primary') : 'font-user-serif text-rs-text-primary')}>
           {formTitle}
         </h2>
-        <span className={cn('text-[10px] font-bold uppercase tracking-widest opacity-60', isAdmin ? 'text-brand-primary' : 'text-rs-text-muted')}>
-          Form ID: {type.substring(0, 2).toUpperCase()}-{String(Math.floor(Math.random() * 9000) + 1000)}
+        <span className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full', isAdmin ? 'bg-brand-primary/10 text-brand-primary/70' : 'bg-rs-text-primary/10 text-rs-text-muted')}>
+          {displayType}
         </span>
       </div>
 
@@ -1392,10 +1393,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
         <div className="min-h-[250px]">{renderFields()}</div>
 
-        <div className={cn('flex justify-end items-center gap-8 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
-          <button type="button" onClick={resetForm} className={cn('text-sm font-semibold', isAdmin ? 'text-brand-primary/60' : 'text-rs-text-muted')}>Discard</button>
+        <div className={cn('flex justify-end items-center gap-4 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
+          <button type="button" onClick={resetForm}
+            className={cn('px-6 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-stone-50 active:scale-95', isAdmin ? 'border-brand-bg text-brand-primary/60 hover:border-brand-primary/30' : 'border-stone-200 text-rs-text-muted hover:border-stone-300 hover:text-rs-text-primary')}>
+            Discard
+          </button>
           <button type="submit" disabled={saving}
-            className={cn('px-10 py-3 rounded-lg font-bold text-sm shadow-md transition-opacity', saving && 'opacity-60 cursor-not-allowed', isAdmin ? 'bg-brand-primary text-ivory' : 'bg-rs-text-primary text-white')}>
+            className={cn('px-10 py-2.5 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95', saving ? 'opacity-60 cursor-not-allowed' : '', isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')}>
             {saving ? 'Saving…' : `Save ${displayType}`}
           </button>
         </div>
