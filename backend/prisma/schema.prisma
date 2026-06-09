@@ -555,6 +555,7 @@ model SalesReturnVoucher {
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
   customerName   String?
+  paymentTerms   String?
   branch         Branch                   @relation(fields: [branchId], references: [id])
   createdBy      User                     @relation(fields: [createdById], references: [id])
   customer       Customer                 @relation(fields: [customerId], references: [id])

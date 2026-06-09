@@ -296,11 +296,11 @@ const createSales = async (req, res) => {
       return res.status(400).json({ message: 'customerId, paymentTerms, and items are required' });
 
     const validTerms = [
-      '60 days consignment basis',
-      '15 days consignment basis',
-      '30 days consignment basis',
-      '45 days consignment basis',
-      'cash'
+      '60 Days Consignment Basis',
+      '45 Days Consignment Basis',
+      '30 Days Consignment Basis',
+      '15 Days Consignment Basis',
+      'Cash',
     ];
     if (!validTerms.includes(paymentTerms)) {
       return res.status(400).json({ message: 'Invalid payment terms' });
@@ -477,9 +477,19 @@ const getSalesReturns = async (req, res) => {
 
 const createSalesReturn = async (req, res) => {
   try {
-    const { customerId, date, items, narration } = req.body;
-    if (!customerId || !items?.length)
-      return res.status(400).json({ message: 'customerId and items are required' });
+    const { customerId, paymentTerms, date, items, narration } = req.body;
+    if (!customerId || !paymentTerms || !items?.length)
+      return res.status(400).json({ message: 'customerId, paymentTerms, and items are required' });
+
+    const validTerms = [
+      '60 Days Consignment Basis',
+      '45 Days Consignment Basis',
+      '30 Days Consignment Basis',
+      '15 Days Consignment Basis',
+      'Cash',
+    ];
+    if (!validTerms.includes(paymentTerms))
+      return res.status(400).json({ message: 'Invalid payment terms' });
 
     const branchId = getBranchId(req);
 
@@ -501,6 +511,7 @@ const createSalesReturn = async (req, res) => {
         customerId:        Number(customerId),
         customerName:      customerRecord?.name || null,
         branchId:          branchId,
+        paymentTerms,
         date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
         narration:         narration || null,

@@ -14,6 +14,7 @@ const SalesReturnVoucherForm = () => {
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo,       setVoucherNo]       = useState('');
   const [customerId,      setCustomerId]      = useState('');
+  const [paymentTerms,    setPaymentTerms]    = useState('');
   const [narration,       setNarration]       = useState('');
   const [customers,       setCustomers]       = useState([]);
   const [products,        setProducts]        = useState([]);
@@ -46,14 +47,16 @@ const SalesReturnVoucherForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    if (!customerId) return setError('Please select a customer');
+    if (!customerId)   return setError('Please select a customer');
+    if (!paymentTerms) return setError('Please select payment terms');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
     setSaving(true);
     try {
       const voucher = await saveSalesReturnVoucher({
         date,
-        customerId: parseInt(customerId),
+        customerId:   parseInt(customerId),
+        paymentTerms,
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
@@ -64,7 +67,7 @@ const SalesReturnVoucherForm = () => {
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([emptyRow()]); setCustomerId(''); setNarration('');
+      setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
       const vn = await getSalesReturnNextNo();
       setVoucherNo(vn.voucherNo);
     } catch (err) {
@@ -75,7 +78,7 @@ const SalesReturnVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([emptyRow()]); setCustomerId(''); setNarration('');
+    setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
     setError(''); setSuccess('');
   };
 
@@ -122,6 +125,22 @@ const SalesReturnVoucherForm = () => {
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
+          </div>
+        </div>
+
+        <div className="max-w-xs space-y-2">
+          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Terms</label>
+          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
+            <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
+              value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} required>
+              <option value="" disabled>Select Payment Terms</option>
+              <option value="60 Days Consignment Basis">60 Days Consignment Basis</option>
+              <option value="45 Days Consignment Basis">45 Days Consignment Basis</option>
+              <option value="30 Days Consignment Basis">30 Days Consignment Basis</option>
+              <option value="15 Days Consignment Basis">15 Days Consignment Basis</option>
+              <option value="Cash">Cash</option>
+            </select>
+            <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
           </div>
         </div>
 
