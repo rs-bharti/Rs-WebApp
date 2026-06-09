@@ -146,10 +146,25 @@ const PurchaseVoucherForm = () => {
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
               <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={supplierId} onChange={e => setSupplierId(e.target.value)} required>
                 <option value="" disabled>Select Supplier</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {suppliers.map(s => {
+                  const bal = s.balance ?? 0;
+                  const tag = bal >= 0 ? `CR ₹${Math.abs(bal).toLocaleString()}` : `DR ₹${Math.abs(bal).toLocaleString()}`;
+                  return <option key={s.id} value={s.id}>{s.name} — {tag}</option>;
+                })}
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
+            {supplierId && (() => {
+              const s = suppliers.find(s => String(s.id) === String(supplierId));
+              if (!s) return null;
+              const bal = s.balance ?? 0;
+              const isCR = bal >= 0;
+              return (
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
+                  {isCR ? 'CR' : 'DR'} ₹{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              );
+            })()}
           </div>
         </div>
 

@@ -376,7 +376,7 @@ const createSupplierTransaction = async (req, res) => {
 
 const createSupplier = async (req, res) => {
   try {
-    const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts } = req.body;
+    const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts, openingBalance, openingBalanceType } = req.body;
     if (!name || !cityId || !stateId || !countryId) {
       return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
     }
@@ -420,7 +420,25 @@ const createSupplier = async (req, res) => {
         contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true } },
       },
     });
-    res.status(201).json(row);
+
+    let balance = 0;
+    const obAmt = parseFloat(openingBalance);
+    if (!isNaN(obAmt) && obAmt > 0) {
+      const obType = openingBalanceType === 'DR' ? 'DR' : 'CR';
+      await prisma.supplierTransaction.create({
+        data: {
+          supplierId: row.id,
+          type:       obType,
+          amount:     obAmt,
+          note:       'Opening balance',
+          source:     'opening_balance',
+          date:       new Date(),
+        },
+      });
+      balance = obType === 'CR' ? obAmt : -obAmt;
+    }
+
+    res.status(201).json({ ...row, balance });
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
