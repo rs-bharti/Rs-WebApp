@@ -46,13 +46,25 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading }) => (
 
 // ── Edit Permissions Modal ─────────────────────────────────────────────────
 const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
-  const init = (mods, stored) => mods.reduce((a, k) => ({ ...a, [k]: stored?.[k] ?? false }), {});
+  // Parse permissions — backend may return a JSON string or a plain object
+  const perms = (() => {
+    const raw = user.permissions;
+    if (!raw) return {};
+    if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+    return raw;
+  })();
 
-  const [voucherAccess, setVoucherAccess] = useState(init(VOUCHER_MODULES, user.permissions?.vouchers));
-  const [masterAccess,  setMasterAccess]  = useState(init(MASTER_MODULES,  user.permissions?.masters));
-  const [otherAccess,   setOtherAccess]   = useState(init(OTHER_MODULES,   user.permissions?.others));
+  const init = (mods, stored) => mods.reduce((a, k) => ({ ...a, [k]: !!(stored?.[k]) }), {});
+
+  const [voucherAccess, setVoucherAccess] = useState(init(VOUCHER_MODULES, perms.vouchers));
+  const [masterAccess,  setMasterAccess]  = useState(init(MASTER_MODULES,  perms.masters));
+  const [otherAccess,   setOtherAccess]   = useState(init(OTHER_MODULES,   perms.others));
   const [branchAccess,  setBranchAccess]  = useState(
-    branches.reduce((a, br) => ({ ...a, [br.id]: user.permissions?.branches?.includes(br.id) ?? false }), {})
+    // compare as strings to handle number/string mismatch from API
+    branches.reduce((a, br) => ({
+      ...a,
+      [br.id]: (perms.branches ?? []).some(id => String(id) === String(br.id)),
+    }), {})
   );
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');

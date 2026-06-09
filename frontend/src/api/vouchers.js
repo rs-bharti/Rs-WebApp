@@ -52,5 +52,9 @@ export const saveStockDataVoucher      = (body) => apiFetch('/api/vouchers/data'
 export const getStockTransferVoucherNextNo = ()     => apiFetch('/api/vouchers/transfer/next-number');
 export const saveStockTransferVoucher      = (body) => apiFetch('/api/vouchers/transfer', { method: 'POST', body: JSON.stringify(body) });
 
+// ── Stock Quantity (from Stock Data entries) ───────────────────────────────────
+export const getStockQty = (productId, warehouseId) =>
+  apiFetch(`/api/vouchers/stock-qty?productId=${productId}&warehouseId=${warehouseId}`);
+
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 export const getDashboard = () => apiFetch('/api/vouchers/dashboard');
