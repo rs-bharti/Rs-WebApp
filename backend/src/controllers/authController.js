@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const jwt    = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const prisma = require('../utils/prisma');
 
 const login = async (req, res) => {
@@ -14,18 +14,18 @@ const login = async (req, res) => {
     });
 
     if (!user || !user.isActive)
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Id incorrect' });
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid)
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Password incorrect' });
 
     let permissions = {};
     try { permissions = JSON.parse(user.permissions || '{}'); } catch { permissions = {}; }
     if (user.role.name === 'admin') permissions = { isAdmin: true };
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role.name, branchId: user.branchId },
+      { id: user.id, email: user.email, role: user.role.name, branchId: user.branchId, permissions },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
@@ -33,12 +33,12 @@ const login = async (req, res) => {
     res.json({
       token,
       user: {
-        id:          user.id,
-        name:        user.name,
-        email:       user.email,
-        role:        user.role.name,
-        branch:      user.branch?.name ?? null,
-        branchId:    user.branchId,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role.name,
+        branch: user.branch?.name ?? null,
+        branchId: user.branchId,
         permissions,
       },
     });

@@ -22,4 +22,11 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, requireAdmin };
+const requirePermission = (type, name) => (req, res, next) => {
+  if (req.user?.role === 'admin') return next();
+  const permissions = req.user?.permissions || {};
+  if (permissions?.[type]?.[name] === true) return next();
+  return res.status(403).json({ message: 'Admin access required' });
+};
+
+module.exports = { authenticate, requireAdmin, requirePermission };

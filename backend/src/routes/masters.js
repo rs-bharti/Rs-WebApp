@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, requirePermission } = require('../middleware/auth');
 const {
   getCountries,
   getStates,
@@ -28,38 +28,38 @@ router.put('/branches/:id',    requireAdmin, updateBranch);
 router.delete('/branches/:id', requireAdmin, deleteBranch);
 
 router.get('/categories',        getCategories);
-router.post('/categories',       requireAdmin, createCategory);
-router.put('/categories/:id',    requireAdmin, updateCategory);
-router.delete('/categories/:id', requireAdmin, deleteCategory);
+router.post('/categories',       requirePermission('masters', 'Category'), createCategory);
+router.put('/categories/:id',    requirePermission('masters', 'Category'), updateCategory);
+router.delete('/categories/:id', requirePermission('masters', 'Category'), deleteCategory);
 
 router.get('/units',           getUnits);
-router.post('/units',          requireAdmin, createUnit);
-router.put('/units/:id',       requireAdmin, updateUnit);
-router.delete('/units/:id',    requireAdmin, deleteUnit);
+router.post('/units',          requirePermission('masters', 'Unit'), createUnit);
+router.put('/units/:id',       requirePermission('masters', 'Unit'), updateUnit);
+router.delete('/units/:id',    requirePermission('masters', 'Unit'), deleteUnit);
 
 router.get('/suppliers',        getSuppliers);
-router.post('/suppliers',       requireAdmin, createSupplier);
-router.put('/suppliers/:id',    requireAdmin, updateSupplier);
-router.delete('/suppliers/:id', requireAdmin, deleteSupplier);
+router.post('/suppliers',       requirePermission('masters', 'Supplier'), createSupplier);
+router.put('/suppliers/:id',    requirePermission('masters', 'Supplier'), updateSupplier);
+router.delete('/suppliers/:id', requirePermission('masters', 'Supplier'), deleteSupplier);
 
 router.get('/customers',        getCustomers);
-router.post('/customers',       requireAdmin, createCustomer);
-router.put('/customers/:id',    requireAdmin, updateCustomer);
-router.delete('/customers/:id', requireAdmin, deleteCustomer);
+router.post('/customers',       requirePermission('masters', 'Customer'), createCustomer);
+router.put('/customers/:id',    requirePermission('masters', 'Customer'), updateCustomer);
+router.delete('/customers/:id', requirePermission('masters', 'Customer'), deleteCustomer);
 
 router.get('/products',         getProducts);
-router.post('/products',        requireAdmin, createProduct);
-router.put('/products/:id',     requireAdmin, updateProduct);
-router.delete('/products/:id',  requireAdmin, deleteProduct);
+router.post('/products',        requirePermission('masters', 'Product'), createProduct);
+router.put('/products/:id',     requirePermission('masters', 'Product'), updateProduct);
+router.delete('/products/:id',  requirePermission('masters', 'Product'), deleteProduct);
 
 router.get('/payment-methods',        getPaymentMethods);
-router.post('/payment-methods',       requireAdmin, createPaymentMethod);
-router.put('/payment-methods/:id',    requireAdmin, updatePaymentMethod);
-router.delete('/payment-methods/:id', requireAdmin, deletePaymentMethod);
+router.post('/payment-methods',       requirePermission('masters', 'Payment Method'), createPaymentMethod);
+router.put('/payment-methods/:id',    requirePermission('masters', 'Payment Method'), updatePaymentMethod);
+router.delete('/payment-methods/:id', requirePermission('masters', 'Payment Method'), deletePaymentMethod);
 
 router.get('/warehouses',        getWarehouses);
-router.post('/warehouses',       createWarehouse);
-router.put('/warehouses/:id',    updateWarehouse);
-router.delete('/warehouses/:id', deleteWarehouse);
+router.post('/warehouses',       requirePermission('masters', 'Warehouse'), createWarehouse);
+router.put('/warehouses/:id',    requirePermission('masters', 'Warehouse'), updateWarehouse);
+router.delete('/warehouses/:id', requirePermission('masters', 'Warehouse'), deleteWarehouse);
 
 module.exports = router;
