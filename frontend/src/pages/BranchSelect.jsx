@@ -103,17 +103,22 @@ const BranchSelect = () => {
             <div className="text-center text-stone-400 py-12">No branches found.</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto pr-1">
-              {filtered.map((branch) => (
+              {filtered.map((branch, idx) => (
                 <button
                   key={branch.id}
                   onClick={() => handleSelect(branch)}
-                  className="group flex items-center gap-4 p-5 bg-white border-2 border-stone-200 rounded-xl hover:border-brand-primary hover:shadow-lg transition-all duration-200 text-left"
+                  className="group flex items-start gap-4 p-5 bg-white border-2 border-stone-200 rounded-xl hover:border-brand-primary hover:shadow-lg transition-all duration-200 text-left"
                 >
                   <div className="w-10 h-10 bg-brand-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-brand-primary/20 transition-colors">
-                    <Building2 className="w-5 h-5 text-brand-primary" />
+                    <span className="text-xs font-bold text-brand-primary">#{idx + 1}</span>
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-brand-primary text-sm truncate">{branch.name}</p>
+                    {(branch.country?.name || branch.state?.name || branch.city?.name) && (
+                      <p className="text-[10px] text-stone-500 mt-1 truncate">
+                        {[branch.city?.name, branch.state?.name, branch.country?.name].filter(Boolean).join(', ')}
+                      </p>
+                    )}
                     <p className="text-[10px] text-stone-400 mt-0.5 uppercase tracking-wider">Click to enter</p>
                   </div>
                 </button>
