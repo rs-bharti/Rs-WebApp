@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getProducts, getWarehouses } from '../../../api/masters';
-import { getStockDataVoucherNextNo, saveStockDataVoucher, getStockQty } from '../../../api/vouchers';
+import { getStockDataVoucherNextNo, saveStockDataVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, availableQty: null, loadingQty: false });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1 });
 
 const StockDataVoucherForm = () => {
   const type = 'Stock Data';
@@ -26,36 +26,14 @@ const StockDataVoucherForm = () => {
       .catch(() => setError('Failed to load form data'));
   }, []);
 
-  const fetchRowStock = async (id, productId, warehouseId) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, loadingQty: true, availableQty: null } : r));
-    try {
-      const data = await getStockQty(productId, warehouseId);
-      setRows(prev => prev.map(r => r.id === id ? { ...r, availableQty: data.qty ?? 0, loadingQty: false } : r));
-    } catch {
-      setRows(prev => prev.map(r => r.id === id ? { ...r, availableQty: null, loadingQty: false } : r));
-    }
-  };
-
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
   const removeRow = (id) => { if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id)); };
 
   const updateRow = (id, field, value) => {
-    let shouldFetch = false;
-    let fetchPid, fetchWid;
-
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
-      const updated = { ...r, [field]: value };
-      if (field === 'productId' || field === 'warehouseId') {
-        updated.availableQty = null;
-        fetchPid = field === 'productId'   ? value : r.productId;
-        fetchWid = field === 'warehouseId' ? value : r.warehouseId;
-        shouldFetch = !!(fetchPid && fetchWid);
-      }
-      return updated;
+      return { ...r, [field]: value };
     }));
-
-    if (shouldFetch) fetchRowStock(id, fetchPid, fetchWid);
   };
 
   const totalQty = rows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
@@ -144,10 +122,7 @@ const StockDataVoucherForm = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">
-                {rows.map((row, index) => {
-                  const avail = row.availableQty;
-                  const qty   = parseFloat(row.qty) || 0;
-                  return (
+                {rows.map((row, index) => (
                     <tr key={row.id} className="group hover:bg-rs-cream/10 transition-colors">
                       <td className="px-4 py-3 text-rs-text-muted font-bold text-xs">{index + 1}</td>
 
@@ -175,18 +150,11 @@ const StockDataVoucherForm = () => {
                         </div>
                       </td>
 
-                      {/* Qty + available */}
                       <td className="px-4 py-3 text-right">
                         <input
                           className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
                           type="number" min="0" value={row.qty}
                           onChange={e => updateRow(row.id, 'qty', e.target.value)} />
-                        {row.loadingQty && <div className="text-[10px] text-stone-400 text-right">checking…</div>}
-                        {!row.loadingQty && avail !== null && (
-                          <div className="text-[10px] text-right font-medium text-stone-400">
-                            in stock: {avail}
-                          </div>
-                        )}
                       </td>
 
                       <td className="px-2 py-3 text-center">
@@ -196,8 +164,7 @@ const StockDataVoucherForm = () => {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>

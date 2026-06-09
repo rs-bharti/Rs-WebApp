@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getCustomers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
-import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty } from '../../../api/vouchers';
+import { getSalesVoucherNextNo, saveSalesVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, availableQty: null, loadingQty: false, lowerLimit: null, upperLimit: null });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, lowerLimit: null, upperLimit: null });
 
 const SalesVoucherForm = () => {
   const type = 'Sales';
@@ -32,54 +32,21 @@ const SalesVoucherForm = () => {
       }).catch(() => setError('Failed to load form data'));
   }, [activeBranch?.id]);
 
-  const fetchRowStock = async (id, productId, warehouseId) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, loadingQty: true, availableQty: null } : r));
-    try {
-      const data = await getStockQty(productId, warehouseId);
-      const maxQty = data.qty ?? 0;
-      setRows(prev => prev.map(r => {
-        if (r.id !== id) return r;
-        const clampedQty = Math.min(parseFloat(r.qty) || 0, maxQty);
-        return { ...r, availableQty: maxQty, loadingQty: false, qty: clampedQty, amount: clampedQty * parseFloat(r.rate || 0) };
-      }));
-    } catch {
-      setRows(prev => prev.map(r => r.id === id ? { ...r, availableQty: null, loadingQty: false } : r));
-    }
-  };
-
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
   const removeRow = (id) => { if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id)); };
 
   const updateRow = (id, field, value) => {
-    let shouldFetch = false;
-    let fetchPid, fetchWid;
-
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
-      let v = value;
-      if (field === 'qty' && r.availableQty !== null) {
-        v = Math.min(parseFloat(value) || 0, r.availableQty);
-      }
-      const updated = { ...r, [field]: v };
+      const updated = { ...r, [field]: value };
       updated.amount = parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0);
       if (field === 'productId') {
-        updated.availableQty = null;
         const prod = products.find(p => String(p.id) === String(value));
         updated.lowerLimit = prod?.lowerLimit ?? null;
         updated.upperLimit = prod?.upperLimit ?? null;
-        fetchPid = value;
-        fetchWid = r.warehouseId;
-        shouldFetch = !!(fetchPid && fetchWid);
-      } else if (field === 'warehouseId') {
-        updated.availableQty = null;
-        fetchPid = r.productId;
-        fetchWid = value;
-        shouldFetch = !!(fetchPid && fetchWid);
       }
       return updated;
     }));
-
-    if (shouldFetch) fetchRowStock(id, fetchPid, fetchWid);
   };
 
   const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
@@ -91,11 +58,6 @@ const SalesVoucherForm = () => {
     if (!paymentMethodId) return setError('Please select a payment method');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
-
-    const overstock = validItems.filter(r => r.warehouseId && r.availableQty !== null && parseFloat(r.qty) > r.availableQty);
-    if (overstock.length) {
-      return setError(`Insufficient stock: ${overstock.map(r => products.find(p => String(p.id) === String(r.productId))?.name || 'product').join(', ')}`);
-    }
 
     setSaving(true);
     try {
@@ -203,9 +165,6 @@ const SalesVoucherForm = () => {
               </thead>
               <tbody className="divide-y divide-stone-50">
                 {rows.map(row => {
-                  const avail      = row.availableQty;
-                  const qty        = parseFloat(row.qty) || 0;
-                  const overLimit  = avail !== null && qty > avail;
                   const rate       = parseFloat(row.rate) || 0;
                   const belowMin   = row.lowerLimit !== null && rate > 0 && rate < row.lowerLimit;
                   const aboveMax   = row.upperLimit !== null && rate > row.upperLimit;
@@ -236,17 +195,10 @@ const SalesVoucherForm = () => {
                         </div>
                       </td>
 
-                      {/* Qty + available */}
                       <td className="px-4 py-3 text-right">
-                        <input className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none ${overLimit ? 'text-red-500 font-bold' : ''}`}
-                          type="number" min="0" step="any" max={row.availableQty ?? undefined} value={row.qty}
+                        <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
+                          type="number" min="0" step="any" value={row.qty}
                           onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
-                        {row.loadingQty && <div className="text-[10px] text-stone-400 text-right">checking…</div>}
-                        {!row.loadingQty && avail !== null && (
-                          <div className={`text-[10px] text-right font-semibold mt-0.5 ${avail === 0 ? 'text-red-500' : overLimit ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {avail === 0 ? 'Out of stock' : `Avail: ${avail}`}{overLimit ? ' ⚠' : ''}
-                          </div>
-                        )}
                       </td>
 
                       <td className="px-4 py-3 text-right">

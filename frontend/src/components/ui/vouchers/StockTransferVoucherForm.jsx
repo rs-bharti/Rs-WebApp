@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ArrowRight } from 'lucide-react';
 import { getProducts, getWarehouses } from '../../../api/masters';
-import { getStockTransferVoucherNextNo, saveStockTransferVoucher, getStockQty } from '../../../api/vouchers';
+import { getStockTransferVoucherNextNo, saveStockTransferVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', fromWarehouseId: '', qty: 1, availableQty: null, loadingQty: false });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', fromWarehouseId: '', qty: 1 });
 
 const StockTransferVoucherForm = () => {
   const { activeBranch } = useAuth();
@@ -24,45 +24,14 @@ const StockTransferVoucherForm = () => {
       .catch(() => setMessage({ type: 'error', text: 'Failed to load form data' }));
   }, []);
 
-  const fetchRowStock = async (id, productId, fromWarehouseId) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, loadingQty: true, availableQty: null } : r));
-    try {
-      const data = await getStockQty(productId, fromWarehouseId);
-      const maxQty = data.qty ?? 0;
-      setRows(prev => prev.map(r => {
-        if (r.id !== id) return r;
-        const clampedQty = Math.min(parseFloat(r.qty) || 0, maxQty);
-        return { ...r, availableQty: maxQty, loadingQty: false, qty: clampedQty };
-      }));
-    } catch {
-      setRows(prev => prev.map(r => r.id === id ? { ...r, availableQty: null, loadingQty: false } : r));
-    }
-  };
-
   const addRow    = () => setRows(r => [...r, emptyRow()]);
   const removeRow = (id) => { if (rows.length > 1) setRows(r => r.filter(x => x.id !== id)); };
 
   const updateRow = (id, field, value) => {
-    let shouldFetch = false;
-    let fetchPid, fetchWid;
-
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
-      let v = value;
-      if (field === 'qty' && r.availableQty !== null) {
-        v = Math.min(parseFloat(value) || 0, r.availableQty);
-      }
-      const updated = { ...r, [field]: v };
-      if (field === 'productId' || field === 'fromWarehouseId') {
-        updated.availableQty = null;
-        fetchPid = field === 'productId'       ? value : r.productId;
-        fetchWid = field === 'fromWarehouseId' ? value : r.fromWarehouseId;
-        shouldFetch = !!(fetchPid && fetchWid);
-      }
-      return updated;
+      return { ...r, [field]: value };
     }));
-
-    if (shouldFetch) fetchRowStock(id, fetchPid, fetchWid);
   };
 
   const totalQty = rows.reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
@@ -83,12 +52,6 @@ const StockTransferVoucherForm = () => {
 
     const sameWh = validRows.filter(r => Number(r.fromWarehouseId) === Number(toWarehouseId));
     if (sameWh.length) { setMessage({ type: 'error', text: 'Source and destination warehouse must be different' }); return; }
-
-    const overstock = validRows.filter(r => r.availableQty !== null && parseFloat(r.qty) > r.availableQty);
-    if (overstock.length) {
-      setMessage({ type: 'error', text: `Insufficient stock for: ${overstock.map(r => products.find(p => String(p.id) === String(r.productId))?.name || 'product').join(', ')}` });
-      return;
-    }
 
     setSubmitting(true); setMessage(null);
     try {
@@ -186,11 +149,7 @@ const StockTransferVoucherForm = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">
-                {rows.map((row, index) => {
-                  const avail     = row.availableQty;
-                  const qty       = parseFloat(row.qty) || 0;
-                  const overLimit = avail !== null && qty > avail;
-                  return (
+                {rows.map((row, index) => (
                     <tr key={row.id} className="group hover:bg-rs-cream/10 transition-colors">
                       <td className="px-4 py-3 text-rs-text-muted font-bold text-xs">{index + 1}</td>
 
@@ -220,18 +179,12 @@ const StockTransferVoucherForm = () => {
                         </div>
                       </td>
 
-                      {/* Qty + available */}
+                      {/* Qty */}
                       <td className="px-4 py-3 text-right">
                         <input
-                          className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold ${overLimit ? 'text-red-500' : 'text-rs-text-primary'}`}
-                          type="number" min="0" step="any" max={row.availableQty ?? undefined} value={row.qty}
+                          className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
+                          type="number" min="0" step="any" value={row.qty}
                           onChange={e => updateRow(row.id, 'qty', e.target.value)} />
-                        {row.loadingQty && <div className="text-[10px] text-stone-400 text-right">checking…</div>}
-                        {!row.loadingQty && avail !== null && (
-                          <div className={`text-[10px] text-right font-semibold mt-0.5 ${avail === 0 ? 'text-red-500' : overLimit ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {avail === 0 ? 'Out of stock' : `Avail: ${avail}`}{overLimit ? ' ⚠' : ''}
-                          </div>
-                        )}
                       </td>
 
                       <td className="px-2 py-3 text-center">
@@ -241,8 +194,7 @@ const StockTransferVoucherForm = () => {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>
