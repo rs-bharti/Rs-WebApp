@@ -154,8 +154,8 @@ model Product {
   name                String
   categoryId          Int
   unitId              Int
-  purchasePrice       Float
-  sellingPrice        Float
+  lowerLimit          Float
+  upperLimit          Float
   barcode             String?                     @unique
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt

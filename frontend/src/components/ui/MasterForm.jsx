@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
-import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2 } from 'lucide-react';
+import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2, Search, Pencil, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCountries, getStates, getCities,
@@ -10,7 +10,7 @@ import {
   getPaymentMethods,
   getWarehouses, createWarehouse, deleteWarehouse,
   createBranch, createCategory, createUnit,
-  createSupplier, createCustomer, createProduct,
+  createSupplier, createCustomer, createProduct, updateProduct,
   createPaymentMethod,
 } from '../../api/masters';
 
@@ -155,6 +155,20 @@ const PhonePrefixSelect = ({ value, onChange, countries, isAdmin }) => {
   );
 };
 
+// ── List Search Bar ───────────────────────────────────────────────────────────
+const ListSearch = ({ value, onChange, placeholder = 'Search…' }) => (
+  <div className="relative max-w-xs">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full pl-9 pr-4 py-2 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 bg-white"
+    />
+  </div>
+);
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const { activeBranch } = useAuth();
@@ -202,6 +216,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [loadingList, setLoadingList] = useState(false);
   const [deletingId,  setDeletingId]  = useState(null);
 
+  // Search state for lists
+  const [listSearch, setListSearch] = useState('');
+
+  // Inline edit state for product list
+  const [editingId,   setEditingId]   = useState(null);
+  const [editData,    setEditData]    = useState({});
+  const [savingEdit,  setSavingEdit]  = useState(false);
+  const [editError,   setEditError]   = useState('');
+
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
   // Prevents branch prefill from running more than once per form type
@@ -228,7 +251,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { resetForm(); }, [type]);
+  useEffect(() => { resetForm(); setListSearch(''); setEditingId(null); }, [type]);
 
   // Load initial data + existing records
   useEffect(() => {
@@ -242,10 +265,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (showList) {
           setLoadingList(true);
           let rows = [];
-          if (isCustomer)         rows = await getCustomers();
-          else if (isDetailed)    rows = await getSuppliers();
-          else if (isProduct)     rows = await getProducts();
-          else if (isBranch)      rows = await getMasterBranches();
+          if (isCustomer)           rows = await getCustomers();
+          else if (isDetailed)      rows = await getSuppliers();
+          else if (isProduct)       rows = await getProducts();
+          else if (isBranch)        rows = await getMasterBranches();
           else if (isPaymentMethod) rows = await getPaymentMethods();
           else if (isWarehouse)     rows = await getWarehouses();
           setRecords(rows);
@@ -290,7 +313,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     doInit();
   }, [type, activeBranch, countries.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Country → states (skipped when handleCityChange auto-fills to avoid cascade reset)
+  // Country → states
   useEffect(() => {
     if (skipCityEffectsRef.current) return;
     if (!selCountry) { setStates([]); setSelState(''); setCities([]); setSelCity(''); return; }
@@ -298,7 +321,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setSelState(''); setCities([]); setSelCity('');
   }, [selCountry]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // State → cities (skipped when handleCityChange auto-fills; ref reset here as 2nd effect)
+  // State → cities
   useEffect(() => {
     if (skipCityEffectsRef.current) { skipCityEffectsRef.current = false; return; }
     if (!selState) { setCities([]); setSelCity(''); return; }
@@ -316,7 +339,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   const handleCityChange = (id, cityObj) => {
-    // Suppress cascade: setting selCountry/selState from here must NOT clear the city we just picked
     skipCityEffectsRef.current = true;
     setSelCity(id);
     if (cityObj?.state) {
@@ -331,7 +353,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           phonePrefix: c.phoneCode ? `+${c.phoneCode}` : prev.phonePrefix,
           currency:    c.currency  || prev.currency,
         }));
-        // Load the correct states list for the auto-detected country without cascading
         if (newCountryId !== String(selCountry)) {
           getStates(newCountryId).then(setStates).catch(console.error);
         }
@@ -392,9 +413,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           contacts: validContacts,
         });
       } else if (isProduct) {
+        if (!f('name'))       return setError('Product name is required');
+        if (!selCategory)     return setError('Please select a category');
+        if (!selUnit)         return setError('Please select a unit');
+        if (f('lowerLimit') === '') return setError('Lower limit is required');
+        if (f('upperLimit') === '') return setError('Upper limit is required');
         newRow = await createProduct({
           name: f('name'), categoryId: selCategory, unitId: selUnit,
-          purchasePrice: f('purchasePrice'), sellingPrice: f('sellingPrice'),
+          lowerLimit: f('lowerLimit'), upperLimit: f('upperLimit'),
           ...(f('barcode') && { barcode: f('barcode') }),
         });
       } else if (isWarehouse) {
@@ -407,7 +433,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         });
       }
 
-      // Prepend new record to list
       if (newRow && showList) setRecords(prev => [newRow, ...prev]);
 
       clearFields();
@@ -416,6 +441,34 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       setError(err.message || 'Failed to save. Please try again.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Inline edit handlers (product list) ──────────────────────────────────────
+  const startEdit = (r) => {
+    setEditingId(r.id);
+    setEditData({ name: r.name, lowerLimit: r.lowerLimit, upperLimit: r.upperLimit, barcode: r.barcode || '' });
+    setEditError('');
+  };
+  const cancelEdit = () => { setEditingId(null); setEditData({}); setEditError(''); };
+
+  const saveEdit = async (id) => {
+    setEditError('');
+    if (!editData.name?.trim()) { setEditError('Name is required'); return; }
+    setSavingEdit(true);
+    try {
+      const updated = await updateProduct(id, {
+        name:       editData.name.trim(),
+        lowerLimit: Number(editData.lowerLimit),
+        upperLimit: Number(editData.upperLimit),
+        barcode:    editData.barcode || undefined,
+      });
+      setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
+      setEditingId(null);
+    } catch (err) {
+      setEditError(err.message || 'Failed to save');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -532,12 +585,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <div className="space-y-2">
             <label className={labelCls}>Phone</label>
             <div className="flex gap-2 items-stretch">
-              <PhonePrefixSelect
-                value={f('phonePrefix')}
-                onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))}
-                countries={countries}
-                isAdmin={isAdmin}
-              />
+              <PhonePrefixSelect value={f('phonePrefix')} onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))} countries={countries} isAdmin={isAdmin} />
               <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
             </div>
           </div>
@@ -563,12 +611,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <div className="space-y-2">
               <label className={labelCls}>Phone</label>
               <div className="flex gap-2 items-stretch">
-                <PhonePrefixSelect
-                  value={f('phonePrefix')}
-                  onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))}
-                  countries={countries}
-                  isAdmin={isAdmin}
-                />
+                <PhonePrefixSelect value={f('phonePrefix')} onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))} countries={countries} isAdmin={isAdmin} />
                 <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
               </div>
             </div>
@@ -585,12 +628,18 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       <div className="space-y-8 max-w-5xl">
         <div className="space-y-2"><label className={labelCls}>Product Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter product name" value={f('name')} onChange={upd('name')} required /></div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-          <div className="space-y-2"><label className={labelCls}>Category *</label><SearchableSelect value={selCategory} onChange={(id) => setSelCategory(id)} options={categories} placeholder="Category" /></div>
-          <div className="space-y-2"><label className={labelCls}>Unit *</label><SearchableSelect value={selUnit} onChange={(id) => setSelUnit(id)} options={units} placeholder="Unit" displayFn={u => `${u.unitName}${u.shortName ? ` (${u.shortName})` : ''}`} /></div>
+          <div className="space-y-2"><label className={labelCls}>Category <span className="text-red-400">*</span></label><SearchableSelect value={selCategory} onChange={(id) => setSelCategory(id)} options={categories} placeholder="Category" /></div>
+          <div className="space-y-2"><label className={labelCls}>Unit <span className="text-red-400">*</span></label><SearchableSelect value={selUnit} onChange={(id) => setSelUnit(id)} options={units} placeholder="Unit" displayFn={u => `${u.unitName}${u.shortName ? ` (${u.shortName})` : ''}`} /></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-          <div className="space-y-2"><label className={labelCls}>Purchase Price <span className="text-red-400">*</span></label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('purchasePrice')} onChange={upd('purchasePrice')} required /></div></div>
-          <div className="space-y-2"><label className={labelCls}>Selling Price <span className="text-red-400">*</span></label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('sellingPrice')} onChange={upd('sellingPrice')} required /></div></div>
+          <div className="space-y-2">
+            <label className={labelCls}>Lower Limit (Min Price) <span className="text-red-400">*</span></label>
+            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('lowerLimit')} onChange={upd('lowerLimit')} required /></div>
+          </div>
+          <div className="space-y-2">
+            <label className={labelCls}>Upper Limit (Max Price) <span className="text-red-400">*</span></label>
+            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('upperLimit')} onChange={upd('upperLimit')} required /></div>
+          </div>
           <div className="space-y-2"><label className={labelCls}>Barcode</label><input className={inputCls} type="text" placeholder="Scan or enter barcode" value={f('barcode')} onChange={upd('barcode')} /></div>
         </div>
       </div>
@@ -643,31 +692,35 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const renderList = () => {
     if (!showList) return null;
 
-    const headCls  = cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20');
+    const headCls    = cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20');
     const dividerCls = cn('border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100');
+    const q          = listSearch.trim().toLowerCase();
 
-    // ── Customer / Supplier table + separate Contact Persons table ───────────
+    // ── Customer / Supplier table ────────────────────────────────────────────
     if (isCustomer || isDetailed) {
-      // All contacts across all records, flat list
       const allContacts = records.flatMap(r =>
         (r.contacts || []).map(cp => ({ ...cp, parentName: r.name }))
       );
+      const filteredRecords  = q ? records.filter(r => r.name?.toLowerCase().includes(q) || r.phone?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q)) : records;
+      const filteredContacts = q ? allContacts.filter(cp => cp.name?.toLowerCase().includes(q) || cp.parentName?.toLowerCase().includes(q)) : allContacts;
 
       return (
         <>
-          {/* ── Main records table ── */}
           <div className={dividerCls}>
-            <div className="px-4 py-3 md:px-8 md:py-4 flex items-center gap-2">
-              <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
-              <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                {isCustomer ? 'Customer' : 'Supplier'} Master ({records.length})
-              </h3>
+            <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
+                <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+                  {isCustomer ? 'Customer' : 'Supplier'} Master ({filteredRecords.length})
+                </h3>
+              </div>
+              <ListSearch value={listSearch} onChange={setListSearch} placeholder={`Search ${isCustomer ? 'customers' : 'suppliers'}…`} />
             </div>
             <div className="px-4 pb-4 md:px-8 md:pb-8">
               {loadingList ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-              ) : records.length === 0 ? (
-                <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No records yet.</p>
+              ) : filteredRecords.length === 0 ? (
+                <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No records yet.'}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[900px]">
@@ -685,7 +738,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {records.map((r, i) => (
+                      {filteredRecords.map((r, i) => (
                         <tr key={r.id} className={trHoverCls}>
                           <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                           <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
@@ -705,20 +758,19 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </div>
           </div>
 
-          {/* ── Contact Persons table ── */}
           <div className={dividerCls}>
             <div className="px-4 py-3 md:px-8 md:py-4 flex items-center gap-2">
               <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
               <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                Contact Persons ({allContacts.length})
+                Contact Persons ({filteredContacts.length})
               </h3>
             </div>
             <div className="px-4 pb-4 md:px-8 md:pb-8">
               {loadingList ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-              ) : allContacts.length === 0 ? (
+              ) : filteredContacts.length === 0 ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                  No contact persons added yet. Fill the Contact Persons section in the form above before saving.
+                  {q ? 'No results found.' : 'No contact persons added yet.'}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -734,7 +786,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {allContacts.map((cp, i) => (
+                      {filteredContacts.map((cp, i) => (
                         <tr key={cp.id} className={trHoverCls}>
                           <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                           <td className={cn(tdCls, 'font-medium text-brand-primary/70')}>{cp.parentName}</td>
@@ -754,46 +806,89 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       );
     }
 
-    // ── Product list ─────────────────────────────────────────────────────────
+    // ── Product list (with inline edit + search) ─────────────────────────────
     if (isProduct) {
+      const filteredRecords = q
+        ? records.filter(r => r.name?.toLowerCase().includes(q) || r.category?.name?.toLowerCase().includes(q) || r.barcode?.toLowerCase().includes(q))
+        : records;
+
+      const inlineCls = 'w-full bg-white border border-stone-200 rounded px-2 py-1 text-sm outline-none focus:border-stone-400';
+
       return (
         <div className={dividerCls}>
-          <div className="px-4 py-3 md:px-8 md:py-4">
+          <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
             <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-              Product Master ({records.length})
+              Product Master ({filteredRecords.length})
             </h3>
+            <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search products…" />
           </div>
+          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-            ) : records.length === 0 ? (
-              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No products yet.</p>
+            ) : filteredRecords.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No products yet.'}</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[700px]">
+                <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
                     <tr className={headCls}>
                       <th className={thCls}>#</th>
                       <th className={thCls}>Name</th>
                       <th className={thCls}>Category</th>
                       <th className={thCls}>Unit</th>
-                      <th className={thCls}>Purchase Price</th>
-                      <th className={thCls}>Selling Price</th>
+                      <th className={thCls}>Lower Limit</th>
+                      <th className={thCls}>Upper Limit</th>
                       <th className={thCls}>Barcode</th>
+                      <th className={thCls}></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((r, i) => (
-                      <tr key={r.id} className={trHoverCls}>
-                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                        <td className={tdCls}>{r.category?.name || '—'}</td>
-                        <td className={tdCls}>{r.unit?.unitName || '—'}</td>
-                        <td className={tdCls}>₹ {Number(r.purchasePrice).toLocaleString()}</td>
-                        <td className={tdCls}>₹ {Number(r.sellingPrice).toLocaleString()}</td>
-                        <td className={tdCls}>{r.barcode || '—'}</td>
-                      </tr>
-                    ))}
+                    {filteredRecords.map((r, i) => {
+                      const isEditing = editingId === r.id;
+                      return (
+                        <tr key={r.id} className={trHoverCls}>
+                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+
+                          {isEditing ? (
+                            <>
+                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} /></td>
+                              <td className={tdCls}>{r.category?.name || '—'}</td>
+                              <td className={tdCls}>{r.unit?.unitName || '—'}</td>
+                              <td className="px-4 py-2">
+                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">₹</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.lowerLimit} onChange={e => setEditData(p => ({ ...p, lowerLimit: e.target.value }))} /></div>
+                              </td>
+                              <td className="px-4 py-2">
+                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">₹</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.upperLimit} onChange={e => setEditData(p => ({ ...p, upperLimit: e.target.value }))} /></div>
+                              </td>
+                              <td className="px-4 py-2"><input className={inlineCls} value={editData.barcode} onChange={e => setEditData(p => ({ ...p, barcode: e.target.value }))} placeholder="—" /></td>
+                              <td className="px-4 py-2">
+                                <div className="flex items-center gap-2">
+                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">
+                                    {savingEdit ? 'Saving…' : 'Save'}
+                                  </button>
+                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                              <td className={tdCls}>{r.category?.name || '—'}</td>
+                              <td className={tdCls}>{r.unit?.unitName || '—'}</td>
+                              <td className={tdCls}>₹ {Number(r.lowerLimit).toLocaleString()}</td>
+                              <td className={tdCls}>₹ {Number(r.upperLimit).toLocaleString()}</td>
+                              <td className={tdCls}>{r.barcode || '—'}</td>
+                              <td className="px-4 py-2">
+                                <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700 transition-colors">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -805,18 +900,20 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     // ── Payment Method list ──────────────────────────────────────────────────
     if (isPaymentMethod) {
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q)) : records;
       return (
         <div className={dividerCls}>
-          <div className="px-4 py-3 md:px-8 md:py-4">
+          <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
             <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-              Payment Method Master ({records.length})
+              Payment Method Master ({filteredRecords.length})
             </h3>
+            <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search payment methods…" />
           </div>
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-            ) : records.length === 0 ? (
-              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No payment methods yet. Add one above.</p>
+            ) : filteredRecords.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No payment methods yet.'}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse max-w-sm">
@@ -827,7 +924,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((r, i) => (
+                    {filteredRecords.map((r, i) => (
                       <tr key={r.id} className={trHoverCls}>
                         <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                         <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
@@ -844,19 +941,23 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     // ── Branch list ──────────────────────────────────────────────────────────
     if (isBranch) {
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q) || r.city?.name?.toLowerCase().includes(q)) : records;
       return (
         <div className={dividerCls}>
-          <div className="px-8 py-4 flex items-center gap-2">
-            <Building2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
-            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-              Branch Master ({records.length})
-            </h3>
+          <div className="px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Building2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
+              <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+                Branch Master ({filteredRecords.length})
+              </h3>
+            </div>
+            <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search branches…" />
           </div>
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-            ) : records.length === 0 ? (
-              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No branches yet. Add one above.</p>
+            ) : filteredRecords.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No branches yet.'}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
@@ -871,7 +972,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((r, i) => (
+                    {filteredRecords.map((r, i) => (
                       <tr key={r.id} className={trHoverCls}>
                         <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                         <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
@@ -892,18 +993,20 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     // ── Warehouse list ───────────────────────────────────────────────────────
     if (isWarehouse) {
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q) || r.area?.toLowerCase().includes(q)) : records;
       return (
         <div className={dividerCls}>
-          <div className="px-4 py-3 md:px-8 md:py-4">
+          <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
             <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-              Warehouse Master ({records.length})
+              Warehouse Master ({filteredRecords.length})
             </h3>
+            <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search warehouses…" />
           </div>
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-            ) : records.length === 0 ? (
-              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No warehouses yet.</p>
+            ) : filteredRecords.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No warehouses yet.'}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -917,7 +1020,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((r, i) => (
+                    {filteredRecords.map((r, i) => (
                       <tr key={r.id} className={trHoverCls}>
                         <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                         <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>

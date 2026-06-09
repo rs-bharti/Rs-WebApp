@@ -524,7 +524,7 @@ const getProducts = async (req, res) => {
       where,
       orderBy: { name: 'asc' },
       select: {
-        id: true, name: true, purchasePrice: true, sellingPrice: true, barcode: true,
+        id: true, name: true, lowerLimit: true, upperLimit: true, barcode: true,
         category: { select: { id: true, name: true } },
         unit:     { select: { id: true, unitName: true } },
       },
@@ -535,23 +535,23 @@ const getProducts = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, categoryId, unitId, purchasePrice, sellingPrice, barcode } = req.body;
-    if (!name || !categoryId || !unitId || purchasePrice == null || sellingPrice == null) {
-      return res.status(400).json({ message: 'name, categoryId, unitId, purchasePrice, and sellingPrice are required' });
+    const { name, categoryId, unitId, lowerLimit, upperLimit, barcode } = req.body;
+    if (!name || !categoryId || !unitId || lowerLimit == null || upperLimit == null) {
+      return res.status(400).json({ message: 'name, categoryId, unitId, lowerLimit, and upperLimit are required' });
     }
     const branchId = getBranchId(req);
     const data = {
       name: name.trim(),
-      categoryId:    Number(categoryId),
-      unitId:        Number(unitId),
-      purchasePrice: Number(purchasePrice),
-      sellingPrice:  Number(sellingPrice),
-      branchId:      branchId || null,
+      categoryId: Number(categoryId),
+      unitId:     Number(unitId),
+      lowerLimit: Number(lowerLimit),
+      upperLimit: Number(upperLimit),
+      branchId:   branchId || null,
     };
     if (barcode) data.barcode = barcode.trim();
     const row = await prisma.product.create({
       data,
-      select: { id: true, name: true, purchasePrice: true, sellingPrice: true, category: { select: { id: true, name: true } }, unit: { select: { id: true, unitName: true } } },
+      select: { id: true, name: true, lowerLimit: true, upperLimit: true, barcode: true, category: { select: { id: true, name: true } }, unit: { select: { id: true, unitName: true } } },
     });
     res.status(201).json(row);
   } catch (err) {
@@ -562,18 +562,18 @@ const createProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { name, categoryId, unitId, purchasePrice, sellingPrice, barcode } = req.body;
+    const { name, categoryId, unitId, lowerLimit, upperLimit, barcode } = req.body;
     const data = {};
-    if (name)                   data.name          = name.trim();
-    if (categoryId)             data.categoryId    = Number(categoryId);
-    if (unitId)                 data.unitId        = Number(unitId);
-    if (purchasePrice != null)  data.purchasePrice = Number(purchasePrice);
-    if (sellingPrice != null)   data.sellingPrice  = Number(sellingPrice);
-    if (barcode !== undefined)  data.barcode       = barcode?.trim() || null;
+    if (name)                data.name       = name.trim();
+    if (categoryId)          data.categoryId = Number(categoryId);
+    if (unitId)              data.unitId     = Number(unitId);
+    if (lowerLimit != null)  data.lowerLimit = Number(lowerLimit);
+    if (upperLimit != null)  data.upperLimit = Number(upperLimit);
+    if (barcode !== undefined) data.barcode  = barcode?.trim() || null;
     const row = await prisma.product.update({
       where: { id: Number(req.params.id) },
       data,
-      select: { id: true, name: true, purchasePrice: true, sellingPrice: true, category: { select: { id: true, name: true } }, unit: { select: { id: true, unitName: true } } },
+      select: { id: true, name: true, lowerLimit: true, upperLimit: true, barcode: true, category: { select: { id: true, name: true } }, unit: { select: { id: true, unitName: true } } },
     });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }

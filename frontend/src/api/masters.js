@@ -52,8 +52,9 @@ export const getCustomers  = ()     => apiFetch('/api/masters/customers');
 export const createCustomer = (body) => apiFetch('/api/masters/customers', { method: 'POST', body: JSON.stringify(body) });
 
 // ── Products ───────────────────────────────────────────────────────────────────
-export const getProducts  = ()     => apiFetch('/api/masters/products');
-export const createProduct = (body) => apiFetch('/api/masters/products', { method: 'POST', body: JSON.stringify(body) });
+export const getProducts   = ()        => apiFetch('/api/masters/products');
+export const createProduct = (body)    => apiFetch('/api/masters/products', { method: 'POST', body: JSON.stringify(body) });
+export const updateProduct = (id, body) => apiFetch(`/api/masters/products/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 
 // ── Warehouses ─────────────────────────────────────────────────────────────────
 export const getWarehouses   = ()     => apiFetch('/api/masters/warehouses');

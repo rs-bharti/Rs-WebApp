@@ -689,6 +689,71 @@ const createStockTransfer = async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
+// ── Stock Qty Query ────────────────────────────────────────────────────────────
+const getStockQty = async (req, res) => {
+  try {
+    const { productId, warehouseId } = req.query;
+    if (!productId || !warehouseId)
+      return res.status(400).json({ message: 'productId and warehouseId are required' });
+
+    const pid = Number(productId);
+    const wid = Number(warehouseId);
+
+    const [
+      stockDataSum,
+      purchaseSum,
+      salesSum,
+      purchaseReturnSum,
+      transferInSum,
+      transferOutSum,
+    ] = await Promise.all([
+      // StockData vouchers set the base quantity for that warehouse
+      prisma.stockDataVoucherItem.aggregate({
+        where: { productId: pid, voucher: { warehouseId: wid } },
+        _sum: { qty: true },
+      }),
+      // Purchases add stock to that warehouse
+      prisma.purchaseVoucherItem.aggregate({
+        where: { productId: pid, voucher: { warehouseId: wid } },
+        _sum: { qty: true },
+      }),
+      // Sales remove stock from that warehouse
+      prisma.salesVoucherItem.aggregate({
+        where: { productId: pid, voucher: { warehouseId: wid } },
+        _sum: { qty: true },
+      }),
+      // Purchase returns remove stock from that warehouse
+      prisma.purchaseReturnVoucherItem.aggregate({
+        where: { productId: pid, voucher: { warehouseId: wid } },
+        _sum: { qty: true },
+      }),
+      // Stock transferred INTO this warehouse
+      prisma.stockTransferVoucherItem.aggregate({
+        where: { productId: pid, voucher: { toWarehouseId: wid } },
+        _sum: { qty: true },
+      }),
+      // Stock transferred OUT of this warehouse
+      prisma.stockTransferVoucherItem.aggregate({
+        where: { productId: pid, voucher: { fromWarehouseId: wid } },
+        _sum: { qty: true },
+      }),
+    ]);
+
+    const qty =
+      (stockDataSum._sum.qty     || 0) +
+      (purchaseSum._sum.qty      || 0) +
+      (transferInSum._sum.qty    || 0) -
+      (salesSum._sum.qty         || 0) -
+      (purchaseReturnSum._sum.qty || 0) -
+      (transferOutSum._sum.qty   || 0);
+
+    res.json({ qty: Math.max(0, qty) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getContraNextNo,        getContras,        createContra,
   getReceiptNextNo,       getReceipts,       createReceipt,
@@ -700,4 +765,5 @@ module.exports = {
   getDashboard,
   getStockDataNextNo,    getStockData,    createStockData,
   getStockTransferNextNo, getStockTransfers, createStockTransfer,
+  getStockQty,
 };

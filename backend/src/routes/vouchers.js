@@ -11,12 +11,14 @@ const {
   getDashboard,
   getStockDataNextNo,    getStockData,    createStockData,
   getStockTransferNextNo, getStockTransfers, createStockTransfer,
+  getStockQty,
 } = require('../controllers/voucherController');
 
 const router = express.Router();
 router.use(authenticate);
 
 router.get('/dashboard',                getDashboard);
+router.get('/stock-qty',               getStockQty);
 
 router.get('/contra/next-number',       getContraNextNo);
 router.get('/contra',                   getContras);

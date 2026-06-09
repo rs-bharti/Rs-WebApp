@@ -4,7 +4,7 @@ import { getCustomers, getProducts, getWarehouses, getPaymentMethods } from '../
 import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, availableQty: null, loadingQty: false });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, availableQty: null, loadingQty: false, lowerLimit: null, upperLimit: null });
 
 const SalesVoucherForm = () => {
   const type = 'Sales';
@@ -62,10 +62,18 @@ const SalesVoucherForm = () => {
       }
       const updated = { ...r, [field]: v };
       updated.amount = parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0);
-      if (field === 'productId' || field === 'warehouseId') {
+      if (field === 'productId') {
         updated.availableQty = null;
-        fetchPid = field === 'productId'   ? value : r.productId;
-        fetchWid = field === 'warehouseId' ? value : r.warehouseId;
+        const prod = products.find(p => String(p.id) === String(value));
+        updated.lowerLimit = prod?.lowerLimit ?? null;
+        updated.upperLimit = prod?.upperLimit ?? null;
+        fetchPid = value;
+        fetchWid = r.warehouseId;
+        shouldFetch = !!(fetchPid && fetchWid);
+      } else if (field === 'warehouseId') {
+        updated.availableQty = null;
+        fetchPid = r.productId;
+        fetchWid = value;
         shouldFetch = !!(fetchPid && fetchWid);
       }
       return updated;
@@ -195,9 +203,12 @@ const SalesVoucherForm = () => {
               </thead>
               <tbody className="divide-y divide-stone-50">
                 {rows.map(row => {
-                  const avail     = row.availableQty;
-                  const qty       = parseFloat(row.qty) || 0;
-                  const overLimit = avail !== null && qty > avail;
+                  const avail      = row.availableQty;
+                  const qty        = parseFloat(row.qty) || 0;
+                  const overLimit  = avail !== null && qty > avail;
+                  const rate       = parseFloat(row.rate) || 0;
+                  const belowMin   = row.lowerLimit !== null && rate > 0 && rate < row.lowerLimit;
+                  const aboveMax   = row.upperLimit !== null && rate > row.upperLimit;
                   return (
                     <tr key={row.id} className="group hover:bg-rs-cream/10 transition-colors">
 
@@ -239,9 +250,14 @@ const SalesVoucherForm = () => {
                       </td>
 
                       <td className="px-4 py-3 text-right">
-                        <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
+                        <input className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none ${belowMin || aboveMax ? 'text-amber-600 font-bold' : ''}`}
                           type="number" min="0" value={row.rate}
                           onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
+                        {belowMin && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Below min ₹{row.lowerLimit}</div>}
+                        {aboveMax && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Above max ₹{row.upperLimit}</div>}
+                        {!belowMin && !aboveMax && row.lowerLimit !== null && row.upperLimit !== null && (
+                          <div className="text-[10px] text-right text-stone-400 mt-0.5">₹{row.lowerLimit}–₹{row.upperLimit}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-rs-text-primary">
                         ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
