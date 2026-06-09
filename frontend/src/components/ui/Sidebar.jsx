@@ -118,16 +118,25 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
               onClick={onClose}
               className={({ isActive }) => cn(
                 'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200',
-                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-brand-primary border-stone-200 hover:bg-stone-50'
+                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
               )}>
               <UserPlus className="w-5 h-5 mr-3" />
               Add User
+            </NavLink>
+            <NavLink to="/dashboard/manage-users"
+              onClick={onClose}
+              className={({ isActive }) => cn(
+                'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
+                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
+              )}>
+              <Users className="w-5 h-5 mr-3" />
+              Manage Users
             </NavLink>
             <NavLink to="/dashboard/master/branches"
               onClick={onClose}
               className={({ isActive }) => cn(
                 'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
-                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-brand-primary border-stone-200 hover:bg-stone-50'
+                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
               )}>
               <Database className="w-5 h-5 mr-3" />
               Branch Master
@@ -209,9 +218,9 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-brand-card rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
             <h3 className={cn('text-lg font-bold mb-2', role === 'admin' ? 'text-brand-primary' : 'text-rs-text-primary')}>Confirm Logout</h3>
-            <p className="text-sm text-stone-500 mb-8">Are you sure you want to log out of your account?</p>
+            <p className="text-sm text-stone-500 dark:text-rs-text-muted mb-8">Are you sure you want to log out of your account?</p>
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => setShowLogoutConfirm(false)}

@@ -189,10 +189,11 @@ const Registration = () => {
     load();
   }, []);
 
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  if (!currentUserIsAdmin) return <Navigate to="/dashboard" replace />;
 
   const selectedRoleName = roles.find((r) => String(r.id) === form.roleId)?.name || 'user';
   const selectedIsAdmin = selectedRoleName === 'admin';
+  const isAdmin = selectedIsAdmin;
 
   const handleRoleChange = (roleId) => {
     const roleName = roles.find((r) => String(r.id) === String(roleId))?.name;

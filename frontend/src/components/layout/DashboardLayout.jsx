@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import Sidebar from '../ui/Sidebar';
-import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark, Menu, ChevronDown } from 'lucide-react';
+import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark, Menu, ChevronDown, Sun, Moon } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const StatCard = ({ title, amount, trend, trendType, role }) => (
   <article className={cn(
     "p-6 shadow-sm border transition-all duration-300",
-    role === 'admin' 
-      ? "bg-white border-brand-primary/10 border-b-4 rounded-sm" 
+    role === 'admin'
+      ? "bg-white dark:bg-brand-card border-brand-primary/10 border-b-4 rounded-sm"
       : "bg-rs-cream border-stone-100 rounded-2xl hover:shadow-md"
   )}>
     <div className="flex justify-between items-start mb-4">
@@ -24,7 +25,7 @@ const StatCard = ({ title, amount, trend, trendType, role }) => (
         )}>{amount}</h3>
       </div>
       {role === 'user' && (
-        <div className="bg-white p-2 rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-brand-card p-2 rounded-lg shadow-sm">
           {title.includes('Cash') && <Wallet className="w-6 h-6 text-rs-text-primary" />}
           {title.includes('Bank') && <Landmark className="w-6 h-6 text-rs-text-primary" />}
           {title.includes('Wallet') && <CreditCard className="w-6 h-6 text-rs-text-primary" />}
@@ -51,6 +52,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const navigate  = useNavigate();
   const { user, activeBranch, allowedBranches, isAdmin } = useAuth();
   const userName = user?.name || 'Admin User';
+  const { isDark, toggle: toggleTheme } = useTheme();
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Collapsed by default on mobile, open on desktop
@@ -59,14 +61,14 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   return (
     <div className={cn(
       "h-screen flex overflow-hidden transition-colors duration-300",
-      userRole === 'admin' ? "bg-brand-bg" : "bg-white"
+      userRole === 'admin' ? "bg-brand-bg" : "bg-white dark:bg-brand-bg"
     )}>
       <Sidebar role={userRole} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navigation Bar */}
         <header className={cn(
           "h-14 md:h-16 border-b flex items-center justify-between px-4 md:px-8 flex-shrink-0 transition-colors",
-          userRole === 'admin' ? "bg-brand-sidebar/50 border-brand-card" : "bg-white border-stone-100"
+          userRole === 'admin' ? "bg-brand-sidebar/50 border-brand-card" : "bg-white dark:bg-brand-sidebar border-stone-100 dark:border-brand-card"
         )}>
           <div className="flex items-center space-x-4">
             {/* Hamburger — mobile only */}
@@ -107,7 +109,19 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
               </>
             )}
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleTheme}
+              className={cn(
+                'p-2 rounded-lg transition-colors cursor-pointer',
+                userRole === 'admin'
+                  ? 'text-brand-primary/60 hover:text-brand-primary hover:bg-brand-primary/5'
+                  : 'text-rs-text-muted hover:text-rs-text-primary hover:bg-rs-accent-bg'
+              )}
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button className="text-stone-400 hover:text-brand-primary cursor-pointer transition-colors">
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -170,9 +184,9 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
 
       {showSwitchConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-brand-card rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
             <h3 className={cn('text-lg font-bold mb-2', userRole === 'admin' ? 'text-brand-primary' : 'text-rs-text-primary')}>Switch Branch?</h3>
-            <p className="text-sm text-stone-500 mb-8">Are you sure you want to switch to a different branch?</p>
+            <p className="text-sm text-stone-500 dark:text-rs-text-muted mb-8">Are you sure you want to switch to a different branch?</p>
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => setShowSwitchConfirm(false)}

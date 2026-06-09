@@ -36,3 +36,24 @@ export const getRoles = async () => {
   if (!res.ok) throw new Error(data.message || 'Failed to fetch roles');
   return data;
 };
+
+export const deleteUser = async (userId) => {
+  const res = await fetch(`${API_URL}/api/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete user');
+  return data;
+};
+
+export const updateUserPermissions = async (userId, permissions) => {
+  const res = await fetch(`${API_URL}/api/users/${userId}/permissions`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ permissions }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update permissions');
+  return data;
+};

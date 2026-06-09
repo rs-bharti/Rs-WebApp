@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { loginUser } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { isDark, toggle: toggleTheme } = useTheme();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,8 +60,17 @@ const Login = () => {
         <div className="text-2xl font-serif tracking-wide text-brand-primary">
           RS Bharti
         </div>
-        <div className="text-[11px] font-medium tracking-brand-wide text-stone-500 uppercase">
-          Institutional
+        <div className="flex items-center gap-4">
+          <span className="text-[11px] font-medium tracking-brand-wide text-stone-500 uppercase hidden md:block">
+            Institutional
+          </span>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-stone-500 hover:text-brand-primary hover:bg-brand-primary/5 transition-colors cursor-pointer"
+            aria-label="Toggle dark mode"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
         </div>
       </header>
 

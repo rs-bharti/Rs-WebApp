@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import BranchSelect from './pages/BranchSelect';
 import Dashboard from './pages/Dashboard';
 import Registration from './pages/Registration';
+import ManageUsers from './pages/ManageUsers';
 import DashboardLayout from './components/layout/DashboardLayout';
 import ReceiptVoucherForm from './components/ui/vouchers/ReceiptVoucherForm';
 import PaymentVoucherForm from './components/ui/vouchers/PaymentVoucherForm';
@@ -49,6 +50,7 @@ function App() {
         >
           <Route index element={<Dashboard userRole={userRole} />} />
           <Route path="registration" element={<Registration />} />
+          <Route path="manage-users" element={<ManageUsers />} />
 
           <Route path="receipt" element={<ReceiptVoucherForm />} />
           <Route path="payment" element={<PaymentVoucherForm />} />
