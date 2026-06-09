@@ -78,7 +78,15 @@ const remove = async (req, res) => {
 
 const getBranches = async (req, res) => {
   try {
-    const branches = await prisma.branch.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } });
+    const branches = await prisma.branch.findMany({
+      select: {
+        id: true, name: true,
+        country: { select: { id: true, name: true, phoneCode: true, currency: true } },
+        state:   { select: { id: true, name: true } },
+        city:    { select: { id: true, name: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
     res.json(branches);
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
 };

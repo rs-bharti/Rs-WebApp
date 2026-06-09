@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import {
   getCountries, getStates, getCities,
   getCategories, getUnits,
@@ -85,8 +86,79 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
   );
 };
 
+// ── Phone Prefix Selector ─────────────────────────────────────────────────────
+const PhonePrefixSelect = ({ value, onChange, countries, isAdmin }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  const filtered = countries
+    .filter(c => c.phoneCode)
+    .filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      `+${c.phoneCode}`.includes(search)
+    )
+    .slice(0, 60);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="relative flex-shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => { setOpen(o => !o); setSearch(''); }}
+        className={cn(
+          'h-full flex items-center gap-1 px-3 rounded-lg border text-sm font-bold cursor-pointer transition-colors whitespace-nowrap',
+          isAdmin
+            ? 'border-brand-bg bg-brand-bg/30 text-brand-primary hover:bg-brand-bg/50'
+            : 'border-rs-accent-bg bg-rs-cream/30 text-rs-text-primary hover:bg-rs-cream/50'
+        )}
+      >
+        {value || '+91'}
+        <ChevronDown className="w-3 h-3 opacity-60" />
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-white border border-stone-200 rounded-lg shadow-lg">
+          <input
+            autoFocus
+            type="text"
+            className="w-full px-3 py-2 text-sm border-b border-stone-100 outline-none"
+            placeholder="Search country…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <ul className="max-h-48 overflow-y-auto">
+            {filtered.length === 0
+              ? <li className="px-3 py-2 text-sm text-stone-400 italic">No results</li>
+              : filtered.map(c => (
+                <li
+                  key={c.id}
+                  onMouseDown={() => { onChange(`+${c.phoneCode}`); setOpen(false); setSearch(''); }}
+                  className={cn(
+                    'px-3 py-2 text-sm cursor-pointer hover:bg-stone-50 flex justify-between items-center gap-2',
+                    value === `+${c.phoneCode}` && 'bg-brand-primary/5 font-semibold text-brand-primary'
+                  )}
+                >
+                  <span className="truncate">{c.name}</span>
+                  <span className="text-xs font-bold text-stone-400 flex-shrink-0">+{c.phoneCode}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
+  const { activeBranch } = useAuth();
+
   const isDetailed       = type === 'Supplier';
   const isCustomer       = type === 'Customer';
   const isProduct        = type === 'Product';
@@ -132,6 +204,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
+  // Prevents branch prefill from running more than once per form type
+  const branchPrefillDone = useRef(false);
 
   const clearFields = () => {
     setFormData({});
@@ -181,6 +255,40 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     };
     load();
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset prefill flag whenever the form type switches
+  useEffect(() => { branchPrefillDone.current = false; }, [type]);
+
+  // Auto-populate country/state/city from the active branch when the form first opens
+  useEffect(() => {
+    if (!(isCustomer || isDetailed || isWarehouse)) return;
+    if (!activeBranch?.country?.id) return;
+    if (countries.length === 0) return;
+    if (branchPrefillDone.current) return;
+    branchPrefillDone.current = true;
+
+    const doInit = async () => {
+      skipCityEffectsRef.current = true;
+      setSelCountry(String(activeBranch.country.id));
+      setFormData(prev => ({
+        ...prev,
+        phonePrefix: activeBranch.country.phoneCode ? `+${activeBranch.country.phoneCode}` : (prev.phonePrefix || ''),
+        currency:    activeBranch.country.currency  || prev.currency,
+      }));
+      if (activeBranch.state?.id) {
+        const statesList = await getStates(String(activeBranch.country.id));
+        setStates(statesList);
+        setSelState(String(activeBranch.state.id));
+        if (activeBranch.city?.id) {
+          const citiesList = await getCities({ stateId: String(activeBranch.state.id) });
+          setCities(citiesList);
+          setSelCity(String(activeBranch.city.id));
+        }
+      }
+      skipCityEffectsRef.current = false;
+    };
+    doInit();
+  }, [type, activeBranch, countries.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Country → states (skipped when handleCityChange auto-fills to avoid cascade reset)
   useEffect(() => {
@@ -342,18 +450,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <input className={inputCls} type="text" placeholder="e.g. Andheri, Sector 12" value={f('area')} onChange={upd('area')} />
         </div>
       </div>
-      {(f('phonePrefix') || f('currency')) && (
+      {f('currency') && (
         <div className="flex gap-3 flex-wrap pt-1">
-          {f('phonePrefix') && (
-            <span className="inline-flex items-center gap-1.5 bg-brand-primary/5 text-brand-primary text-xs font-bold px-3 py-1.5 rounded-full border border-brand-primary/20">
-              📞 {f('phonePrefix')}
-            </span>
-          )}
-          {f('currency') && (
-            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-200">
-              💱 {f('currency')}
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-200">
+            💱 {f('currency')}
+          </span>
         </div>
       )}
     </div>
@@ -431,12 +532,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <div className="space-y-2">
             <label className={labelCls}>Phone</label>
             <div className="flex gap-2 items-stretch">
-              <div className={cn(
-                'flex items-center justify-center px-3 rounded-lg border text-sm font-bold min-w-[64px] text-center flex-shrink-0',
-                isAdmin ? 'border-brand-bg bg-brand-bg/30 text-brand-primary' : 'border-rs-accent-bg bg-rs-cream/30 text-rs-text-primary'
-              )}>
-                {f('phonePrefix') || '+91'}
-              </div>
+              <PhonePrefixSelect
+                value={f('phonePrefix')}
+                onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))}
+                countries={countries}
+                isAdmin={isAdmin}
+              />
               <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
             </div>
           </div>
@@ -462,12 +563,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <div className="space-y-2">
               <label className={labelCls}>Phone</label>
               <div className="flex gap-2 items-stretch">
-                <div className={cn(
-                  'flex items-center justify-center px-3 rounded-lg border text-sm font-bold min-w-[64px] text-center flex-shrink-0',
-                  isAdmin ? 'border-brand-bg bg-brand-bg/30 text-brand-primary' : 'border-rs-accent-bg bg-rs-cream/30 text-rs-text-primary'
-                )}>
-                  {f('phonePrefix') || '+91'}
-                </div>
+                <PhonePrefixSelect
+                  value={f('phonePrefix')}
+                  onChange={(prefix) => setFormData(prev => ({ ...prev, phonePrefix: prefix }))}
+                  countries={countries}
+                  isAdmin={isAdmin}
+                />
                 <input className={cn(inputCls, 'flex-1')} type="tel" placeholder="Phone number" value={f('phone')} onChange={upd('phone')} maxLength={phoneMaxLength(f('phonePrefix'))} />
               </div>
             </div>

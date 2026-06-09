@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, FileText, Database, Building2, X, CheckCircle, User, Mail, Lock, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { createUser, getBranches, getRoles } from '../api/users';
+import { useAuth } from '../context/AuthContext';
 
 // ── Success Popup ──────────────────────────────────────────────
 const SuccessPopup = ({ data, onClose }) => {
@@ -149,6 +151,7 @@ const DEFAULT_ROLES = [
 ];
 
 const Registration = () => {
+  const { isAdmin: currentUserIsAdmin } = useAuth();
   const [form, setForm]               = useState({ name: '', email: '', password: '', roleId: 'user' });
   const [showPassword, setShowPassword] = useState(false);
   const [voucherAccess, setVoucherAccess] = useState(allFalse(VOUCHER_MODULES));
@@ -160,26 +163,36 @@ const Registration = () => {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState('');
-  const [popup,    setPopup]    = useState(null); // holds created user data for popup
+  const [popup,    setPopup]    = useState(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [b, r] = await Promise.all([getBranches(), getRoles()]);
+        const b = await getBranches();
         setBranches(b);
-        if (r && r.length > 0) setRoles(r);
         setBranchAccess(b.reduce((a, br) => ({ ...a, [br.id]: false }), {}));
-        const userRole = r.find((role) => role.name === 'user');
-        if (userRole) setForm((p) => ({ ...p, roleId: String(userRole.id) }));
       } catch (err) {
-        setError('Could not load data: ' + err.message);
+        setError('Could not load branches: ' + err.message);
+      }
+
+      try {
+        const r = await getRoles();
+        if (r && r.length > 0) {
+          setRoles(r);
+          const userRole = r.find((role) => role.name === 'user');
+          if (userRole) setForm((p) => ({ ...p, roleId: String(userRole.id) }));
+        }
+      } catch {
+        // roles stay as DEFAULT_ROLES — admin/user fallback
       }
     };
     load();
   }, []);
 
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+
   const selectedRoleName = roles.find((r) => String(r.id) === form.roleId)?.name || 'user';
-  const isAdmin = selectedRoleName === 'admin';
+  const selectedIsAdmin = selectedRoleName === 'admin';
 
   const handleRoleChange = (roleId) => {
     const roleName = roles.find((r) => String(r.id) === String(roleId))?.name;

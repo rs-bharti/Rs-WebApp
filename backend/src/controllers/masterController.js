@@ -172,7 +172,7 @@ const getBranches = async (req, res) => {
         id: true, name: true, address: true,
         city:    { select: { id: true, name: true } },
         state:   { select: { id: true, name: true } },
-        country: { select: { id: true, name: true } },
+        country: { select: { id: true, name: true, phoneCode: true, currency: true } },
       },
     });
     res.json(rows);

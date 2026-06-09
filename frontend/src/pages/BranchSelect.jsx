@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, LogOut, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getBranches } from '../api/users';
+import { getMasterBranches } from '../api/masters';
 
 const BranchSelect = () => {
   const navigate = useNavigate();
@@ -14,17 +15,20 @@ const BranchSelect = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (isAdmin) {
-        // Admin → fetch all branches from DB
-        try {
+      try {
+        if (isAdmin) {
+          // Admin → fetch all branches with full location data from DB
           const all = await getBranches();
           setBranches(all);
-        } catch {
-          setBranches([]);
+        } else {
+          // User → fetch full branch data then filter by their allowed branches
+          const all = await getMasterBranches();
+          const allowedIds = allowedBranches.map(b => b.id);
+          const filtered = all.filter(b => allowedIds.includes(b.id));
+          setBranches(filtered.length > 0 ? filtered : allowedBranches);
         }
-      } else {
-        // User → only their allowed branches
-        setBranches(allowedBranches);
+      } catch {
+        setBranches(isAdmin ? [] : allowedBranches);
       }
       setLoading(false);
     };
@@ -36,7 +40,7 @@ const BranchSelect = () => {
   );
 
   const handleSelect = (branch) => {
-    selectBranch({ id: branch.id, name: branch.name });
+    selectBranch(branch); // pass full object so country/state/city is available app-wide
     navigate('/dashboard');
   };
 
