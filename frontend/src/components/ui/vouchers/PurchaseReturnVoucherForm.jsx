@@ -54,11 +54,6 @@ const PurchaseReturnVoucherForm = () => {
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
 
-    const overstock = validItems.filter(r => r.warehouseId && r.availableQty !== null && parseFloat(r.qty) > r.availableQty);
-    if (overstock.length) {
-      return setError(`Insufficient stock to return: ${overstock.map(r => products.find(p => String(p.id) === String(r.productId))?.name || 'product').join(', ')}`);
-    }
-
     setSaving(true);
     try {
       const voucher = await savePurchaseReturnVoucher({

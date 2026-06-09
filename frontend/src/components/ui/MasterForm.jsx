@@ -251,7 +251,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { resetForm(); setListSearch(''); setEditingId(null); setLedgerSupplierId(null); setLedgerTransactions([]); }, [type]);
+  useEffect(() => { resetForm(); setListSearch(''); setEditingId(null); }, [type]);
 
   // Load initial data + existing records
   useEffect(() => {
