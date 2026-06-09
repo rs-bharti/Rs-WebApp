@@ -171,6 +171,16 @@ const PurchaseVoucherForm = () => {
               </select>
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
+            {supplierId && (() => {
+              const sel = suppliers.find(s => String(s.id) === String(supplierId));
+              if (!sel || sel.balance === undefined) return null;
+              const bal = sel.balance ?? 0;
+              return (
+                <div className={`text-xs font-bold mt-1 ${bal >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  Balance: {bal >= 0 ? '+' : ''}₹{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })} {bal >= 0 ? 'CR' : 'DR'}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

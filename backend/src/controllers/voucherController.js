@@ -246,6 +246,20 @@ const createPurchase = async (req, res) => {
         warehouse: { select: { name: true } },
       },
     });
+
+    // Auto-create CR entry: purchase means we owe money to the supplier
+    await prisma.supplierTransaction.create({
+      data: {
+        supplierId:  Number(supplierId),
+        type:        'CR',
+        amount:      totalAmount,
+        note:        `Purchase voucher ${voucher.voucherNo}`,
+        source:      'purchase',
+        refVoucherNo: voucher.voucherNo,
+        date:        voucher.date,
+      },
+    });
+
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -265,7 +279,6 @@ const getSales = async (req, res) => {
       include: {
         customer:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
-        paymentMethod: { select: { id: true, name: true } },
         warehouse:     { select: { id: true, name: true } },
         items:         { include: { product: { select: { id: true, name: true } } } },
         createdBy:     { select: { name: true } },
@@ -278,20 +291,30 @@ const getSales = async (req, res) => {
 
 const createSales = async (req, res) => {
   try {
-    const { customerId, paymentMethodId, warehouseId, date, items, narration } = req.body;
-    if (!customerId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
+    const { customerId, paymentTerms, warehouseId, date, items, narration } = req.body;
+    if (!customerId || !paymentTerms || !items?.length)
+      return res.status(400).json({ message: 'customerId, paymentTerms, and items are required' });
+
+    const validTerms = [
+      '60 days consignment basis',
+      '15 days consignment basis',
+      '30 days consignment basis',
+      '45 days consignment basis',
+      'cash'
+    ];
+    if (!validTerms.includes(paymentTerms)) {
+      return res.status(400).json({ message: 'Invalid payment terms' });
+    }
 
     const branchId = getBranchId(req);
 
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [productRecords, customerRecord, warehouseRecord, paymentMethodRecord] = await Promise.all([
+    const [productRecords, customerRecord, warehouseRecord] = await Promise.all([
       prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
       prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
         : Promise.resolve(null),
-      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
     ]);
     const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
 
@@ -308,8 +331,7 @@ const createSales = async (req, res) => {
         branchId:          branchId,
         warehouseId:       warehouseId ? Number(warehouseId) : null,
         warehouseName:     warehouseRecord?.name || null,
-        paymentMethodId:   Number(paymentMethodId),
-        paymentMethodName: paymentMethodRecord?.name || null,
+        paymentTerms,
         date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
         narration:         narration || null,
@@ -444,7 +466,6 @@ const getSalesReturns = async (req, res) => {
       include: {
         customer:      { select: { id: true, name: true } },
         branch:        { select: { id: true, name: true } },
-        paymentMethod: { select: { id: true, name: true } },
         items:         { include: { product: { select: { id: true, name: true } } } },
         createdBy:     { select: { name: true } },
       },
@@ -456,16 +477,15 @@ const getSalesReturns = async (req, res) => {
 
 const createSalesReturn = async (req, res) => {
   try {
-    const { customerId, paymentMethodId, date, items, narration } = req.body;
-    if (!customerId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'customerId, paymentMethodId, and items are required' });
+    const { customerId, date, items, narration } = req.body;
+    if (!customerId || !items?.length)
+      return res.status(400).json({ message: 'customerId and items are required' });
 
     const branchId = getBranchId(req);
 
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [customerRecord, paymentMethodRecord, productRecords] = await Promise.all([
+    const [customerRecord, productRecords] = await Promise.all([
       prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
-      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
       prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
     ]);
     const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
@@ -481,8 +501,6 @@ const createSalesReturn = async (req, res) => {
         customerId:        Number(customerId),
         customerName:      customerRecord?.name || null,
         branchId:          branchId,
-        paymentMethodId:   Number(paymentMethodId),
-        paymentMethodName: paymentMethodRecord?.name || null,
         date:              date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
         narration:         narration || null,

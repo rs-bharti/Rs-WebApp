@@ -143,10 +143,25 @@ model Supplier {
   paymentVouchers PaymentVoucher[]
   purchaseReturns PurchaseReturnVoucher[]
   purchases       PurchaseVoucher[]
+  transactions    SupplierTransaction[]
   branch          Branch?                 @relation(fields: [branchId], references: [id])
   city            CityMaster              @relation(fields: [cityId], references: [id])
   country         CountryMaster           @relation(fields: [countryId], references: [id])
   state           StateMaster             @relation(fields: [stateId], references: [id])
+}
+
+model SupplierTransaction {
+  id           Int      @id @default(autoincrement())
+  supplierId   Int
+  type         String   // 'CR' or 'DR'
+  amount       Float
+  note         String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  source       String?  // 'manual', 'purchase', 'purchase_return'
+  refVoucherNo String?
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 }
 
 model Product {
@@ -283,8 +298,6 @@ model PaymentMethodMaster {
   purchaseReturns PurchaseReturnVoucher[]
   purchases       PurchaseVoucher[]
   receiptVouchers ReceiptVoucher[]
-  salesReturns    SalesReturnVoucher[]
-  sales           SalesVoucher[]
 
   @@unique([name, branchId])
 }
@@ -332,30 +345,28 @@ model PurchaseVoucherItem {
 }
 
 model SalesVoucher {
-  id                Int                 @id @default(autoincrement())
-  voucherNo         String              @unique
-  customerId        Int
-  branchId          Int
-  paymentMethodId   Int
-  createdById       Int
-  date              DateTime
-  subTotal          Float               @default(0)
-  taxAmount         Float               @default(0)
-  discountAmount    Float               @default(0)
-  totalAmount       Float
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  customerName      String?
-  narration         String?
-  warehouseId       Int?
-  warehouseName     String?
-  paymentMethodName String?
-  branch            Branch              @relation(fields: [branchId], references: [id])
-  createdBy         User                @relation(fields: [createdById], references: [id])
-  customer          Customer            @relation(fields: [customerId], references: [id])
-  paymentMethod     PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
-  warehouse         WarehouseMaster?    @relation(fields: [warehouseId], references: [id])
-  items             SalesVoucherItem[]
+  id             Int              @id @default(autoincrement())
+  voucherNo      String           @unique
+  customerId     Int
+  branchId       Int
+  createdById    Int
+  date           DateTime
+  subTotal       Float            @default(0)
+  taxAmount      Float            @default(0)
+  discountAmount Float            @default(0)
+  totalAmount    Float
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  customerName   String?
+  narration      String?
+  warehouseId    Int?
+  warehouseName  String?
+  paymentTerms   String?
+  branch         Branch           @relation(fields: [branchId], references: [id])
+  createdBy      User             @relation(fields: [createdById], references: [id])
+  customer       Customer         @relation(fields: [customerId], references: [id])
+  warehouse      WarehouseMaster? @relation(fields: [warehouseId], references: [id])
+  items          SalesVoucherItem[]
 }
 
 model SalesVoucherItem {
@@ -530,27 +541,24 @@ model PurchaseReturnVoucherItem {
 }
 
 model SalesReturnVoucher {
-  id                Int                      @id @default(autoincrement())
-  voucherNo         String                   @unique
-  customerId        Int
-  branchId          Int
-  paymentMethodId   Int
-  createdById       Int
-  date              DateTime
-  subTotal          Float                    @default(0)
-  taxAmount         Float                    @default(0)
-  discountAmount    Float                    @default(0)
-  totalAmount       Float
-  narration         String?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  customerName      String?
-  paymentMethodName String?
-  branch            Branch                   @relation(fields: [branchId], references: [id])
-  createdBy         User                     @relation(fields: [createdById], references: [id])
-  customer          Customer                 @relation(fields: [customerId], references: [id])
-  paymentMethod     PaymentMethodMaster      @relation(fields: [paymentMethodId], references: [id])
-  items             SalesReturnVoucherItem[]
+  id             Int                      @id @default(autoincrement())
+  voucherNo      String                   @unique
+  customerId     Int
+  branchId       Int
+  createdById    Int
+  date           DateTime
+  subTotal       Float                    @default(0)
+  taxAmount      Float                    @default(0)
+  discountAmount Float                    @default(0)
+  totalAmount    Float
+  narration      String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  customerName   String?
+  branch         Branch                   @relation(fields: [branchId], references: [id])
+  createdBy      User                     @relation(fields: [createdById], references: [id])
+  customer       Customer                 @relation(fields: [customerId], references: [id])
+  items          SalesReturnVoucherItem[]
 }
 
 model SalesReturnVoucherItem {

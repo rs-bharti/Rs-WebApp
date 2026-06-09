@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2, Search, Pencil, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,7 @@ import {
   createBranch, createCategory, createUnit,
   createSupplier, createCustomer, createProduct, updateProduct,
   createPaymentMethod,
+  getSupplierTransactions, createSupplierTransaction,
 } from '../../api/masters';
 
 // Phone number max digits by country code
@@ -219,6 +220,17 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   // Search state for lists
   const [listSearch, setListSearch] = useState('');
 
+  // Supplier ledger state
+  const [ledgerSupplierId,   setLedgerSupplierId]   = useState(null);
+  const [ledgerTransactions, setLedgerTransactions] = useState([]);
+  const [ledgerLoading,      setLedgerLoading]      = useState(false);
+  const [ledgerType,         setLedgerType]         = useState('CR');
+  const [ledgerAmount,       setLedgerAmount]       = useState('');
+  const [ledgerNote,         setLedgerNote]         = useState('');
+  const [ledgerDate,         setLedgerDate]         = useState(new Date().toISOString().split('T')[0]);
+  const [ledgerSaving,       setLedgerSaving]       = useState(false);
+  const [ledgerError,        setLedgerError]        = useState('');
+
   // Inline edit state for product list
   const [editingId,   setEditingId]   = useState(null);
   const [editData,    setEditData]    = useState({});
@@ -251,7 +263,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { resetForm(); setListSearch(''); setEditingId(null); }, [type]);
+  useEffect(() => { resetForm(); setListSearch(''); setEditingId(null); setLedgerSupplierId(null); setLedgerTransactions([]); }, [type]);
 
   // Load initial data + existing records
   useEffect(() => {
@@ -451,6 +463,38 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setEditError('');
   };
   const cancelEdit = () => { setEditingId(null); setEditData({}); setEditError(''); };
+
+  const openLedger = async (supplierId) => {
+    if (ledgerSupplierId === supplierId) { setLedgerSupplierId(null); return; }
+    setLedgerSupplierId(supplierId);
+    setLedgerError('');
+    setLedgerLoading(true);
+    try {
+      const txns = await getSupplierTransactions(supplierId);
+      setLedgerTransactions(txns);
+    } catch { setLedgerError('Failed to load transactions'); }
+    finally { setLedgerLoading(false); }
+  };
+
+  const submitLedgerEntry = async (e) => {
+    e.preventDefault();
+    if (!ledgerAmount || isNaN(Number(ledgerAmount)) || Number(ledgerAmount) <= 0) {
+      setLedgerError('Enter a valid positive amount'); return;
+    }
+    setLedgerSaving(true); setLedgerError('');
+    try {
+      const txn = await createSupplierTransaction(ledgerSupplierId, {
+        type: ledgerType, amount: Number(ledgerAmount),
+        note: ledgerNote || undefined, date: ledgerDate,
+      });
+      setLedgerTransactions(prev => [txn, ...prev]);
+      // Update balance in records
+      const delta = ledgerType === 'CR' ? Number(ledgerAmount) : -Number(ledgerAmount);
+      setRecords(prev => prev.map(r => r.id === ledgerSupplierId ? { ...r, balance: (r.balance || 0) + delta } : r));
+      setLedgerAmount(''); setLedgerNote('');
+    } catch (err) { setLedgerError(err.message || 'Failed to save'); }
+    finally { setLedgerSaving(false); }
+  };
 
   const saveEdit = async (id) => {
     setEditError('');
@@ -722,38 +766,171 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
               ) : filteredRecords.length === 0 ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No records yet.'}</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[900px]">
-                    <thead>
-                      <tr className={headCls}>
-                        <th className={thCls}>#</th>
-                        <th className={thCls}>Name</th>
-                        <th className={thCls}>Phone</th>
-                        <th className={thCls}>City</th>
-                        <th className={thCls}>State</th>
-                        <th className={thCls}>Country</th>
-                        <th className={thCls}>Area</th>
-                        <th className={thCls}>GST No</th>
-                        <th className={thCls}>Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRecords.map((r, i) => (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                          <td className={tdCls}>{r.phone || '—'}</td>
-                          <td className={cn(tdCls, 'font-medium')}>{r.cityName || '—'}</td>
-                          <td className={tdCls}>{r.stateName || '—'}</td>
-                          <td className={tdCls}>{r.countryName || '—'}</td>
-                          <td className={tdCls}>{r.area || '—'}</td>
-                          <td className={tdCls}>{r.gstNo || '—'}</td>
-                          <td className={tdCls}>{r.email || '—'}</td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[900px]">
+                      <thead>
+                        <tr className={headCls}>
+                          <th className={thCls}>#</th>
+                          <th className={thCls}>Name</th>
+                          <th className={thCls}>Phone</th>
+                          <th className={thCls}>City</th>
+                          <th className={thCls}>State</th>
+                          <th className={thCls}>Country</th>
+                          <th className={thCls}>Area</th>
+                          <th className={thCls}>GST No</th>
+                          <th className={thCls}>Email</th>
+                          {isDetailed && <th className={thCls}>Balance</th>}
+                          {isDetailed && <th className={thCls}></th>}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {filteredRecords.map((r, i) => (
+                          <React.Fragment key={r.id}>
+                            <tr className={trHoverCls}>
+                              <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                              <td className={tdCls}>{r.phone || '—'}</td>
+                              <td className={cn(tdCls, 'font-medium')}>{r.cityName || '—'}</td>
+                              <td className={tdCls}>{r.stateName || '—'}</td>
+                              <td className={tdCls}>{r.countryName || '—'}</td>
+                              <td className={tdCls}>{r.area || '—'}</td>
+                              <td className={tdCls}>{r.gstNo || '—'}</td>
+                              <td className={tdCls}>{r.email || '—'}</td>
+                              {isDetailed && (
+                                <td className={tdCls}>
+                                  {r.balance !== undefined ? (
+                                    <span className={`font-bold text-sm ${r.balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                      {r.balance >= 0 ? '+' : ''}₹{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      <span className={`ml-1 text-[10px] font-bold ${r.balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                        {r.balance >= 0 ? 'CR' : 'DR'}
+                                      </span>
+                                    </span>
+                                  ) : '—'}
+                                </td>
+                              )}
+                              {isDetailed && (
+                                <td className={tdCls}>
+                                  <button
+                                    type="button"
+                                    onClick={() => openLedger(r.id)}
+                                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-stone-300 hover:border-stone-500 transition-colors"
+                                  >
+                                    {ledgerSupplierId === r.id ? 'Close' : 'Ledger'}
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                            {isDetailed && ledgerSupplierId === r.id && (
+                              <tr key={`ledger-${r.id}`}>
+                                <td colSpan={11} className="px-4 py-4 bg-stone-50/60">
+                                  <div className="space-y-4">
+                                    {/* Add entry form */}
+                                    <form onSubmit={submitLedgerEntry} className="flex flex-wrap items-end gap-3">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Type</label>
+                                        <div className="flex rounded-lg overflow-hidden border border-stone-200">
+                                          <button type="button" onClick={() => setLedgerType('CR')}
+                                            className={`px-4 py-2 text-xs font-bold transition-colors ${ledgerType === 'CR' ? 'bg-emerald-500 text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
+                                            CR +
+                                          </button>
+                                          <button type="button" onClick={() => setLedgerType('DR')}
+                                            className={`px-4 py-2 text-xs font-bold transition-colors ${ledgerType === 'DR' ? 'bg-red-500 text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
+                                            DR −
+                                          </button>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Amount</label>
+                                        <div className="relative">
+                                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span>
+                                          <input type="number" min="0.01" step="0.01" placeholder="0.00" value={ledgerAmount}
+                                            onChange={e => setLedgerAmount(e.target.value)}
+                                            className="pl-7 pr-3 py-2 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 w-36" />
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Date</label>
+                                        <input type="date" value={ledgerDate} onChange={e => setLedgerDate(e.target.value)}
+                                          className="px-3 py-2 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400" />
+                                      </div>
+                                      <div className="space-y-1 flex-1 min-w-32">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Note</label>
+                                        <input type="text" placeholder="Reason / reference…" value={ledgerNote}
+                                          onChange={e => setLedgerNote(e.target.value)}
+                                          className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400" />
+                                      </div>
+                                      <button type="submit" disabled={ledgerSaving}
+                                        className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-stone-800 text-white rounded-lg hover:bg-stone-700 disabled:opacity-50 transition-colors">
+                                        {ledgerSaving ? 'Saving…' : 'Add Entry'}
+                                      </button>
+                                    </form>
+                                    {ledgerError && <p className="text-sm text-red-500">{ledgerError}</p>}
+
+                                    {/* Transactions table */}
+                                    {ledgerLoading ? (
+                                      <p className="text-sm text-stone-400 py-2">Loading…</p>
+                                    ) : ledgerTransactions.length === 0 ? (
+                                      <p className="text-sm text-stone-400 py-2">No transactions yet.</p>
+                                    ) : (
+                                      <div className="overflow-x-auto rounded-lg border border-stone-200">
+                                        <table className="w-full text-left border-collapse text-sm min-w-[600px]">
+                                          <thead>
+                                            <tr className="bg-stone-100 border-b border-stone-200">
+                                              <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500">Date</th>
+                                              <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500">Type</th>
+                                              <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500 text-right">Amount</th>
+                                              <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500">Source</th>
+                                              <th className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500">Note / Voucher</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-stone-100">
+                                            {(() => {
+                                              let running = 0;
+                                              return [...ledgerTransactions].reverse().map((t, idx) => {
+                                                running += t.type === 'CR' ? t.amount : -t.amount;
+                                                const isLast = idx === ledgerTransactions.length - 1;
+                                                return (
+                                                  <tr key={t.id} className="hover:bg-stone-50">
+                                                    <td className="px-4 py-2 text-stone-500">{new Date(t.date).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-2">
+                                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${t.type === 'CR' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                                                        {t.type === 'CR' ? '+' : '−'} {t.type}
+                                                      </span>
+                                                    </td>
+                                                    <td className={`px-4 py-2 text-right font-bold ${t.type === 'CR' ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                      {t.type === 'CR' ? '+' : '−'}₹{Number(t.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-stone-500 text-xs capitalize">{t.source || 'manual'}</td>
+                                                    <td className="px-4 py-2 text-stone-500">{t.refVoucherNo ? <span className="font-mono text-xs">{t.refVoucherNo}</span> : t.note || '—'}</td>
+                                                  </tr>
+                                                );
+                                              });
+                                            })()}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr className="bg-stone-50 border-t-2 border-stone-300">
+                                              <td colSpan={2} className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-stone-600">Net Balance</td>
+                                              <td className={`px-4 py-2 text-right text-base font-bold ${r.balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                {r.balance >= 0 ? '+' : ''}₹{Math.abs(r.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                <span className="ml-1 text-xs">{r.balance >= 0 ? 'CR' : 'DR'}</span>
+                                              </td>
+                                              <td colSpan={2} className="px-4 py-2 text-xs text-stone-400">CR = we owe supplier · DR = supplier owes us</td>
+                                            </tr>
+                                          </tfoot>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>

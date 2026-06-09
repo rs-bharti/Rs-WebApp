@@ -46,6 +46,8 @@ export const createUnit = (body) => apiFetch('/api/masters/units', { method: 'PO
 // ── Suppliers ──────────────────────────────────────────────────────────────────
 export const getSuppliers  = ()     => apiFetch('/api/masters/suppliers');
 export const createSupplier = (body) => apiFetch('/api/masters/suppliers', { method: 'POST', body: JSON.stringify(body) });
+export const getSupplierTransactions    = (id)        => apiFetch(`/api/masters/suppliers/${id}/transactions`);
+export const createSupplierTransaction  = (id, body)  => apiFetch(`/api/masters/suppliers/${id}/transactions`, { method: 'POST', body: JSON.stringify(body) });
 
 // ── Customers ──────────────────────────────────────────────────────────────────
 export const getCustomers  = ()     => apiFetch('/api/masters/customers');

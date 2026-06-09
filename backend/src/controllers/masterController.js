@@ -332,10 +332,45 @@ const getSuppliers = async (req, res) => {
       select: {
         id: true, name: true, phone: true, email: true, gstNo: true, address: true, area: true,
         cityName: true, stateName: true, countryName: true,
-        contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
+        contacts:     { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
+        transactions: { select: { type: true, amount: true } },
       },
     });
+    const result = rows.map(r => {
+      const balance = r.transactions.reduce((sum, t) => sum + (t.type === 'CR' ? t.amount : -t.amount), 0);
+      const { transactions, ...rest } = r;
+      return { ...rest, balance };
+    });
+    res.json(result);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
+const getSupplierTransactions = async (req, res) => {
+  try {
+    const rows = await prisma.supplierTransaction.findMany({
+      where: { supplierId: Number(req.params.id) },
+      orderBy: { createdAt: 'desc' },
+    });
     res.json(rows);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
+const createSupplierTransaction = async (req, res) => {
+  try {
+    const { type, amount, note, date } = req.body;
+    if (!type || !amount || !['CR', 'DR'].includes(type))
+      return res.status(400).json({ message: 'type (CR or DR) and amount are required' });
+    const row = await prisma.supplierTransaction.create({
+      data: {
+        supplierId: Number(req.params.id),
+        type,
+        amount:     Number(amount),
+        note:       note || null,
+        source:     'manual',
+        date:       date ? new Date(date) : new Date(),
+      },
+    });
+    res.status(201).json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
@@ -699,6 +734,7 @@ module.exports = {
   getCategories, createCategory, updateCategory, deleteCategory,
   getUnits,     createUnit,    updateUnit,    deleteUnit,
   getSuppliers, createSupplier, updateSupplier, deleteSupplier,
+  getSupplierTransactions, createSupplierTransaction,
   getCustomers, createCustomer, updateCustomer, deleteCustomer,
   getProducts,  createProduct,  updateProduct,  deleteProduct,
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,

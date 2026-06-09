@@ -8,6 +8,7 @@ const {
   getCategories, createCategory, updateCategory, deleteCategory,
   getUnits,      createUnit,     updateUnit,     deleteUnit,
   getSuppliers,  createSupplier, updateSupplier, deleteSupplier,
+  getSupplierTransactions, createSupplierTransaction,
   getCustomers,  createCustomer, updateCustomer, deleteCustomer,
   getProducts,   createProduct,  updateProduct,  deleteProduct,
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
@@ -37,10 +38,12 @@ router.post('/units',          requirePermission('masters', 'Unit'), createUnit)
 router.put('/units/:id',       requirePermission('masters', 'Unit'), updateUnit);
 router.delete('/units/:id',    requirePermission('masters', 'Unit'), deleteUnit);
 
-router.get('/suppliers',        getSuppliers);
-router.post('/suppliers',       requirePermission('masters', 'Supplier'), createSupplier);
-router.put('/suppliers/:id',    requirePermission('masters', 'Supplier'), updateSupplier);
-router.delete('/suppliers/:id', requirePermission('masters', 'Supplier'), deleteSupplier);
+router.get('/suppliers',                        getSuppliers);
+router.post('/suppliers',                       requirePermission('masters', 'Supplier'), createSupplier);
+router.put('/suppliers/:id',                    requirePermission('masters', 'Supplier'), updateSupplier);
+router.delete('/suppliers/:id',                 requirePermission('masters', 'Supplier'), deleteSupplier);
+router.get('/suppliers/:id/transactions',       getSupplierTransactions);
+router.post('/suppliers/:id/transactions',      requirePermission('masters', 'Supplier'), createSupplierTransaction);
 
 router.get('/customers',        getCustomers);
 router.post('/customers',       requirePermission('masters', 'Customer'), createCustomer);
