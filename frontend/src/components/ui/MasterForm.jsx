@@ -192,8 +192,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const upd = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
 
   // Contacts
-  const [contacts, setContacts] = useState([{ id: 1, name: '', phone: '', designation: '', dob: '' }]);
-  const addContact    = () => setContacts(prev => [...prev, { id: Date.now(), name: '', phone: '', designation: '', dob: '' }]);
+  const [contacts, setContacts] = useState([{ id: 1, name: '', phone: '', phonePrefix: '+91', designation: '', dob: '' }]);
+  const addContact    = () => setContacts(prev => [...prev, { id: Date.now(), name: '', phone: '', phonePrefix: f('phonePrefix') || '+91', designation: '', dob: '' }]);
   const removeContact = (id) => setContacts(prev => prev.filter(c => c.id !== id));
   const updContact    = (id, field, val) => setContacts(prev => prev.map(c => c.id === id ? { ...c, [field]: val } : c));
 
@@ -234,7 +234,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setFormData({});
     setSelCountry(''); setSelState(''); setCities([]); setSelCity('');
     setSelCategory(''); setSelUnit('');
-    setContacts([{ id: 1, name: '', phone: '', designation: '', dob: '' }]);
+    setContacts([{ id: 1, name: '', phone: '', phonePrefix: '+91', designation: '', dob: '' }]);
   };
   const resetForm = () => { clearFields(); setError(''); setSuccess(''); };
 
@@ -367,7 +367,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     try {
       const validContacts = contacts.filter(c => c.name.trim()).map(c => ({
         name: c.name.trim(),
-        phone: c.phone ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${c.phone}`.trim() : undefined,
+        phone: c.phone ? `${c.phonePrefix || ''}${c.phonePrefix ? ' ' : ''}${c.phone}`.trim() : undefined,
         designation: c.designation || undefined,
         dob: c.dob || undefined,
       }));
@@ -538,8 +538,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 <td className="p-2"><input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" /></td>
                 <td className="p-2">
                   <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-stone-500 whitespace-nowrap flex-shrink-0">{f('phonePrefix') || '+91'}</span>
-                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(f('phonePrefix'))} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" />
+                    <PhonePrefixSelect
+                      value={c.phonePrefix || '+91'}
+                      onChange={(prefix) => updContact(c.id, 'phonePrefix', prefix)}
+                      countries={countries}
+                      isAdmin={isAdmin}
+                    />
+                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(c.phonePrefix)} className="w-full bg-transparent border-b border-transparent focus:border-stone-300 px-2 py-2 outline-none text-sm" />
                   </div>
                 </td>
                 <td className="p-2">
