@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getProducts, getWarehouses } from '../../../api/masters';
-import { getStockDataVoucherNextNo, saveStockDataVoucher } from '../../../api/vouchers';
+import { getStockDataVoucherNextNo, saveStockDataVoucher, getStockQty } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1 });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, stockQty: null });
 
 const StockDataVoucherForm = () => {
   const type = 'Stock Data';
@@ -32,8 +32,21 @@ const StockDataVoucherForm = () => {
   const updateRow = (id, field, value) => {
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
-      return { ...r, [field]: value };
+      const updated = { ...r, [field]: value };
+      if (field === 'productId' || field === 'warehouseId') updated.stockQty = null;
+      return updated;
     }));
+    if (field === 'productId' || field === 'warehouseId') {
+      const currentRow = rows.find(r => r.id === id);
+      if (!currentRow) return;
+      const pId = field === 'productId' ? value : currentRow.productId;
+      const wId = field === 'warehouseId' ? value : currentRow.warehouseId;
+      if (pId && wId) {
+        getStockQty(pId, wId)
+          .then(data => setRows(curr => curr.map(r => r.id === id ? { ...r, stockQty: data.qty ?? 0 } : r)))
+          .catch(() => {});
+      }
+    }
   };
 
   const totalQty = rows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
@@ -117,7 +130,7 @@ const StockDataVoucherForm = () => {
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-8">#</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-44">Warehouse</th>
-                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Quantity</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-44">Add Qty</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -148,6 +161,14 @@ const StockDataVoucherForm = () => {
                           </select>
                           <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
                         </div>
+                        {row.warehouseId && row.productId && (
+                          <div className="text-[10px] mt-0.5 font-semibold">
+                            {row.stockQty === null
+                              ? <span className="text-stone-400">Loading…</span>
+                              : <span className="text-stone-500">Curr: {row.stockQty}</span>
+                            }
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-4 py-3 text-right">
@@ -155,6 +176,16 @@ const StockDataVoucherForm = () => {
                           className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
                           type="number" min="0" value={row.qty}
                           onChange={e => updateRow(row.id, 'qty', e.target.value)} />
+                        {row.productId && row.warehouseId && (
+                          <div className="text-[10px] mt-0.5 text-right">
+                            {row.stockQty === null
+                              ? <span className="text-stone-400">Loading…</span>
+                              : <span className="text-emerald-600 font-semibold">
+                                  {row.stockQty} + {parseFloat(row.qty) || 0} = {row.stockQty + (parseFloat(row.qty) || 0)}
+                                </span>
+                            }
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-2 py-3 text-center">

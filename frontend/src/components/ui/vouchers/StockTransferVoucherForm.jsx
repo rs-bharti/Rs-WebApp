@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, ArrowRight } from 'lucide-react';
 import { getProducts, getWarehouses } from '../../../api/masters';
-import { getStockTransferVoucherNextNo, saveStockTransferVoucher } from '../../../api/vouchers';
+import { getStockTransferVoucherNextNo, saveStockTransferVoucher, getStockQty } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', fromWarehouseId: '', qty: 1 });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', fromWarehouseId: '', qty: 1, stockQty: null });
 
 const StockTransferVoucherForm = () => {
   const { activeBranch } = useAuth();
@@ -30,8 +30,21 @@ const StockTransferVoucherForm = () => {
   const updateRow = (id, field, value) => {
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
-      return { ...r, [field]: value };
+      const updated = { ...r, [field]: value };
+      if (field === 'productId' || field === 'fromWarehouseId') updated.stockQty = null;
+      return updated;
     }));
+    if (field === 'productId' || field === 'fromWarehouseId') {
+      const currentRow = rows.find(r => r.id === id);
+      if (!currentRow) return;
+      const pId = field === 'productId' ? value : currentRow.productId;
+      const wId = field === 'fromWarehouseId' ? value : currentRow.fromWarehouseId;
+      if (pId && wId) {
+        getStockQty(pId, wId)
+          .then(data => setRows(curr => curr.map(r => r.id === id ? { ...r, stockQty: data.qty ?? 0 } : r)))
+          .catch(() => {});
+      }
+    }
   };
 
   const totalQty = rows.reduce((sum, r) => sum + (parseFloat(r.qty) || 0), 0);
@@ -52,6 +65,11 @@ const StockTransferVoucherForm = () => {
 
     const sameWh = validRows.filter(r => Number(r.fromWarehouseId) === Number(toWarehouseId));
     if (sameWh.length) { setMessage({ type: 'error', text: 'Source and destination warehouse must be different' }); return; }
+
+    const overStock = validRows.filter(r =>
+      r.fromWarehouseId && r.stockQty !== null && parseFloat(r.qty) > r.stockQty
+    );
+    if (overStock.length) { setMessage({ type: 'error', text: 'One or more items exceed available stock in the source warehouse.' }); return; }
 
     setSubmitting(true); setMessage(null);
     try {
@@ -177,14 +195,34 @@ const StockTransferVoucherForm = () => {
                           </select>
                           <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
                         </div>
+                        {row.fromWarehouseId && row.productId && (
+                          <div className="text-[10px] mt-0.5 font-semibold">
+                            {row.stockQty === null
+                              ? <span className="text-stone-400">Loading…</span>
+                              : <span className={row.stockQty <= 0 ? 'text-red-500' : 'text-emerald-600'}>
+                                  Avl: {row.stockQty}
+                                </span>
+                            }
+                          </div>
+                        )}
                       </td>
 
                       {/* Qty */}
                       <td className="px-4 py-3 text-right">
-                        <input
-                          className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
-                          type="number" min="0" step="any" value={row.qty}
-                          onChange={e => updateRow(row.id, 'qty', e.target.value)} />
+                        {(() => {
+                          const exceedsStock = row.fromWarehouseId && row.productId && row.stockQty !== null && parseFloat(row.qty) > row.stockQty;
+                          return (
+                            <>
+                              <input
+                                className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold ${exceedsStock ? 'text-red-500' : 'text-rs-text-primary'}`}
+                                type="number" min="0" step="any" value={row.qty}
+                                onChange={e => updateRow(row.id, 'qty', e.target.value)} />
+                              {exceedsStock && (
+                                <div className="text-[10px] text-right text-red-500 font-semibold mt-0.5">Max: {row.stockQty}</div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
 
                       <td className="px-2 py-3 text-center">

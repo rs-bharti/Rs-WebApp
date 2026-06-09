@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
-import { getPurchaseVoucherNextNo, savePurchaseVoucher } from '../../../api/vouchers';
+import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0 });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, stockQty: null });
 
 const PurchaseVoucherForm = () => {
   const type = 'Purchase';
@@ -52,8 +52,20 @@ const PurchaseVoucherForm = () => {
       if (r.id !== id) return r;
       const updated = { ...r, [field]: value };
       updated.amount = parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0);
+      if (field === 'productId' || field === 'warehouseId') updated.stockQty = null;
       return updated;
     }));
+    if (field === 'productId' || field === 'warehouseId') {
+      const currentRow = rows.find(r => r.id === id);
+      if (!currentRow) return;
+      const pId = field === 'productId' ? value : currentRow.productId;
+      const wId = field === 'warehouseId' ? value : currentRow.warehouseId;
+      if (pId && wId) {
+        getStockQty(pId, wId)
+          .then(data => setRows(curr => curr.map(r => r.id === id ? { ...r, stockQty: data.qty ?? 0 } : r)))
+          .catch(() => {});
+      }
+    }
   };
 
   const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
@@ -219,6 +231,16 @@ const PurchaseVoucherForm = () => {
                           </select>
                           <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
                         </div>
+                        {row.warehouseId && row.productId && (
+                          <div className="text-[10px] mt-0.5 font-semibold">
+                            {row.stockQty === null
+                              ? <span className="text-stone-400">Loading…</span>
+                              : <span className={row.stockQty <= 0 ? 'text-red-500' : 'text-emerald-600'}>
+                                  Avl: {row.stockQty}
+                                </span>
+                            }
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-4 py-4 text-right">

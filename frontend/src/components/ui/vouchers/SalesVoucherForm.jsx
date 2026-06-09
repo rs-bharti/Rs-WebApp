@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
-import { getSalesVoucherNextNo, saveSalesVoucher } from '../../../api/vouchers';
+import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, lowerLimit: null, upperLimit: null });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, lowerLimit: null, upperLimit: null, stockQty: null });
 
 const SalesVoucherForm = () => {
   const type = 'Sales';
@@ -42,9 +42,22 @@ const SalesVoucherForm = () => {
         const prod = products.find(p => String(p.id) === String(value));
         updated.lowerLimit = prod?.lowerLimit ?? null;
         updated.upperLimit = prod?.upperLimit ?? null;
+        updated.stockQty = null;
       }
+      if (field === 'warehouseId') updated.stockQty = null;
       return updated;
     }));
+    if (field === 'productId' || field === 'warehouseId') {
+      const currentRow = rows.find(r => r.id === id);
+      if (!currentRow) return;
+      const pId = field === 'productId' ? value : currentRow.productId;
+      const wId = field === 'warehouseId' ? value : currentRow.warehouseId;
+      if (pId && wId) {
+        getStockQty(pId, wId)
+          .then(data => setRows(curr => curr.map(r => r.id === id ? { ...r, stockQty: data.qty ?? 0 } : r)))
+          .catch(() => {});
+      }
+    }
   };
 
   const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
@@ -56,6 +69,11 @@ const SalesVoucherForm = () => {
     if (!paymentTerms)  return setError('Please select payment terms');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
+
+    const overStock = validItems.filter(r =>
+      r.warehouseId && r.stockQty !== null && parseFloat(r.qty) > r.stockQty
+    );
+    if (overStock.length) return setError('One or more items exceed available stock. Please reduce the quantity.');
 
     setSaving(true);
     try {
@@ -195,12 +213,32 @@ const SalesVoucherForm = () => {
                           </select>
                           <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
                         </div>
+                        {row.warehouseId && row.productId && (
+                          <div className="text-[10px] mt-0.5 font-semibold">
+                            {row.stockQty === null
+                              ? <span className="text-stone-400">Loading…</span>
+                              : <span className={row.stockQty <= 0 ? 'text-red-500' : 'text-emerald-600'}>
+                                  Avl: {row.stockQty}
+                                </span>
+                            }
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-4 py-3 text-right">
-                        <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
-                          type="number" min="0" step="any" value={row.qty}
-                          onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
+                        {(() => {
+                          const exceedsStock = row.warehouseId && row.productId && row.stockQty !== null && parseFloat(row.qty) > row.stockQty;
+                          return (
+                            <>
+                              <input className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none ${exceedsStock ? 'text-red-500 font-bold' : ''}`}
+                                type="number" min="0" step="any" value={row.qty}
+                                onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
+                              {exceedsStock && (
+                                <div className="text-[10px] text-right text-red-500 font-semibold mt-0.5">Max: {row.stockQty}</div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
 
                       <td className="px-4 py-3 text-right">
