@@ -197,7 +197,7 @@ const StockTransferVoucherForm = () => {
                       {/* Product */}
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none cursor-pointer font-medium"
+                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium"
                             value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
                             <option value="">Select Product</option>
                             {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -209,7 +209,7 @@ const StockTransferVoucherForm = () => {
                       {/* From Warehouse */}
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none cursor-pointer text-xs"
+                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs"
                             value={row.fromWarehouseId} onChange={e => updateRow(row.id, 'fromWarehouseId', e.target.value)}>
                             <option value="">Select Source</option>
                             {warehouses.filter(w => String(w.id) !== String(toWarehouseId)).map(w => (

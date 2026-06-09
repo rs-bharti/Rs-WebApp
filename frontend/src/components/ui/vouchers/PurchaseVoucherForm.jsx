@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
-import { getPurchaseVoucherNextNo, savePurchaseVoucher } from '../../../api/vouchers';
+import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
+
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, availableQty: null, loadingQty: false });
 
 const PurchaseVoucherForm = () => {
   const type = 'Purchase';
   const { activeBranch } = useAuth();
 
-  const [rows, setRows] = useState([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [voucherNo, setVoucherNo] = useState('');
-  const [supplierId, setSupplierId] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
+  const [rows,            setRows]            = useState([emptyRow()]);
+  const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
+  const [voucherNo,       setVoucherNo]       = useState('');
+  const [supplierId,      setSupplierId]      = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [narration, setNarration] = useState('');
+  const [narration,       setNarration]       = useState('');
 
-  const [suppliers, setSuppliers] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
+  const [suppliers,      setSuppliers]      = useState([]);
+  const [products,       setProducts]       = useState([]);
+  const [warehouses,     setWarehouses]     = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
 
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
@@ -43,20 +44,37 @@ const PurchaseVoucherForm = () => {
     }).catch(() => setError('Failed to load form data'));
   }, [activeBranch?.id]);
 
-  const addRow = () =>
-    setRows(prev => [...prev, { id: Date.now(), productId: '', qty: 1, rate: 0, amount: 0 }]);
-
-  const removeRow = (id) => {
-    if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id));
+  const fetchRowStock = async (id, productId, warehouseId) => {
+    setRows(prev => prev.map(r => r.id === id ? { ...r, loadingQty: true, availableQty: null } : r));
+    try {
+      const data = await getStockQty(productId, warehouseId);
+      setRows(prev => prev.map(r => r.id === id ? { ...r, availableQty: data.qty ?? 0, loadingQty: false } : r));
+    } catch {
+      setRows(prev => prev.map(r => r.id === id ? { ...r, availableQty: null, loadingQty: false } : r));
+    }
   };
 
+  const addRow    = () => setRows(prev => [...prev, emptyRow()]);
+  const removeRow = (id) => { if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id)); };
+
   const updateRow = (id, field, value) => {
+    let shouldFetch = false;
+    let fetchPid, fetchWid;
+
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, [field]: value };
       updated.amount = parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0);
+      if (field === 'productId' || field === 'warehouseId') {
+        updated.availableQty = null;
+        fetchPid = field === 'productId'   ? value : r.productId;
+        fetchWid = field === 'warehouseId' ? value : r.warehouseId;
+        shouldFetch = !!(fetchPid && fetchWid);
+      }
       return updated;
     }));
+
+    if (shouldFetch) fetchRowStock(id, fetchPid, fetchWid);
   };
 
   const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
@@ -75,19 +93,18 @@ const PurchaseVoucherForm = () => {
         date,
         supplierId:      parseInt(supplierId),
         paymentMethodId: parseInt(paymentMethodId),
-        warehouseId:     warehouseId ? parseInt(warehouseId) : undefined,
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
-          productId: parseInt(r.productId),
-          qty:       parseFloat(r.qty),
-          rate:      parseFloat(r.rate),
+          productId:   parseInt(r.productId),
+          warehouseId: r.warehouseId ? parseInt(r.warehouseId) : undefined,
+          qty:         parseFloat(r.qty),
+          rate:        parseFloat(r.rate),
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
+      setRows([emptyRow()]);
       setSupplierId('');
-      setWarehouseId('');
       setPaymentMethodId('');
       setNarration('');
       const vn = await getPurchaseVoucherNextNo();
@@ -100,9 +117,8 @@ const PurchaseVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([{ id: 1, productId: '', qty: 1, rate: 0, amount: 0 }]);
+    setRows([emptyRow()]);
     setSupplierId('');
-    setWarehouseId('');
     setPaymentMethodId('');
     setNarration('');
     setError('');
@@ -131,7 +147,7 @@ const PurchaseVoucherForm = () => {
         )}
 
         {/* Header Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Date</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
@@ -156,17 +172,6 @@ const PurchaseVoucherForm = () => {
               <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Warehouse Location</label>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={warehouseId} onChange={e => setWarehouseId(e.target.value)}>
-                <option value="">Select Warehouse</option>
-                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
-          </div>
         </div>
 
         {/* Payment Method */}
@@ -181,7 +186,7 @@ const PurchaseVoucherForm = () => {
           </div>
         </div>
 
-        {/* Product Table */}
+        {/* Product Table — warehouse + available per row */}
         <div className="space-y-4">
           <h5 className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Product Details</h5>
           <div className="overflow-x-auto">
@@ -189,40 +194,66 @@ const PurchaseVoucherForm = () => {
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name</th>
-                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-20">Qty</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-40">Warehouse</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Qty</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Rate</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Total</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-50">
-                {rows.map(row => (
-                  <tr key={row.id} className="group hover:bg-rs-cream/10 transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center">
-                        <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none cursor-pointer font-medium" value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
-                          <option value="">Select Product</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none" type="number" min="0" value={row.qty} onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none" type="number" min="0" value={row.rate} onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-rs-text-primary">
-                      ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-2 py-4 text-center">
-                      <button type="button" onClick={() => removeRow(row.id)} className="text-stone-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {rows.map(row => {
+                  const avail = row.availableQty;
+                  return (
+                    <tr key={row.id} className="group hover:bg-rs-cream/10 transition-colors">
+
+                      {/* Product */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium" value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
+                            <option value="">Select Product</option>
+                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
+                        </div>
+                      </td>
+
+                      {/* Warehouse */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs" value={row.warehouseId} onChange={e => updateRow(row.id, 'warehouseId', e.target.value)}>
+                            <option value="">Select Warehouse</option>
+                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                          </select>
+                          <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
+                        </div>
+                      </td>
+
+                      {/* Qty + available */}
+                      <td className="px-4 py-4 text-right">
+                        <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none" type="number" min="0" value={row.qty} onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
+                        {row.loadingQty && <div className="text-[10px] text-stone-400 text-right">checking…</div>}
+                        {!row.loadingQty && avail !== null && (
+                          <div className="text-[10px] text-right font-medium text-stone-400">
+                            in stock: {avail}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4 text-right">
+                        <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none" type="number" min="0" value={row.rate} onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
+                      </td>
+                      <td className="px-4 py-4 text-right font-bold text-rs-text-primary">
+                        ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-2 py-4 text-center">
+                        <button type="button" onClick={() => removeRow(row.id)} className="text-stone-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

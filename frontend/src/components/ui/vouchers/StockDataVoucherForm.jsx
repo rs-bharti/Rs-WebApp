@@ -154,7 +154,7 @@ const StockDataVoucherForm = () => {
                       {/* Product */}
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none cursor-pointer font-medium"
+                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium"
                             value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
                             <option value="">Select Product</option>
                             {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -166,7 +166,7 @@ const StockDataVoucherForm = () => {
                       {/* Warehouse */}
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none cursor-pointer text-xs"
+                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs"
                             value={row.warehouseId} onChange={e => updateRow(row.id, 'warehouseId', e.target.value)}>
                             <option value="">Select Warehouse</option>
                             {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
