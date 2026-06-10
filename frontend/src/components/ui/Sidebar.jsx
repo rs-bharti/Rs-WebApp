@@ -216,8 +216,11 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
         </button>
       </div>
 
+<<<<<<< HEAD
       </aside>
 
+=======
+>>>>>>> ce3035479a71b2e52b5c522e9559edada3dfb198
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-brand-card rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
@@ -243,6 +246,10 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
           </div>
         </div>
       )}
+<<<<<<< HEAD
+=======
+      </aside>
+>>>>>>> ce3035479a71b2e52b5c522e9559edada3dfb198
     </>
   );
 };
