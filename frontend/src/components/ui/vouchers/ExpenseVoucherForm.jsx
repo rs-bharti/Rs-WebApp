@@ -50,6 +50,7 @@ const ExpenseVoucherForm = () => {
         branchId:  activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
+      setTimeout(() => setSuccess(''), 3000);
       setExpenseId('');
       setAmount('');
       setNarration('');
@@ -108,31 +109,32 @@ const ExpenseVoucherForm = () => {
           </div>
         </div>
 
-        {/* Expense Type */}
-        <div className="max-w-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Expense Type</label>
-            <button type="button" onClick={() => setQuickCreate('Expense')}
-              className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer"
-              title="Add new expense type">
-              <Plus className="w-4 h-4" />
-            </button>
+        {/* Expense Type + Amount — inline */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-2xl">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Expense Type</label>
+              <button type="button" onClick={() => setQuickCreate('Expense')}
+                className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer"
+                title="Add new expense type">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
+              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={expenseId} onChange={e => setExpenseId(e.target.value)} required>
+                <option value="" disabled>Select Expense</option>
+                {expenses.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+              </select>
+              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
+            </div>
           </div>
-          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-            <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={expenseId} onChange={e => setExpenseId(e.target.value)} required>
-              <option value="" disabled>Select Expense</option>
-              {expenses.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-            </select>
-            <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-          </div>
-        </div>
 
-        {/* Amount */}
-        <div className="max-w-xs space-y-2">
-          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>
-          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
-            <span className="absolute left-0 top-0 text-stone-400 text-sm font-semibold">₹</span>
-            <input className="w-full bg-transparent pl-4 text-sm font-bold text-rs-text-primary outline-none" placeholder="0.00" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>
+            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
+              <span className="absolute left-0 top-0 text-stone-400 text-sm font-semibold">₹</span>
+              <input className="w-full bg-transparent pl-4 text-sm font-bold text-rs-text-primary outline-none" placeholder="0.00" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+            </div>
           </div>
         </div>
 
