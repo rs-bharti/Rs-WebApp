@@ -221,6 +221,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [records,     setRecords]     = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [deletingId,  setDeletingId]  = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null); // { id, label }
 
   // Search state for lists
   const [listSearch, setListSearch] = useState('');
@@ -244,10 +245,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
   const resetForm = () => { clearFields(); setError(''); setSuccess(''); };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     const record = records.find(r => r.id === id);
     const label  = record?.name || record?.unitName || `this ${type.toLowerCase()}`;
-    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
+    setDeleteModal({ id, label });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    const { id } = deleteModal;
+    setDeleteModal(null);
     setDeletingId(id);
     try {
       if (isWarehouse)          await deleteWarehouse(id);
@@ -459,6 +466,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
       clearFields();
       setSuccess(`${type === 'Branches' ? 'Branch' : type} saved successfully!`);
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       const msg = err.message || '';
       if (msg.includes('BRANCH_INVALID')) {
@@ -1460,6 +1468,40 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       {/* List of existing records */}
       {renderList()}
     </section>
+
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-sm mx-4 p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-stone-800">Delete {type === 'Branches' ? 'Branch' : type}?</h3>
+                <p className="text-sm text-stone-500 mt-1">
+                  <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently deleted. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setDeleteModal(null)}
+                className="px-5 py-2 rounded-xl text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {quickCreate && (
         <QuickCreateModal
