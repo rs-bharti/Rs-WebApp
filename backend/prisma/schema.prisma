@@ -1,0 +1,597 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../backend/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model CountryMaster {
+  id        Int           @id @default(autoincrement())
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  name      String        @unique
+  currency  String?
+  phoneCode String?
+  branches  Branch[]
+  customers Customer[]
+  states    StateMaster[]
+  suppliers Supplier[]
+}
+
+model StateMaster {
+  id        Int           @id @default(autoincrement())
+  countryId Int
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  name      String
+  branches  Branch[]
+  cities    CityMaster[]
+  customers Customer[]
+  country   CountryMaster @relation(fields: [countryId], references: [id])
+  suppliers Supplier[]
+
+  @@unique([name, countryId])
+}
+
+model CityMaster {
+  id         Int               @id @default(autoincrement())
+  createdAt  DateTime          @default(now())
+  stateId    Int
+  updatedAt  DateTime          @updatedAt
+  name       String
+  branches   Branch[]
+  state      StateMaster       @relation(fields: [stateId], references: [id])
+  customers  Customer[]
+  suppliers  Supplier[]
+  warehouses WarehouseMaster[]
+
+  @@unique([name, stateId])
+}
+
+model WarehouseMaster {
+  id                     Int                     @id @default(autoincrement())
+  name                   String
+  address                String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  cityId                 Int?
+  branchId               Int?
+  area                   String?
+  purchaseReturnVouchers  PurchaseReturnVoucher[]
+  purchaseVouchers        PurchaseVoucher[]
+  salesVouchers           SalesVoucher[]
+  salesReturnItems        SalesReturnVoucherItem[]
+  stockDataVouchers       StockDataVoucher[]
+  stockTransferFrom       StockTransferVoucher[]  @relation("TransferFrom")
+  stockTransferTo         StockTransferVoucher[]  @relation("TransferTo")
+  branch                 Branch?                 @relation(fields: [branchId], references: [id])
+  city                   CityMaster?             @relation(fields: [cityId], references: [id])
+}
+
+model Branch {
+  id                Int                     @id @default(autoincrement())
+  name              String
+  address           String?
+  cityId            Int
+  stateId           Int
+  countryId         Int
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  area              String?
+  city              CityMaster              @relation(fields: [cityId], references: [id])
+  country           CountryMaster           @relation(fields: [countryId], references: [id])
+  state             StateMaster             @relation(fields: [stateId], references: [id])
+  categories        CategoryMaster[]
+  contraVouchers    ContraVoucher[]
+  customers         Customer[]
+  paymentMethods    PaymentMethodMaster[]
+  paymentVouchers   PaymentVoucher[]
+  products          Product[]
+  purchaseReturns   PurchaseReturnVoucher[]
+  purchases         PurchaseVoucher[]
+  receiptVouchers   ReceiptVoucher[]
+  salesReturns      SalesReturnVoucher[]
+  sales             SalesVoucher[]
+  stockDataVouchers StockDataVoucher[]
+  stockTransfers    StockTransferVoucher[]
+  suppliers         Supplier[]
+  users             User[]
+  warehouses        WarehouseMaster[]
+}
+
+model CategoryMaster {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  name      String
+  branchId  Int?
+  branch    Branch?   @relation(fields: [branchId], references: [id])
+  products  Product[]
+
+  @@unique([name, branchId])
+}
+
+model UnitMaster {
+  id        Int       @id @default(autoincrement())
+  unitName  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  shortName String?
+  products  Product[]
+}
+
+model Supplier {
+  id              Int                     @id @default(autoincrement())
+  name            String
+  address         String?
+  phone           String?
+  email           String?
+  gstNo           String?
+  cityId          Int
+  stateId         Int
+  countryId       Int
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  branchId        Int?
+  area            String?
+  cityName        String?
+  stateName       String?
+  countryName     String?
+  contacts        ContactPerson[]
+  paymentVouchers PaymentVoucher[]
+  purchaseReturns PurchaseReturnVoucher[]
+  purchases       PurchaseVoucher[]
+  transactions    SupplierTransaction[]
+  branch          Branch?                 @relation(fields: [branchId], references: [id])
+  city            CityMaster              @relation(fields: [cityId], references: [id])
+  country         CountryMaster           @relation(fields: [countryId], references: [id])
+  state           StateMaster             @relation(fields: [stateId], references: [id])
+}
+
+model SupplierTransaction {
+  id           Int      @id @default(autoincrement())
+  supplierId   Int
+  type         String   // 'CR' or 'DR'
+  amount       Float
+  note         String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  source       String?  // 'manual', 'purchase', 'purchase_return'
+  refVoucherNo String?
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id                  Int                         @id @default(autoincrement())
+  name                String
+  categoryId          Int
+  unitId              Int
+  lowerLimit          Float
+  upperLimit          Float
+  barcode             String?                     @unique
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  branchId            Int?
+  branch              Branch?                     @relation(fields: [branchId], references: [id])
+  category            CategoryMaster              @relation(fields: [categoryId], references: [id])
+  unit                UnitMaster                  @relation(fields: [unitId], references: [id])
+  purchaseReturnItems PurchaseReturnVoucherItem[]
+  purchaseItems       PurchaseVoucherItem[]
+  salesReturnItems    SalesReturnVoucherItem[]
+  salesItems          SalesVoucherItem[]
+  stockDataItems      StockDataVoucherItem[]
+  stockTransferItems  StockTransferVoucherItem[]
+}
+
+model Customer {
+  id              Int                  @id @default(autoincrement())
+  name            String
+  phone           String?
+  email           String?
+  address         String?
+  gstNo           String?
+  cityId          Int
+  stateId         Int
+  countryId       Int
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  branchId        Int?
+  area            String?
+  cityName        String?
+  stateName       String?
+  countryName     String?
+  contacts        ContactPerson[]
+  transactions    CustomerTransaction[]
+  branch          Branch?              @relation(fields: [branchId], references: [id])
+  city            CityMaster           @relation(fields: [cityId], references: [id])
+  country         CountryMaster        @relation(fields: [countryId], references: [id])
+  state           StateMaster          @relation(fields: [stateId], references: [id])
+  receiptVouchers ReceiptVoucher[]
+  salesReturns    SalesReturnVoucher[]
+  sales           SalesVoucher[]
+}
+
+model CustomerTransaction {
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  type         String   // 'CR' or 'DR'
+  amount       Float
+  note         String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  source       String?  // 'manual', 'sales', 'sales_return', 'opening_balance'
+  refVoucherNo String?
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model ContactPerson {
+  id          Int       @id @default(autoincrement())
+  name        String
+  phone       String?
+  designation String?
+  dob         String?
+  customerId  Int?
+  supplierId  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplier    Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  permissions Permission[]
+  users       User[]
+}
+
+model User {
+  id                    Int                     @id @default(autoincrement())
+  name                  String
+  email                 String                  @unique
+  password              String
+  branchId              Int
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  isActive              Boolean                 @default(true)
+  roleId                Int
+  permissions           String                  @default("{}")
+  plainPassword         String?
+  contraVouchers        ContraVoucher[]
+  paymentVouchers       PaymentVoucher[]
+  purchaseReturns       PurchaseReturnVoucher[]
+  purchases             PurchaseVoucher[]
+  receiptVouchers       ReceiptVoucher[]
+  salesReturns          SalesReturnVoucher[]
+  sales                 SalesVoucher[]
+  stockDataVouchers     StockDataVoucher[]
+  stockTransferVouchers StockTransferVoucher[]
+  branch                Branch                  @relation(fields: [branchId], references: [id])
+  role                  Role                    @relation(fields: [roleId], references: [id])
+}
+
+model Module {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  permissions Permission[]
+}
+
+model Permission {
+  id        Int      @id @default(autoincrement())
+  roleId    Int
+  moduleId  Int
+  canCreate Boolean  @default(false)
+  canView   Boolean  @default(false)
+  canEdit   Boolean  @default(false)
+  canDelete Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  module    Module   @relation(fields: [moduleId], references: [id])
+  role      Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([roleId, moduleId])
+}
+
+model PaymentMethodMaster {
+  id              Int                     @id @default(autoincrement())
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  name            String
+  branchId        Int?
+  contraFrom      ContraVoucher[]         @relation("ContraFrom")
+  contraTo        ContraVoucher[]         @relation("ContraTo")
+  branch          Branch?                 @relation(fields: [branchId], references: [id])
+  paymentVouchers PaymentVoucher[]
+  purchaseReturns PurchaseReturnVoucher[]
+  purchases       PurchaseVoucher[]
+  receiptVouchers ReceiptVoucher[]
+
+  @@unique([name, branchId])
+}
+
+model PurchaseVoucher {
+  id                Int                   @id @default(autoincrement())
+  voucherNo         String                @unique
+  supplierId        Int
+  branchId          Int
+  paymentMethodId   Int
+  createdById       Int
+  date              DateTime
+  subTotal          Float                 @default(0)
+  taxAmount         Float                 @default(0)
+  discountAmount    Float                 @default(0)
+  totalAmount       Float
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  supplierName      String?
+  paymentMethodName String?
+  warehouseId       Int?
+  warehouseName     String?
+  branch            Branch                @relation(fields: [branchId], references: [id])
+  createdBy         User                  @relation(fields: [createdById], references: [id])
+  paymentMethod     PaymentMethodMaster   @relation(fields: [paymentMethodId], references: [id])
+  supplier          Supplier              @relation(fields: [supplierId], references: [id])
+  warehouse         WarehouseMaster?      @relation(fields: [warehouseId], references: [id])
+  items             PurchaseVoucherItem[]
+}
+
+model PurchaseVoucherItem {
+  id             Int             @id @default(autoincrement())
+  voucherId      Int
+  productId      Int
+  qty            Float
+  rate           Float
+  subTotal       Float           @default(0)
+  taxRate        Float           @default(0)
+  taxAmount      Float           @default(0)
+  discountAmount Float           @default(0)
+  amount         Float
+  productName    String?
+  product        Product         @relation(fields: [productId], references: [id])
+  voucher        PurchaseVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+model SalesVoucher {
+  id             Int              @id @default(autoincrement())
+  voucherNo      String           @unique
+  customerId     Int
+  branchId       Int
+  createdById    Int
+  date           DateTime
+  subTotal       Float            @default(0)
+  taxAmount      Float            @default(0)
+  discountAmount Float            @default(0)
+  totalAmount    Float
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  customerName   String?
+  narration      String?
+  warehouseId    Int?
+  warehouseName  String?
+  paymentTerms   String?
+  branch         Branch           @relation(fields: [branchId], references: [id])
+  createdBy      User             @relation(fields: [createdById], references: [id])
+  customer       Customer         @relation(fields: [customerId], references: [id])
+  warehouse      WarehouseMaster? @relation(fields: [warehouseId], references: [id])
+  items          SalesVoucherItem[]
+}
+
+model SalesVoucherItem {
+  id             Int          @id @default(autoincrement())
+  voucherId      Int
+  productId      Int
+  qty            Float
+  rate           Float
+  subTotal       Float        @default(0)
+  taxRate        Float        @default(0)
+  taxAmount      Float        @default(0)
+  discountAmount Float        @default(0)
+  amount         Float
+  productName    String?
+  remark         String?
+  product        Product      @relation(fields: [productId], references: [id])
+  voucher        SalesVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+model StockDataVoucher {
+  id            Int                    @id @default(autoincrement())
+  voucherNo     String                 @unique
+  warehouseId   Int
+  createdById   Int
+  date          DateTime
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  narration     String?
+  branchId      Int?
+  warehouseName String?
+  branch        Branch?                @relation(fields: [branchId], references: [id])
+  createdBy     User                   @relation(fields: [createdById], references: [id])
+  warehouse     WarehouseMaster        @relation(fields: [warehouseId], references: [id])
+  items         StockDataVoucherItem[]
+}
+
+model StockDataVoucherItem {
+  id          Int              @id @default(autoincrement())
+  voucherId   Int
+  productId   Int
+  productName String?
+  qty         Float
+  product     Product          @relation(fields: [productId], references: [id])
+  voucher     StockDataVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+model StockTransferVoucher {
+  id                Int                        @id @default(autoincrement())
+  voucherNo         String                     @unique
+  fromWarehouseId   Int
+  toWarehouseId     Int
+  fromWarehouseName String?
+  toWarehouseName   String?
+  createdById       Int
+  date              DateTime
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  narration         String?
+  branchId          Int?
+  branch            Branch?                    @relation(fields: [branchId], references: [id])
+  createdBy         User                       @relation(fields: [createdById], references: [id])
+  fromWarehouse     WarehouseMaster            @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouse       WarehouseMaster            @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  items             StockTransferVoucherItem[]
+}
+
+model StockTransferVoucherItem {
+  id          Int                  @id @default(autoincrement())
+  voucherId   Int
+  productId   Int
+  productName String?
+  qty         Float
+  product     Product              @relation(fields: [productId], references: [id])
+  voucher     StockTransferVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+model ContraVoucher {
+  id                  Int                 @id @default(autoincrement())
+  voucherNo           String              @unique
+  fromPaymentMethodId Int
+  toPaymentMethodId   Int
+  amount              Float
+  narration           String?
+  date                DateTime
+  createdById         Int
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  branchId            Int?
+  branch              Branch?             @relation(fields: [branchId], references: [id])
+  createdBy           User                @relation(fields: [createdById], references: [id])
+  fromPaymentMethod   PaymentMethodMaster @relation("ContraFrom", fields: [fromPaymentMethodId], references: [id])
+  toPaymentMethod     PaymentMethodMaster @relation("ContraTo", fields: [toPaymentMethodId], references: [id])
+}
+
+model ReceiptVoucher {
+  id              Int                 @id @default(autoincrement())
+  voucherNo       String              @unique
+  customerId      Int
+  paymentMethodId Int
+  amount          Float
+  narration       String?
+  date            DateTime
+  createdById     Int
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  branchId        Int?
+  branch          Branch?             @relation(fields: [branchId], references: [id])
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  customer        Customer            @relation(fields: [customerId], references: [id])
+  paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+}
+
+model PaymentVoucher {
+  id              Int                 @id @default(autoincrement())
+  voucherNo       String              @unique
+  supplierId      Int
+  paymentMethodId Int
+  amount          Float
+  narration       String?
+  date            DateTime
+  createdById     Int
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  branchId        Int?
+  branch          Branch?             @relation(fields: [branchId], references: [id])
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+}
+
+model PurchaseReturnVoucher {
+  id                Int                         @id @default(autoincrement())
+  voucherNo         String                      @unique
+  supplierId        Int
+  branchId          Int
+  paymentMethodId   Int
+  createdById       Int
+  date              DateTime
+  subTotal          Float                       @default(0)
+  taxAmount         Float                       @default(0)
+  discountAmount    Float                       @default(0)
+  totalAmount       Float
+  narration         String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  supplierName      String?
+  paymentMethodName String?
+  warehouseId       Int?
+  warehouseName     String?
+  branch            Branch                      @relation(fields: [branchId], references: [id])
+  createdBy         User                        @relation(fields: [createdById], references: [id])
+  paymentMethod     PaymentMethodMaster         @relation(fields: [paymentMethodId], references: [id])
+  supplier          Supplier                    @relation(fields: [supplierId], references: [id])
+  warehouse         WarehouseMaster?            @relation(fields: [warehouseId], references: [id])
+  items             PurchaseReturnVoucherItem[]
+}
+
+model PurchaseReturnVoucherItem {
+  id             Int                   @id @default(autoincrement())
+  voucherId      Int
+  productId      Int
+  qty            Float
+  rate           Float
+  subTotal       Float                 @default(0)
+  taxRate        Float                 @default(0)
+  taxAmount      Float                 @default(0)
+  discountAmount Float                 @default(0)
+  amount         Float
+  productName    String?
+  product        Product               @relation(fields: [productId], references: [id])
+  voucher        PurchaseReturnVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}
+
+model SalesReturnVoucher {
+  id             Int                      @id @default(autoincrement())
+  voucherNo      String                   @unique
+  customerId     Int
+  branchId       Int
+  createdById    Int
+  date           DateTime
+  subTotal       Float                    @default(0)
+  taxAmount      Float                    @default(0)
+  discountAmount Float                    @default(0)
+  totalAmount    Float
+  narration      String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  customerName   String?
+  paymentTerms   String?
+  branch         Branch                   @relation(fields: [branchId], references: [id])
+  createdBy      User                     @relation(fields: [createdById], references: [id])
+  customer       Customer                 @relation(fields: [customerId], references: [id])
+  items          SalesReturnVoucherItem[]
+}
+
+model SalesReturnVoucherItem {
+  id             Int                @id @default(autoincrement())
+  voucherId      Int
+  productId      Int
+  warehouseId    Int?
+  qty            Float
+  rate           Float
+  subTotal       Float              @default(0)
+  taxRate        Float              @default(0)
+  taxAmount      Float              @default(0)
+  discountAmount Float              @default(0)
+  amount         Float
+  productName    String?
+  product        Product            @relation(fields: [productId], references: [id])
+  warehouse      WarehouseMaster?   @relation(fields: [warehouseId], references: [id])
+  voucher        SalesReturnVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+}

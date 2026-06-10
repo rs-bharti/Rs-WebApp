@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Brand Admin Colors */
+  --color-brand-primary: #5E3023;
+  --color-brand-bg: #F3E9DC;
+  --color-brand-card: #EFE3D4;
+  --color-brand-accent: #8B5E3C;
+  --color-brand-sidebar: #F3E9DC;
+
+  /* Brand User Colors */
+  --color-rs-cream: #f8f2e9;
+  --color-rs-sidebar: #f5ede1;
+  --color-rs-text-primary: #4a3427;
+  --color-rs-text-muted: #8c7a6b;
+  --color-rs-accent-bg: #ede2d3;
+
+  /* Fonts */
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-user-serif: "Libre Caslon Text", serif;
+  --font-admin-serif: "EB Garamond", serif;
+  --font-product-serif: "Crimson Pro", serif;
+
+  /* Effects */
+  --shadow-brand-card: 0 20px 50px rgba(94, 48, 35, 0.08);
+  
+  /* Spacing/Tracking */
+  --letter-spacing-brand-wide: 0.3em;
+  --letter-spacing-brand-tight: -0.02em;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-brand-primary: #C4956B;
+  --color-brand-bg: #1A1210;
+  --color-brand-card: #251C18;
+  --color-brand-sidebar: #1E1410;
+  --color-brand-accent: #A87550;
+  --color-rs-cream: #1A1410;
+  --color-rs-sidebar: #1E1612;
+  --color-rs-text-primary: #DEC9B8;
+  --color-rs-text-muted: #7A6858;
+  --color-rs-accent-bg: #2A1F1A;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg font-sans text-gray-800 antialiased transition-colors duration-300;
+  }
+}
+
+/* Global dark mode surface overrides — covers voucher forms, tables, modals, inputs */
+.dark body {
+  color: var(--color-rs-text-primary);
+}
+.dark .bg-white {
+  background-color: var(--color-brand-card);
+}
+.dark .bg-stone-50 {
+  background-color: var(--color-brand-sidebar);
+}
+.dark .border-stone-50,
+.dark .border-stone-100 {
+  border-color: #2A1E1A;
+}
+.dark .border-stone-200 {
+  border-color: #3A2820;
+}
+.dark .divide-stone-50 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2A1E1A;
+}
+.dark .text-stone-400,
+.dark .text-stone-500 {
+  color: var(--color-rs-text-muted);
+}
+.dark .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.2);
+}
+.dark .bg-green-50 {
+  background-color: rgba(20, 83, 45, 0.2);
+}
+.dark .hover\:bg-stone-50:hover,
+.dark .hover\:bg-rs-cream\/10:hover {
+  background-color: var(--color-brand-sidebar);
+}
+/* Ensure select/option backgrounds match in dark mode */
+.dark select option {
+  background-color: #251C18;
+  color: #DEC9B8;
+}
+.dark .text-stone-800 {
+  color: var(--color-rs-text-primary);
+}
+.dark .border-stone-300 {
+  border-color: #3A2820;
+}
+.dark .bg-canvas {
+  background-color: #140E0B;
+  background-image: radial-gradient(circle at 50% 50%, #1A1210 0%, #140E0B 100%);
+}
+.dark .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.2);
+}
+.dark .text-amber-700 {
+  color: #F59E0B;
+}
+.dark .border-amber-200 {
+  border-color: rgba(120, 53, 15, 0.4);
+}
+.dark .bg-stone-100 {
+  background-color: #2A1E1A;
+}
+.dark .bg-stone-200 {
+  background-color: #33221D;
+}
+.dark .text-stone-600,
+.dark .text-stone-700 {
+  color: var(--color-rs-text-muted);
+}
+.dark .text-stone-300 {
+  color: #5A4A42;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #5A4A42;
+}
+.dark .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.25);
+}
+.dark .text-emerald-700 {
+  color: #34D399;
+}
+.dark .hover\:bg-white:hover {
+  background-color: var(--color-brand-card);
+}
+/* Save buttons use bg-rs-text-primary — in dark mode that becomes cream, so flip to dark text */
+.dark .bg-rs-text-primary {
+  color: var(--color-rs-cream);
+}
+/* Border opacity variants (e.g. border-stone-200/50) */
+.dark [class*="border-stone-200"] {
+  border-color: rgba(58, 40, 32, 0.6);
+}
+/* Ensure focus:bg-white in dark mode goes to card color */
+.dark .focus\:bg-white:focus {
+  background-color: var(--color-brand-card) !important;
+}
+
+@utility bg-canvas {
+  background-color: #F3E9DC;
+  background-image: radial-gradient(circle at 50% 50%, #ffffff 0%, #F3E9DC 100%);
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #D2B48C;
+    border-radius: 10px;
+  }
+}
+
+@utility sidebar-item-hover {
+  @apply transition-all duration-200 hover:bg-brand-primary/5 hover:pl-5;
+}
+
+/* Custom Animation Utilities */
+@utility animate-in {
+  animation-duration: 500ms;
+  animation-fill-mode: both;
+}
+
+@utility fade-in {
+  animation-name: fade-in;
+}
+
+@utility slide-in-from-bottom-4 {
+  animation-name: slide-in-from-bottom;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(1rem); }
+  to { transform: translateY(0); }
+}
