@@ -66,16 +66,18 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
   const { clearBranch } = useAuth();
   const navigate = useNavigate();
 
-  const [items,      setItems]      = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [formData,   setFormData]   = useState({});
-  const [saving,     setSaving]     = useState(false);
-  const [error,      setError]      = useState('');
-  const [deletingId, setDeletingId] = useState(null);
-  const [editingId,  setEditingId]  = useState(null);
-  const [editData,   setEditData]   = useState({});
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [showForm,   setShowForm]   = useState(false);
+  const [items,        setItems]        = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [formData,     setFormData]     = useState({});
+  const [saving,       setSaving]       = useState(false);
+  const [error,        setError]        = useState('');
+  const [savedLabel,   setSavedLabel]   = useState('');
+  const [deletingId,   setDeletingId]   = useState(null);
+  const [deleteModal,  setDeleteModal]  = useState(null);
+  const [editingId,    setEditingId]    = useState(null);
+  const [editData,     setEditData]     = useState({});
+  const [savingEdit,   setSavingEdit]   = useState(false);
+  const [showForm,     setShowForm]     = useState(false);
 
   const handleBranchInvalid = (msg) => {
     if (msg?.includes('BRANCH_INVALID')) {
@@ -114,7 +116,11 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
       setItems(prev => [result, ...prev]);
       setFormData({});
       setShowForm(false);
-      onCreated(option);
+      setSavedLabel(config.label(result));
+      setTimeout(() => {
+        setSavedLabel('');
+        onCreated(option);
+      }, 1500);
     } catch (err) {
       const msg = err.message || 'Failed to save';
       if (!handleBranchInvalid(msg)) setError(msg);
@@ -123,13 +129,18 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
     }
   };
 
-  const handleDelete = async (item) => {
-    const label = config.label(item);
-    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
-    setDeletingId(item.id);
+  const handleDelete = (item) => {
+    setDeleteModal({ id: item.id, label: config.label(item) });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    const { id } = deleteModal;
+    setDeleteModal(null);
+    setDeletingId(id);
     try {
-      await config.remove(item.id);
-      setItems(prev => prev.filter(r => r.id !== item.id));
+      await config.remove(id);
+      setItems(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       const msg = err.message || 'Failed to delete';
       if (!handleBranchInvalid(msg)) setError(msg);
@@ -161,7 +172,7 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[85vh]">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[85vh]">
 
         {/* Header */}
         <div className="px-6 py-5 border-b border-stone-100 flex items-center justify-between flex-shrink-0">
@@ -182,7 +193,13 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
 
           {/* Existing items list */}
           <div className="px-6 pt-4 pb-2">
-            {error && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg mb-3">{error}</p>}
+            {error      && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg mb-3">{error}</p>}
+            {savedLabel && (
+              <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-lg mb-3 animate-in fade-in duration-200">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span><span className="font-semibold">"{savedLabel}"</span> saved successfully!</span>
+              </div>
+            )}
 
             {loading ? (
               <p className="text-sm text-rs-text-muted text-center py-6">Loading…</p>
@@ -290,6 +307,35 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
           </button>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteModal && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-xs mx-4 p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-4 h-4 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-stone-800">Delete {type}?</h3>
+                <p className="text-xs text-stone-500 mt-1">
+                  <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently removed.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setDeleteModal(null)}
+                className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all active:scale-95 cursor-pointer">
+                Cancel
+              </button>
+              <button type="button" onClick={confirmDelete}
+                className="flex-1 px-4 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm cursor-pointer">
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
