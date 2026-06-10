@@ -38,6 +38,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('activeBranch', JSON.stringify(branch));
   };
 
+  const clearBranch = () => {
+    setActiveBranch(null);
+    localStorage.removeItem('activeBranch');
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -88,6 +93,7 @@ export const AuthProvider = ({ children }) => {
         token,
         activeBranch,
         selectBranch,
+        clearBranch,
         login,
         logout,
         loading,

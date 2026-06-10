@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
   Repeat, Undo2, LogOut, Users, Building, Globe,
-  Database, Truck, Package, Layers, Box, Warehouse,
+  Database, Truck, Package, Warehouse,
   ClipboardList, ArrowLeftRight, X
 } from 'lucide-react';
 
@@ -38,13 +38,13 @@ const VOUCHER_ROUTES = {
 };
 
 const MASTER_ROUTES = {
-  'Customer':        { slug: 'customer',       icon: Users },
-  'Warehouse':       { slug: 'warehouse',      icon: Warehouse },
-  'Supplier':        { slug: 'supplier',       icon: Truck },
-  'Product':         { slug: 'product',        icon: Package },
-  'Category':        { slug: 'category',       icon: Layers },
-  'Unit':            { slug: 'unit',           icon: Box },
-  'Payment Method':  { slug: 'payment-method', icon: CreditCard },
+  'Customer':       { slug: 'customer',       icon: Users },
+  'Warehouse':      { slug: 'warehouse',      icon: Warehouse },
+  'Supplier':       { slug: 'supplier',       icon: Truck },
+  'Product':        { slug: 'product',        icon: Package },
+  'Category':       { slug: 'category',       icon: Database },
+  'Unit':           { slug: 'unit',           icon: Globe },
+  'Payment Method': { slug: 'payment-method', icon: CreditCard },
 };
 
 const OTHER_ROUTES = {

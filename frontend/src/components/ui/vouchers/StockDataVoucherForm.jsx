@@ -24,7 +24,7 @@ const StockDataVoucherForm = () => {
   useEffect(() => {
     Promise.all([getProducts(), getWarehouses(), getStockDataVoucherNextNo()])
       .then(([prod, wh, vn]) => { setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); })
-      .catch(() => setError('Failed to load form data'));
+      .catch(err => setError(err?.message || 'Failed to load form data'));
   }, []);
 
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);

@@ -6,6 +6,19 @@ const getBranchId = (req) => {
   return req.user.branchId || null;
 };
 
+const prismaErr = (err) => {
+  if (err.code === 'P2002') return `This ${(err.meta?.target || ['record'])[0]?.replace(/Id$/, '') || 'record'} already exists.`;
+  if (err.code === 'P2003') {
+    const field = err.meta?.field_name || '';
+    if (field.includes('branchId') || field.includes('Branch')) {
+      return 'BRANCH_INVALID: Your selected branch no longer exists. Please log out and select a valid branch.';
+    }
+    return 'A related record was not found. Please refresh and try again.';
+  }
+  if (err.code === 'P2025') return 'Record not found.';
+  return err.message || 'Server error';
+};
+
 // ── Countries ──────────────────────────────────────────────────────────────────
 const getCountries = async (_req, res) => {
   try {
@@ -14,7 +27,7 @@ const getCountries = async (_req, res) => {
       orderBy: { name: 'asc' },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createCountry = async (req, res) => {
@@ -41,14 +54,14 @@ const updateCountry = async (req, res) => {
       select: { id: true, name: true },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteCountry = async (req, res) => {
   try {
     await prisma.countryMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── States ─────────────────────────────────────────────────────────────────────
@@ -61,7 +74,7 @@ const getStates = async (req, res) => {
       select: { id: true, name: true, country: { select: { id: true, name: true } } },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createState = async (req, res) => {
@@ -91,14 +104,14 @@ const updateState = async (req, res) => {
       select: { id: true, name: true, country: { select: { id: true, name: true } } },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteState = async (req, res) => {
   try {
     await prisma.stateMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Cities ─────────────────────────────────────────────────────────────────────
@@ -123,7 +136,7 @@ const getCities = async (req, res) => {
       },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createCity = async (req, res) => {
@@ -153,14 +166,14 @@ const updateCity = async (req, res) => {
       select: { id: true, name: true, state: { select: { id: true, name: true } } },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteCity = async (req, res) => {
   try {
     await prisma.cityMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Branches ───────────────────────────────────────────────────────────────────
@@ -176,7 +189,7 @@ const getBranches = async (req, res) => {
       },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createBranch = async (req, res) => {
@@ -217,14 +230,14 @@ const updateBranch = async (req, res) => {
       select: { id: true, name: true, city: { select: { id: true, name: true } }, state: { select: { id: true, name: true } }, country: { select: { id: true, name: true } } },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteBranch = async (req, res) => {
   try {
     await prisma.branch.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Categories ─────────────────────────────────────────────────────────────────
@@ -238,7 +251,7 @@ const getCategories = async (req, res) => {
       orderBy: { name: 'asc' },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createCategory = async (req, res) => {
@@ -253,7 +266,8 @@ const createCategory = async (req, res) => {
     res.status(201).json(row);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.code === 'P2002' ? 'Category already exists' : 'Server error' });
+    if (err.code === 'P2002') return res.status(409).json({ message: 'Category already exists' });
+    res.status(500).json({ message: prismaErr(err) });
   }
 };
 
@@ -266,14 +280,14 @@ const updateCategory = async (req, res) => {
       select: { id: true, name: true },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteCategory = async (req, res) => {
   try {
     await prisma.categoryMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Units ──────────────────────────────────────────────────────────────────────
@@ -284,7 +298,7 @@ const getUnits = async (_req, res) => {
       orderBy: { unitName: 'asc' },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createUnit = async (req, res) => {
@@ -296,7 +310,7 @@ const createUnit = async (req, res) => {
       select: { id: true, unitName: true, shortName: true },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const updateUnit = async (req, res) => {
@@ -311,14 +325,14 @@ const updateUnit = async (req, res) => {
       select: { id: true, unitName: true, shortName: true },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteUnit = async (req, res) => {
   try {
     await prisma.unitMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Suppliers ──────────────────────────────────────────────────────────────────
@@ -342,7 +356,7 @@ const getSuppliers = async (req, res) => {
       return { ...rest, balance };
     });
     res.json(result);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const getSupplierTransactions = async (req, res) => {
@@ -352,7 +366,7 @@ const getSupplierTransactions = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createSupplierTransaction = async (req, res) => {
@@ -371,15 +385,16 @@ const createSupplierTransaction = async (req, res) => {
       },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createSupplier = async (req, res) => {
   try {
     const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts, openingBalance, openingBalanceType } = req.body;
-    if (!name || !cityId || !stateId || !countryId) {
-      return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
-    }
+    if (!name)      return res.status(400).json({ message: 'Supplier name is required' });
+    if (!countryId) return res.status(400).json({ message: 'Please select a country' });
+    if (!stateId)   return res.status(400).json({ message: 'Please select a state' });
+    if (!cityId)    return res.status(400).json({ message: 'Please select a city' });
     const branchId = getBranchId(req);
 
     // Look up names to store alongside IDs
@@ -439,7 +454,7 @@ const createSupplier = async (req, res) => {
     }
 
     res.status(201).json({ ...row, balance });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const updateSupplier = async (req, res) => {
@@ -461,14 +476,14 @@ const updateSupplier = async (req, res) => {
       select: { id: true, name: true, phone: true, email: true, city: { select: { id: true, name: true } } },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteSupplier = async (req, res) => {
   try {
     await prisma.supplier.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Customers ──────────────────────────────────────────────────────────────────
@@ -492,7 +507,7 @@ const getCustomers = async (req, res) => {
       return { ...rest, balance };
     });
     res.json(result);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const getCustomerTransactions = async (req, res) => {
@@ -502,7 +517,7 @@ const getCustomerTransactions = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createCustomerTransaction = async (req, res) => {
@@ -521,15 +536,16 @@ const createCustomerTransaction = async (req, res) => {
       },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createCustomer = async (req, res) => {
   try {
     const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts, openingBalance, openingBalanceType } = req.body;
-    if (!name || !cityId || !stateId || !countryId) {
-      return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
-    }
+    if (!name)      return res.status(400).json({ message: 'Customer name is required' });
+    if (!countryId) return res.status(400).json({ message: 'Please select a country' });
+    if (!stateId)   return res.status(400).json({ message: 'Please select a state' });
+    if (!cityId)    return res.status(400).json({ message: 'Please select a city' });
     const branchId = getBranchId(req);
 
     // Look up names to store alongside IDs
@@ -589,7 +605,7 @@ const createCustomer = async (req, res) => {
     }
 
     res.status(201).json({ ...row, balance });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const updateCustomer = async (req, res) => {
@@ -611,14 +627,14 @@ const updateCustomer = async (req, res) => {
       select: { id: true, name: true, phone: true, email: true, city: { select: { id: true, name: true } } },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteCustomer = async (req, res) => {
   try {
     await prisma.customer.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Products ───────────────────────────────────────────────────────────────────
@@ -636,7 +652,7 @@ const getProducts = async (req, res) => {
       },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createProduct = async (req, res) => {
@@ -662,7 +678,7 @@ const createProduct = async (req, res) => {
     res.status(201).json(row);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.code === 'P2002' ? 'Barcode already exists' : 'Server error' });
+    res.status(500).json({ message: err.code === 'P2002' ? 'Barcode already exists' : prismaErr(err) });
   }
 };
 
@@ -682,14 +698,14 @@ const updateProduct = async (req, res) => {
       select: { id: true, name: true, lowerLimit: true, upperLimit: true, barcode: true, category: { select: { id: true, name: true } }, unit: { select: { id: true, unitName: true } } },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteProduct = async (req, res) => {
   try {
     await prisma.product.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Payment Methods ────────────────────────────────────────────────────────────
@@ -703,7 +719,7 @@ const getPaymentMethods = async (req, res) => {
       orderBy: { name: 'asc' },
     });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createPaymentMethod = async (req, res) => {
@@ -719,7 +735,7 @@ const createPaymentMethod = async (req, res) => {
   } catch (err) {
     console.error(err);
     if (err.code === 'P2002') return res.status(409).json({ message: `Payment method "${req.body.name}" already exists.` });
-    res.status(500).json({ message: err.message || 'Server error' });
+    res.status(500).json({ message: prismaErr(err) });
   }
 };
 
@@ -735,7 +751,7 @@ const updatePaymentMethod = async (req, res) => {
   } catch (err) {
     console.error(err);
     if (err.code === 'P2002') return res.status(409).json({ message: `Payment method "${req.body.name}" already exists.` });
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: prismaErr(err) });
   }
 };
 
@@ -743,7 +759,7 @@ const deletePaymentMethod = async (req, res) => {
   try {
     await prisma.paymentMethodMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 // ── Warehouses ─────────────────────────────────────────────────────────────────

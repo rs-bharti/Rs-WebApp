@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ChevronDown, Plus, ExternalLink } from 'lucide-react';
 import { getSuppliers, getPaymentMethods } from '../../../api/masters';
 import { getPaymentVoucherNextNo, savePaymentVoucher } from '../../../api/vouchers';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import QuickCreateModal from '../QuickCreateModal';
 
 const PaymentVoucherForm = () => {
   const type = 'Payment';
@@ -22,6 +23,7 @@ const PaymentVoucherForm = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [quickCreate, setQuickCreate] = useState(null);
 
   useEffect(() => {
     setPaymentMethodId('');
@@ -34,7 +36,7 @@ const PaymentVoucherForm = () => {
       setSuppliers(supp);
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
-    }).catch(() => setError('Failed to load form data'));
+    }).catch(err => setError(err?.message || 'Failed to load form data'));
   }, [activeBranch?.id]);
 
   const handleSubmit = async (e) => {
@@ -78,6 +80,7 @@ const PaymentVoucherForm = () => {
   };
 
   return (
+    <>
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New {type} Voucher</h2>
@@ -149,7 +152,7 @@ const PaymentVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
-              <Link to="/dashboard/master/payment-method" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Payment Method Master"><ExternalLink className="w-4 h-4" /></Link>
+              <button type="button" onClick={() => setQuickCreate("Payment Method")} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Create new Payment Method"><Plus className="w-4 h-4" /></button>
             </div>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
               <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
@@ -196,6 +199,15 @@ const PaymentVoucherForm = () => {
         </div>
       </form>
     </section>
+
+      {quickCreate && (
+        <QuickCreateModal
+          type={quickCreate}
+          onClose={() => setQuickCreate(null)}
+          onCreated={(item) => { setPaymentMethods(prev => [...prev, item]); setPaymentMethodId(String(item.id)); setQuickCreate(null); }}
+        />
+      )}
+    </>
   );
 };
 

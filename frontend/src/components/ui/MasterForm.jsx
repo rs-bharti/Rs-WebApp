@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2, Search, Pencil, X } from 'lucide-react';
+import QuickCreateModal from './QuickCreateModal';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCountries, getStates, getCities,
@@ -171,7 +173,8 @@ const ListSearch = ({ value, onChange, placeholder = 'Search…' }) => (
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
-  const { activeBranch } = useAuth();
+  const { activeBranch, clearBranch } = useAuth();
+  const navigate = useNavigate();
 
   const isDetailed       = type === 'Supplier';
   const isCustomer       = type === 'Customer';
@@ -212,6 +215,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [selCategory, setSelCategory] = useState('');
   const [selUnit,     setSelUnit]     = useState('');
 
+  const [quickCreate, setQuickCreate] = useState(null);
+
   // List of existing records
   const [records,     setRecords]     = useState([]);
   const [loadingList, setLoadingList] = useState(false);
@@ -240,6 +245,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const resetForm = () => { clearFields(); setError(''); setSuccess(''); };
 
   const handleDelete = async (id) => {
+    const record = records.find(r => r.id === id);
+    const label  = record?.name || record?.unitName || `this ${type.toLowerCase()}`;
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
     setDeletingId(id);
     try {
       if (isWarehouse)          await deleteWarehouse(id);
@@ -387,9 +395,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (!f('name')) return setError('Payment method name is required');
         newRow = await createPaymentMethod({ name: f('name') });
       } else if (type === 'Category') {
-        await createCategory({ name: f('name') });
+        newRow = await createCategory({ name: f('name') });
       } else if (isUnit) {
-        await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
+        newRow = await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
       } else if (isBranch) {
         if (!f('name'))  return setError('Branch name is required');
         if (!selCountry) return setError('Please select a country');
@@ -452,7 +460,13 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       clearFields();
       setSuccess(`${type === 'Branches' ? 'Branch' : type} saved successfully!`);
     } catch (err) {
-      setError(err.message || 'Failed to save. Please try again.');
+      const msg = err.message || '';
+      if (msg.includes('BRANCH_INVALID')) {
+        clearBranch();
+        navigate('/select-branch');
+        return;
+      }
+      setError(msg || 'Failed to save. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -731,8 +745,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       <div className="space-y-8 max-w-5xl">
         <div className="space-y-2"><label className={labelCls}>Product Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="Enter product name" value={f('name')} onChange={upd('name')} required /></div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-          <div className="space-y-2"><label className={labelCls}>Category <span className="text-red-400">*</span></label><SearchableSelect value={selCategory} onChange={(id) => setSelCategory(id)} options={categories} placeholder="Category" /></div>
-          <div className="space-y-2"><label className={labelCls}>Unit <span className="text-red-400">*</span></label><SearchableSelect value={selUnit} onChange={(id) => setSelUnit(id)} options={units} placeholder="Unit" displayFn={u => `${u.unitName}${u.shortName ? ` (${u.shortName})` : ''}`} /></div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><label className={labelCls}>Category <span className="text-red-400">*</span></label><button type="button" onClick={() => setQuickCreate('Category')} className="flex items-center gap-1 text-[10px] font-bold text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded px-2 py-0.5 transition-all cursor-pointer"><PlusCircle className="w-3 h-3" />New</button></div>
+            <SearchableSelect value={selCategory} onChange={(id) => setSelCategory(id)} options={categories} placeholder="Category" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><label className={labelCls}>Unit <span className="text-red-400">*</span></label><button type="button" onClick={() => setQuickCreate('Unit')} className="flex items-center gap-1 text-[10px] font-bold text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded px-2 py-0.5 transition-all cursor-pointer"><PlusCircle className="w-3 h-3" />New</button></div>
+            <SearchableSelect value={selUnit} onChange={(id) => setSelUnit(id)} options={units} placeholder="Unit" displayFn={u => `${u.unitName}${u.shortName ? ` (${u.shortName})` : ''}`} />
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="space-y-2">
@@ -1406,6 +1426,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const formTitle   = isCustomer ? 'Customer Details' : `${displayType} ${isBranch ? 'Details' : 'Master'}`;
 
   return (
+    <>
     <section className={cn('rounded-2xl shadow-sm border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500', isAdmin ? 'bg-white border-brand-bg' : 'bg-white border-stone-100')}>
       {/* Header */}
       <div className={cn('px-4 py-4 md:px-8 md:py-6 border-b flex justify-between items-center', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
@@ -1439,6 +1460,24 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       {/* List of existing records */}
       {renderList()}
     </section>
+
+      {quickCreate && (
+        <QuickCreateModal
+          type={quickCreate}
+          onClose={() => setQuickCreate(null)}
+          onCreated={(item) => {
+            if (quickCreate === 'Category') {
+              setCategories(prev => [...prev, item]);
+              setSelCategory(String(item.id));
+            } else if (quickCreate === 'Unit') {
+              setUnits(prev => [...prev, item]);
+              setSelUnit(String(item.id));
+            }
+            setQuickCreate(null);
+          }}
+        />
+      )}
+    </>
   );
 };
 

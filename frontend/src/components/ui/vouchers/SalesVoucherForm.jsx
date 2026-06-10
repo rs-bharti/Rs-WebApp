@@ -28,7 +28,7 @@ const SalesVoucherForm = () => {
     Promise.all([getCustomers(), getProducts(), getWarehouses(), getSalesVoucherNextNo()])
       .then(([cust, prod, wh, vn]) => {
         setCustomers(cust); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo);
-      }).catch(() => setError('Failed to load form data'));
+      }).catch(err => setError(err?.message || 'Failed to load form data'));
   }, [activeBranch?.id]);
 
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
