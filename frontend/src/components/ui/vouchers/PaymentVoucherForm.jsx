@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, ExternalLink } from 'lucide-react';
+import { Plus, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getSuppliers, getPaymentMethods } from '../../../api/masters';
 import { getPaymentVoucherNextNo, savePaymentVoucher, getPayments, updatePaymentVoucher, deletePaymentVoucher } from '../../../api/vouchers';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
-import VoucherList, { fmtDate } from './VoucherList';
+import VoucherListModal, { fmtDate } from './VoucherListModal';
 
 const PaymentVoucherForm = () => {
   const type = 'Payment';
@@ -28,6 +28,7 @@ const PaymentVoucherForm = () => {
   const [quickCreate, setQuickCreate] = useState(null);
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [showList,        setShowList]        = useState(false);
 
   const COLUMNS = [
     { key: 'voucherNo',     label: 'Voucher No' },
@@ -206,13 +207,18 @@ const PaymentVoucherForm = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
-          <button type="button" onClick={handleDiscard} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
-            Discard
+        <div className="flex justify-between items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
+          <button type="button" onClick={() => setShowList(true)} className="flex items-center gap-2 text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+            <List className="w-4 h-4" /> View Entries
           </button>
-          <button type="submit" disabled={saving} className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
-            {saving ? 'Saving…' : `Save ${type} Voucher`}
-          </button>
+          <div className="flex items-center gap-8">
+            <button type="button" onClick={handleDiscard} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+              Discard
+            </button>
+            <button type="submit" disabled={saving} className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
+              {saving ? 'Saving…' : `Save ${type} Voucher`}
+            </button>
+          </div>
         </div>
       </form>
     </section>
@@ -225,7 +231,9 @@ const PaymentVoucherForm = () => {
         />
       )}
 
-      <VoucherList
+      <VoucherListModal
+        isOpen={showList}
+        onClose={() => setShowList(false)}
         title="Payment Voucher Entries"
         vouchers={vouchers}
         columns={COLUMNS}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
-import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2, Search, Pencil, X } from 'lucide-react';
+import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2, Search, Pencil, X, List } from 'lucide-react';
 import QuickCreateModal from './QuickCreateModal';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -266,6 +266,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [editData,    setEditData]    = useState({});
   const [savingEdit,  setSavingEdit]  = useState(false);
   const [editError,   setEditError]   = useState('');
+  const [showListModal, setShowListModal] = useState(false);
 
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
@@ -869,8 +870,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
   // ── Records list table ────────────────────────────────────────────────────────
   const renderList = () => {
-    if (!showList) return null;
-
     const headCls    = cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20');
     const dividerCls = cn('border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100');
     const q          = listSearch.trim().toLowerCase();
@@ -1567,21 +1566,46 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
         <div className="min-h-[250px]">{renderFields()}</div>
 
-        <div className={cn('flex justify-end items-center gap-4 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
-          <button type="button" onClick={resetForm}
-            className={cn('px-6 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-stone-50 active:scale-95', isAdmin ? 'border-brand-bg text-brand-primary/60 hover:border-brand-primary/30' : 'border-stone-200 text-rs-text-muted hover:border-stone-300 hover:text-rs-text-primary')}>
-            Discard
-          </button>
-          <button type="submit" disabled={saving}
-            className={cn('px-10 py-2.5 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95', saving ? 'opacity-60 cursor-not-allowed' : '', isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')}>
-            {saving ? 'Saving…' : `Save ${displayType}`}
-          </button>
+        <div className={cn('flex justify-between items-center gap-4 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
+          {showList ? (
+            <button type="button" onClick={() => setShowListModal(true)}
+              className={cn('flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer', isAdmin ? 'text-brand-primary/60 hover:text-brand-primary' : 'text-rs-text-muted hover:text-rs-text-primary')}>
+              <List className="w-4 h-4" /> View Entries
+            </button>
+          ) : <span />}
+          <div className="flex items-center gap-4">
+            <button type="button" onClick={resetForm}
+              className={cn('px-6 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-stone-50 active:scale-95', isAdmin ? 'border-brand-bg text-brand-primary/60 hover:border-brand-primary/30' : 'border-stone-200 text-rs-text-muted hover:border-stone-300 hover:text-rs-text-primary')}>
+              Discard
+            </button>
+            <button type="submit" disabled={saving}
+              className={cn('px-10 py-2.5 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95', saving ? 'opacity-60 cursor-not-allowed' : '', isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')}>
+              {saving ? 'Saving…' : `Save ${displayType}`}
+            </button>
+          </div>
         </div>
       </form>
-
-      {/* List of existing records */}
-      {renderList()}
     </section>
+
+      {showListModal && (
+        <div
+          className="fixed inset-0 z-40 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-8 px-4"
+          onClick={e => e.target === e.currentTarget && setShowListModal(false)}
+        >
+          <div className="w-full max-w-5xl">
+            <div className="flex justify-end mb-3">
+              <button
+                type="button"
+                onClick={() => { setShowListModal(false); setListSearch(''); setEditingId(null); }}
+                className="flex items-center gap-2 text-xs font-bold text-white/80 uppercase tracking-widest hover:text-white transition-colors cursor-pointer bg-black/20 hover:bg-black/30 px-4 py-2 rounded-lg"
+              >
+                <X className="w-4 h-4" /> Close
+              </button>
+            </div>
+            {renderList()}
+          </div>
+        </div>
+      )}
 
       {deleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">

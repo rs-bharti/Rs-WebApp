@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ExternalLink } from 'lucide-react';
+import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 
 const PAYMENT_TERMS_OPTIONS = [
@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom';
 import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
 import { getSalesReturnNextNo, saveSalesReturnVoucher, getSalesReturns, updateSalesReturnVoucher, deleteSalesReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
-import VoucherList, { fmtDate } from './VoucherList';
+import VoucherListModal, { fmtDate } from './VoucherListModal';
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0 });
 
@@ -35,6 +35,7 @@ const SalesReturnVoucherForm = () => {
   const [success,         setSuccess]         = useState('');
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [showList,        setShowList]        = useState(false);
 
   const COLUMNS = [
     { key: 'voucherNo',    label: 'Voucher No' },
@@ -269,20 +270,28 @@ const SalesReturnVoucherForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-end items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
-          <button type="button" onClick={handleDiscard}
-            className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
-            Discard
+        <div className="flex justify-between items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
+          <button type="button" onClick={() => setShowList(true)}
+            className="flex items-center gap-2 text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+            <List className="w-4 h-4" /> View Entries
           </button>
-          <button type="submit" disabled={saving}
-            className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
-            {saving ? 'Saving…' : `Save ${type} Voucher`}
-          </button>
+          <div className="flex items-center gap-8">
+            <button type="button" onClick={handleDiscard}
+              className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+              Discard
+            </button>
+            <button type="submit" disabled={saving}
+              className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
+              {saving ? 'Saving…' : `Save ${type} Voucher`}
+            </button>
+          </div>
         </div>
       </form>
     </section>
 
-      <VoucherList
+      <VoucherListModal
+        isOpen={showList}
+        onClose={() => setShowList(false)}
         title="Sales Return Voucher Entries"
         vouchers={vouchers}
         columns={COLUMNS}
