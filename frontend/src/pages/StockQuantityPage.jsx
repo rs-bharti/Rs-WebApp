@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Warehouse } from 'lucide-react';
+import { RefreshCw, Warehouse, Search, X } from 'lucide-react';
 import { getWarehouses } from '../api/masters';
 import { getStockQtyByWarehouse } from '../api/vouchers';
 
 const StockQuantityPage = () => {
-  const [warehouses,      setWarehouses]      = useState([]);
+  const [warehouses,        setWarehouses]        = useState([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
-  const [rows,            setRows]            = useState([]);
-  const [loading,         setLoading]         = useState(false);
-  const [error,           setError]           = useState('');
+  const [rows,              setRows]              = useState([]);
+  const [search,            setSearch]            = useState('');
+  const [loading,           setLoading]           = useState(false);
+  const [error,             setError]             = useState('');
 
   useEffect(() => {
     getWarehouses()
@@ -30,12 +31,17 @@ const StockQuantityPage = () => {
     const id = e.target.value;
     setSelectedWarehouse(id);
     setRows([]);
+    setSearch('');
     fetchStock(id);
   };
 
   const handleRefresh = () => fetchStock(selectedWarehouse);
 
   const selectedName = warehouses.find(w => String(w.id) === String(selectedWarehouse))?.name || '';
+
+  const filtered = search.trim()
+    ? rows.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
+    : rows;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -46,8 +52,8 @@ const StockQuantityPage = () => {
       </div>
 
       {/* Filter row */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Warehouse className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <select
             value={selectedWarehouse}
@@ -60,6 +66,27 @@ const StockQuantityPage = () => {
             ))}
           </select>
         </div>
+
+        {selectedWarehouse && (
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search product…"
+              className="w-full pl-9 pr-8 py-2.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 placeholder-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
 
         {selectedWarehouse && (
           <button
@@ -89,11 +116,18 @@ const StockQuantityPage = () => {
         <div className="text-center py-20 text-stone-400 text-sm">Loading…</div>
       ) : (
         <>
-          {selectedName && (
-            <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">
-              {selectedName}
-            </p>
-          )}
+          <div className="flex items-center justify-between mb-3">
+            {selectedName && (
+              <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+                {selectedName}
+              </p>
+            )}
+            {search && (
+              <p className="text-xs text-stone-400 ml-auto">
+                {filtered.length} of {rows.length} products
+              </p>
+            )}
+          </div>
           <div className="border border-stone-200 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -105,14 +139,14 @@ const StockQuantityPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {rows.length === 0 ? (
+                {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-4 py-12 text-center text-stone-300 text-sm">
-                      No products found
+                      {search ? `No products match "${search}"` : 'No products found'}
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row, i) => (
+                  filtered.map((row, i) => (
                     <tr key={row.id} className="hover:bg-stone-50 transition-colors">
                       <td className="px-4 py-3 text-stone-400">{i + 1}</td>
                       <td className="px-4 py-3 text-stone-700 font-medium">{row.name}</td>
@@ -124,14 +158,14 @@ const StockQuantityPage = () => {
                   ))
                 )}
               </tbody>
-              {rows.length > 0 && (
+              {filtered.length > 0 && (
                 <tfoot>
                   <tr className="bg-stone-50 border-t border-stone-200">
                     <td colSpan={2} className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">
                       Total
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-stone-800 tabular-nums">
-                      {rows.reduce((s, r) => s + r.qty, 0)}
+                      {filtered.reduce((s, r) => s + r.qty, 0)}
                     </td>
                     <td className="px-4 py-3" />
                   </tr>
