@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronDown, ExternalLink } from 'lucide-react';
+import { Plus, X, ExternalLink } from 'lucide-react';
+import SelectSearch from '../SelectSearch';
+
+const PAYMENT_TERMS_OPTIONS = [
+  { id: '60 Days Consignment Basis', name: '60 Days Consignment Basis' },
+  { id: '45 Days Consignment Basis', name: '45 Days Consignment Basis' },
+  { id: '30 Days Consignment Basis', name: '30 Days Consignment Basis' },
+  { id: '15 Days Consignment Basis', name: '15 Days Consignment Basis' },
+  { id: 'Cash', name: 'Cash' },
+];
 import { Link } from 'react-router-dom';
 import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
 import { getSalesReturnNextNo, saveSalesReturnVoucher } from '../../../api/vouchers';
@@ -121,18 +130,12 @@ const SalesReturnVoucherForm = () => {
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Customer Name</label>
               <Link to="/dashboard/master/customer" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Customer Master"><ExternalLink className="w-4 h-4" /></Link>
             </div>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-                value={customerId} onChange={e => setCustomerId(e.target.value)} required>
-                <option value="" disabled>Select Customer</option>
-                {customers.map(c => {
-                  const bal = c.balance ?? 0;
-                  const tag = bal >= 0 ? `CR ${currencySymbol}${Math.abs(bal).toLocaleString()}` : `DR ${currencySymbol}${Math.abs(bal).toLocaleString()}`;
-                  return <option key={c.id} value={c.id}>{c.name} — {tag}</option>;
-                })}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
+            <SelectSearch
+              value={customerId}
+              onChange={setCustomerId}
+              options={customers.map(c => { const bal = c.balance ?? 0; return { ...c, label: `${c.name} — ${bal >= 0 ? 'CR' : 'DR'} ${currencySymbol}${Math.abs(bal).toLocaleString()}` }; })}
+              placeholder="Select Customer"
+            />
             {customerId && (() => {
               const c = customers.find(c => String(c.id) === String(customerId));
               if (!c) return null;
@@ -149,18 +152,12 @@ const SalesReturnVoucherForm = () => {
 
         <div className="max-w-xs space-y-2">
           <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Terms</label>
-          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-            <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-              value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} required>
-              <option value="" disabled>Select Payment Terms</option>
-              <option value="60 Days Consignment Basis">60 Days Consignment Basis</option>
-              <option value="45 Days Consignment Basis">45 Days Consignment Basis</option>
-              <option value="30 Days Consignment Basis">30 Days Consignment Basis</option>
-              <option value="15 Days Consignment Basis">15 Days Consignment Basis</option>
-              <option value="Cash">Cash</option>
-            </select>
-            <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-          </div>
+          <SelectSearch
+            value={paymentTerms}
+            onChange={setPaymentTerms}
+            options={PAYMENT_TERMS_OPTIONS}
+            placeholder="Select Payment Terms"
+          />
         </div>
 
         {/* Product Table — warehouse + available per row */}
@@ -184,26 +181,24 @@ const SalesReturnVoucherForm = () => {
 
                       {/* Product */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium"
-                            value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
-                            <option value="">Select Product</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.productId}
+                          onChange={v => updateRow(row.id, 'productId', v)}
+                          options={products}
+                          placeholder="Select Product"
+                        />
                       </td>
 
                       {/* Warehouse */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs"
-                            value={row.warehouseId} onChange={e => updateRow(row.id, 'warehouseId', e.target.value)}>
-                            <option value="">Select Warehouse</option>
-                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.warehouseId}
+                          onChange={v => updateRow(row.id, 'warehouseId', v)}
+                          options={warehouses}
+                          placeholder="Select Warehouse"
+                        />
                       </td>
 
                       <td className="px-4 py-3 text-right">

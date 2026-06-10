@@ -17,12 +17,41 @@ import {
   getWarehouses,    createWarehouse,   updateWarehouse,   deleteWarehouse,
 } from '../../api/masters';
 
-// Phone number max digits by country code
+// Phone number max digits by country dial code (national subscriber number length)
 const PHONE_MAX_LENGTHS = {
-  '91': 10, '1': 10, '44': 10, '61': 9, '86': 11,
-  '33': 9,  '49': 12, '81': 11, '55': 11, '7': 11,
-  '34': 9,  '39': 10, '92': 10, '880': 10, '65': 8,
-  '60': 9,  '66': 9,  '62': 12, '63': 10, '84': 10,
+  // Asia & Pacific
+  '91': 10, '92': 10, '880': 10, '94': 9, '977': 10,
+  '1': 10,  '61': 9,  '64': 9,  '65': 8,  '60': 9,
+  '66': 9,  '62': 12, '63': 10, '84': 10, '86': 11,
+  '81': 11, '82': 10, '95': 9,
+  // Europe
+  '44': 10, '33': 9,  '49': 12, '7': 11,  '34': 9,
+  '39': 10, '31': 9,  '32': 9,  '41': 9,  '43': 13,
+  '48': 9,  '380': 9, '90': 10,
+  // Americas
+  '55': 11, '52': 10, '54': 10, '57': 10, '56': 9,
+  '51': 9,
+  // Middle East
+  '971': 9, '966': 9, '965': 8, '973': 8, '974': 8,
+  '968': 8, '962': 9, '20': 10, '212': 9,
+  // Africa
+  '255': 9,  // Tanzania
+  '254': 9,  // Kenya
+  '256': 9,  // Uganda
+  '250': 9,  // Rwanda
+  '251': 9,  // Ethiopia
+  '27': 9,   // South Africa
+  '234': 10, // Nigeria
+  '233': 9,  // Ghana
+  '213': 9,  // Algeria
+  '216': 8,  // Tunisia
+  '263': 9,  // Zimbabwe
+  '260': 9,  // Zambia
+  '258': 9,  // Mozambique
+  '225': 10, // Ivory Coast
+  '237': 9,  // Cameroon
+  '221': 9,  // Senegal
+  '243': 9,  // DR Congo
 };
 const phoneMaxLength = (prefix) => {
   const code = (prefix || '').replace('+', '').trim();

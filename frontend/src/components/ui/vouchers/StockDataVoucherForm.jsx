@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronDown, ExternalLink } from 'lucide-react';
+import { Plus, X, ExternalLink } from 'lucide-react';
+import SelectSearch from '../SelectSearch';
 import { Link } from 'react-router-dom';
 import { getProducts, getWarehouses } from '../../../api/masters';
 import { getStockDataVoucherNextNo, saveStockDataVoucher, getStockQty } from '../../../api/vouchers';
@@ -143,26 +144,24 @@ const StockDataVoucherForm = () => {
 
                       {/* Product */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium"
-                            value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
-                            <option value="">Select Product</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.productId}
+                          onChange={v => updateRow(row.id, 'productId', v)}
+                          options={products}
+                          placeholder="Select Product"
+                        />
                       </td>
 
                       {/* Warehouse */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs"
-                            value={row.warehouseId} onChange={e => updateRow(row.id, 'warehouseId', e.target.value)}>
-                            <option value="">Select Warehouse</option>
-                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.warehouseId}
+                          onChange={v => updateRow(row.id, 'warehouseId', v)}
+                          options={warehouses}
+                          placeholder="Select Warehouse"
+                        />
                       </td>
 
                       {/* Curr. Stock */}

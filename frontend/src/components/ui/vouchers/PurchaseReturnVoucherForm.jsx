@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronDown, ExternalLink } from 'lucide-react';
+import { Plus, X, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SelectSearch from '../SelectSearch';
 import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
 import { getPurchaseReturnNextNo, savePurchaseReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -128,18 +129,12 @@ const PurchaseReturnVoucherForm = () => {
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Supplier Name</label>
               <Link to="/dashboard/master/supplier" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Supplier Master"><ExternalLink className="w-4 h-4" /></Link>
             </div>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-                value={supplierId} onChange={e => setSupplierId(e.target.value)} required>
-                <option value="" disabled>Select Supplier</option>
-                {suppliers.map(s => {
-                  const bal = s.balance ?? 0;
-                  const tag = bal >= 0 ? `CR ${currencySymbol}${Math.abs(bal).toLocaleString()}` : `DR ${currencySymbol}${Math.abs(bal).toLocaleString()}`;
-                  return <option key={s.id} value={s.id}>{s.name} — {tag}</option>;
-                })}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
+            <SelectSearch
+              value={supplierId}
+              onChange={setSupplierId}
+              options={suppliers.map(s => { const bal = s.balance ?? 0; return { ...s, label: `${s.name} — ${bal >= 0 ? 'CR' : 'DR'} ${currencySymbol}${Math.abs(bal).toLocaleString()}` }; })}
+              placeholder="Select Supplier"
+            />
             {supplierId && (() => {
               const s = suppliers.find(s => String(s.id) === String(supplierId));
               if (!s) return null;
@@ -159,14 +154,12 @@ const PurchaseReturnVoucherForm = () => {
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
             <button type="button" onClick={() => setQuickCreate("Payment Method")} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Create new Payment Method"><Plus className="w-4 h-4" /></button>
           </div>
-          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-            <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-              value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
-              <option value="" disabled>Select Payment Method</option>
-              {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-            </select>
-            <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-          </div>
+          <SelectSearch
+            value={paymentMethodId}
+            onChange={setPaymentMethodId}
+            options={paymentMethods}
+            placeholder="Select Payment Method"
+          />
         </div>
 
         {/* Product Table — warehouse + available per row */}
@@ -190,26 +183,24 @@ const PurchaseReturnVoucherForm = () => {
 
                       {/* Product */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium"
-                            value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
-                            <option value="">Select Product</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.productId}
+                          onChange={v => updateRow(row.id, 'productId', v)}
+                          options={products}
+                          placeholder="Select Product"
+                        />
                       </td>
 
                       {/* Warehouse */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs"
-                            value={row.warehouseId} onChange={e => updateRow(row.id, 'warehouseId', e.target.value)}>
-                            <option value="">Select Warehouse</option>
-                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.warehouseId}
+                          onChange={v => updateRow(row.id, 'warehouseId', v)}
+                          options={warehouses}
+                          placeholder="Select Warehouse"
+                        />
                       </td>
 
                       <td className="px-4 py-3 text-right">

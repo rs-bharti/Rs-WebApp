@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronDown, ArrowRight, ExternalLink } from 'lucide-react';
+import { Plus, X, ArrowRight, ExternalLink } from 'lucide-react';
+import SelectSearch from '../SelectSearch';
 import { Link } from 'react-router-dom';
 import { getProducts, getWarehouses } from '../../../api/masters';
 import { getStockTransferVoucherNextNo, saveStockTransferVoucher, getStockQty } from '../../../api/vouchers';
@@ -142,14 +143,12 @@ const StockTransferVoucherForm = () => {
               <ArrowRight className="w-3.5 h-3.5 text-rs-text-muted" />
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">To Warehouse (All)</label>
             </div>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer"
-                value={toWarehouseId} onChange={e => setToWarehouseId(e.target.value)} required>
-                <option value="">Select Destination</option>
-                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
+            <SelectSearch
+              value={toWarehouseId}
+              onChange={setToWarehouseId}
+              options={warehouses}
+              placeholder="Select Destination"
+            />
           </div>
         </div>
 
@@ -175,28 +174,24 @@ const StockTransferVoucherForm = () => {
 
                       {/* Product */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer font-medium"
-                            value={row.productId} onChange={e => updateRow(row.id, 'productId', e.target.value)}>
-                            <option value="">Select Product</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.productId}
+                          onChange={v => updateRow(row.id, 'productId', v)}
+                          options={products}
+                          placeholder="Select Product"
+                        />
                       </td>
 
                       {/* From Warehouse */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center">
-                          <select className="w-full bg-transparent border-none p-0 focus:ring-0 outline-none appearance-none cursor-pointer text-xs"
-                            value={row.fromWarehouseId} onChange={e => updateRow(row.id, 'fromWarehouseId', e.target.value)}>
-                            <option value="">Select Source</option>
-                            {warehouses.filter(w => String(w.id) !== String(toWarehouseId)).map(w => (
-                              <option key={w.id} value={w.id}>{w.name}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-stone-400 pointer-events-none flex-shrink-0" />
-                        </div>
+                        <SelectSearch
+                          variant="inline"
+                          value={row.fromWarehouseId}
+                          onChange={v => updateRow(row.id, 'fromWarehouseId', v)}
+                          options={warehouses.filter(w => String(w.id) !== String(toWarehouseId))}
+                          placeholder="Select Source"
+                        />
                       </td>
 
                       {/* Avl. Stock */}

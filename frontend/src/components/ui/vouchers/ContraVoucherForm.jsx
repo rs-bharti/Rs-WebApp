@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import SelectSearch from '../SelectSearch';
 import { getPaymentMethods } from '../../../api/masters';
 import { getContraVoucherNextNo, saveContraVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -122,13 +123,12 @@ const ContraVoucherForm = () => {
                   <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Account</label>
                   <button type="button" onClick={() => setQuickCreate("Payment Method")} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Create new Payment Method"><Plus className="w-4 h-4" /></button>
                 </div>
-                <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-                  <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={fromPaymentMethodId} onChange={e => setFromPaymentMethodId(e.target.value)} required>
-                    <option value="" disabled>Select Account</option>
-                    {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-                </div>
+                <SelectSearch
+                  value={fromPaymentMethodId}
+                  onChange={setFromPaymentMethodId}
+                  options={paymentMethods}
+                  placeholder="Select Account"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>
@@ -149,13 +149,12 @@ const ContraVoucherForm = () => {
                   <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Account</label>
                   <button type="button" onClick={() => setQuickCreate("Payment Method")} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Create new Payment Method"><Plus className="w-4 h-4" /></button>
                 </div>
-                <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-                  <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={toPaymentMethodId} onChange={e => setToPaymentMethodId(e.target.value)} required>
-                    <option value="" disabled>Select Account</option>
-                    {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-                </div>
+                <SelectSearch
+                  value={toPaymentMethodId}
+                  onChange={setToPaymentMethodId}
+                  options={paymentMethods}
+                  placeholder="Select Account"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>

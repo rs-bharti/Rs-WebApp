@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import SelectSearch from '../SelectSearch';
 import { getExpenses } from '../../../api/masters';
 import { getExpenseVoucherNextNo, saveExpenseVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -120,13 +121,12 @@ const ExpenseVoucherForm = () => {
                 <Plus className="w-4 h-4" />
               </button>
             </div>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={expenseId} onChange={e => setExpenseId(e.target.value)} required>
-                <option value="" disabled>Select Expense</option>
-                {expenses.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
+            <SelectSearch
+              value={expenseId}
+              onChange={setExpenseId}
+              options={expenses}
+              placeholder="Select Expense"
+            />
           </div>
 
           <div className="space-y-2">
