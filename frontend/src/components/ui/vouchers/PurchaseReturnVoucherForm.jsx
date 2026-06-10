@@ -3,9 +3,10 @@ import { Plus, X, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SelectSearch from '../SelectSearch';
 import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
-import { getPurchaseReturnNextNo, savePurchaseReturnVoucher } from '../../../api/vouchers';
+import { getPurchaseReturnNextNo, savePurchaseReturnVoucher, getPurchaseReturns, updatePurchaseReturnVoucher, deletePurchaseReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0 });
 
@@ -27,13 +28,31 @@ const PurchaseReturnVoucherForm = () => {
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
   const [quickCreate,     setQuickCreate]     = useState(null);
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',     label: 'Voucher No' },
+    { key: 'date',          label: 'Date',         render: v => fmtDate(v.date) },
+    { key: 'supplier',      label: 'Supplier',     render: v => v.supplier?.name || '—' },
+    { key: 'paymentMethod', label: 'Method',       render: v => v.paymentMethod?.name || '—' },
+    { key: 'totalAmount',   label: 'Amount',       render: v => `₹${Number(v.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { key: 'items',         label: 'Items',        render: v => v.items?.length ?? '—' },
+    { key: 'narration',     label: 'Narration',    render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
     setPaymentMethodId(''); setPaymentMethods([]);
-    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getPurchaseReturnNextNo()])
-      .then(([supp, prod, wh, pm, vn]) => {
-        setSuppliers(supp); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setVoucherNo(vn.voucherNo);
-      }).catch(err => setError(err?.message || 'Failed to load form data'));
+    setLoadingVouchers(true);
+    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getPurchaseReturnNextNo(), getPurchaseReturns()])
+      .then(([supp, prod, wh, pm, vn, vlist]) => {
+        setSuppliers(supp); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setVoucherNo(vn.voucherNo); setVouchers(vlist);
+      }).catch(err => setError(err?.message || 'Failed to load form data'))
+        .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
 
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
@@ -76,8 +95,9 @@ const PurchaseReturnVoucherForm = () => {
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
       setRows([emptyRow()]); setSupplierId(''); setPaymentMethodId(''); setNarration('');
-      const vn = await getPurchaseReturnNextNo();
+      const [vn, vlist] = await Promise.all([getPurchaseReturnNextNo(), getPurchaseReturns()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -271,6 +291,16 @@ const PurchaseReturnVoucherForm = () => {
           onCreated={(item) => { setPaymentMethods(prev => [...prev, item]); setPaymentMethodId(String(item.id)); setQuickCreate(null); }}
         />
       )}
+
+      <VoucherList
+        title="Purchase Return Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deletePurchaseReturnVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updatePurchaseReturnVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
     </>
   );
 };

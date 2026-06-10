@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Plus, ExternalLink } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getCustomers, getPaymentMethods } from '../../../api/masters';
-import { getReceiptVoucherNextNo, saveReceiptVoucher } from '../../../api/vouchers';
+import { getReceiptVoucherNextNo, saveReceiptVoucher, getReceipts, updateReceiptVoucher, deleteReceiptVoucher } from '../../../api/vouchers';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const ReceiptVoucherForm = () => {
   const type = 'Receipt';
@@ -25,19 +26,39 @@ const ReceiptVoucherForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [quickCreate, setQuickCreate] = useState(null);
+  const [vouchers, setVouchers]             = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',     label: 'Voucher No' },
+    { key: 'date',          label: 'Date',    render: v => fmtDate(v.date) },
+    { key: 'customer',      label: 'Customer', render: v => v.customer?.name || '—' },
+    { key: 'paymentMethod', label: 'Method',  render: v => v.paymentMethod?.name || '—' },
+    { key: 'amount',        label: 'Amount',  render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { key: 'narration',     label: 'Narration', render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'amount',    label: 'Amount (₹)', type: 'number', placeholder: '0.00' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
     setPaymentMethodId('');
     setPaymentMethods([]);
+    setLoadingVouchers(true);
     Promise.all([
       getCustomers(),
       getPaymentMethods(),
       getReceiptVoucherNextNo(),
-    ]).then(([cust, pm, vn]) => {
+      getReceipts(),
+    ]).then(([cust, pm, vn, vlist]) => {
       setCustomers(cust);
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
-    }).catch(err => setError(err?.message || 'Failed to load form data'));
+      setVouchers(vlist);
+    }).catch(err => setError(err?.message || 'Failed to load form data'))
+      .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
 
   const handleSubmit = async (e) => {
@@ -62,8 +83,9 @@ const ReceiptVoucherForm = () => {
       setPaymentMethodId('');
       setAmount('');
       setNarration('');
-      const vn = await getReceiptVoucherNextNo();
+      const [vn, vlist] = await Promise.all([getReceiptVoucherNextNo(), getReceipts()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,6 +100,15 @@ const ReceiptVoucherForm = () => {
     setNarration('');
     setError('');
     setSuccess('');
+  };
+
+  const handleDeleteVoucher = async (id) => {
+    await deleteReceiptVoucher(id);
+    setVouchers(prev => prev.filter(v => v.id !== id));
+  };
+  const handleUpdateVoucher = async (id, data) => {
+    const updated = await updateReceiptVoucher(id, data);
+    setVouchers(prev => prev.map(v => v.id === id ? { ...v, ...updated } : v));
   };
 
   return (
@@ -202,6 +233,16 @@ const ReceiptVoucherForm = () => {
           onCreated={(item) => { setPaymentMethods(prev => [...prev, item]); setPaymentMethodId(String(item.id)); setQuickCreate(null); }}
         />
       )}
+
+      <VoucherList
+        title="Receipt Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={handleDeleteVoucher}
+        onUpdate={handleUpdateVoucher}
+        loading={loadingVouchers}
+      />
     </>
   );
 };

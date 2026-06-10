@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getPaymentMethods } from '../../../api/masters';
-import { getContraVoucherNextNo, saveContraVoucher } from '../../../api/vouchers';
+import { getContraVoucherNextNo, saveContraVoucher, getContras, updateContraVoucher, deleteContraVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const ContraVoucherForm = () => {
   const type = 'Contra';
@@ -23,16 +24,36 @@ const ContraVoucherForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [quickCreate, setQuickCreate] = useState(null);
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',          label: 'Voucher No' },
+    { key: 'date',               label: 'Date',  render: v => fmtDate(v.date) },
+    { key: 'fromPaymentMethod',  label: 'From',  render: v => v.fromPaymentMethod?.name || v.fromPaymentMethodName || '—' },
+    { key: 'toPaymentMethod',    label: 'To',    render: v => v.toPaymentMethod?.name   || v.toPaymentMethodName   || '—' },
+    { key: 'amount',             label: 'Amount', render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { key: 'narration',          label: 'Narration', render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'amount',    label: 'Amount (₹)', type: 'number', placeholder: '0.00' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
+    setLoadingVouchers(true);
     Promise.all([
       getPaymentMethods(),
       getContraVoucherNextNo(),
-    ]).then(([pm, vn]) => {
+      getContras(),
+    ]).then(([pm, vn, vlist]) => {
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
-    }).catch(err => setError(err?.message || 'Failed to load form data'));
-  }, []);
+      setVouchers(vlist);
+    }).catch(err => setError(err?.message || 'Failed to load form data'))
+      .finally(() => setLoadingVouchers(false));
+  }, [activeBranch?.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,8 +77,9 @@ const ContraVoucherForm = () => {
       setToPaymentMethodId('');
       setAmount('');
       setNarration('');
-      const vn = await getContraVoucherNextNo();
+      const [vn, vlist] = await Promise.all([getContraVoucherNextNo(), getContras()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -192,6 +214,16 @@ const ContraVoucherForm = () => {
           onCreated={(item) => { setPaymentMethods(prev => [...prev, item]); setQuickCreate(null); }}
         />
       )}
+
+      <VoucherList
+        title="Contra Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deleteContraVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updateContraVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
     </>
   );
 };

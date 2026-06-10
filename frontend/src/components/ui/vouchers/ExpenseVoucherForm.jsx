@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getExpenses } from '../../../api/masters';
-import { getExpenseVoucherNextNo, saveExpenseVoucher } from '../../../api/vouchers';
+import { getExpenseVoucherNextNo, saveExpenseVoucher, getExpenseVouchers, updateExpenseVoucher, deleteExpenseVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const ExpenseVoucherForm = () => {
   const type = 'Expense';
@@ -22,17 +23,36 @@ const ExpenseVoucherForm = () => {
   const [error,       setError]       = useState('');
   const [success,     setSuccess]     = useState('');
   const [quickCreate, setQuickCreate] = useState(null);
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',   label: 'Voucher No' },
+    { key: 'date',        label: 'Date',         render: v => fmtDate(v.date) },
+    { key: 'expenseName', label: 'Expense Type',  render: v => v.expense?.name || v.expenseName || '—' },
+    { key: 'amount',      label: 'Amount',        render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { key: 'narration',   label: 'Narration',     render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'amount',    label: 'Amount (₹)', type: 'number', placeholder: '0.00' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
     setExpenseId('');
     setExpenses([]);
+    setLoadingVouchers(true);
     Promise.all([
       getExpenses(),
       getExpenseVoucherNextNo(),
-    ]).then(([exp, vn]) => {
+      getExpenseVouchers(),
+    ]).then(([exp, vn, vlist]) => {
       setExpenses(exp);
       setVoucherNo(vn.voucherNo);
-    }).catch(err => setError(err?.message || 'Failed to load form data'));
+      setVouchers(vlist);
+    }).catch(err => setError(err?.message || 'Failed to load form data'))
+      .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
 
   const handleSubmit = async (e) => {
@@ -55,8 +75,9 @@ const ExpenseVoucherForm = () => {
       setExpenseId('');
       setAmount('');
       setNarration('');
-      const vn = await getExpenseVoucherNextNo();
+      const [vn, vlist] = await Promise.all([getExpenseVoucherNextNo(), getExpenseVouchers()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -179,6 +200,16 @@ const ExpenseVoucherForm = () => {
           }}
         />
       )}
+
+      <VoucherList
+        title="Expense Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deleteExpenseVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updateExpenseVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
     </>
   );
 };

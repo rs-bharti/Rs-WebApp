@@ -3,8 +3,9 @@ import { Plus, X, ArrowRight, ExternalLink } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { Link } from 'react-router-dom';
 import { getProducts, getWarehouses } from '../../../api/masters';
-import { getStockTransferVoucherNextNo, saveStockTransferVoucher, getStockQty } from '../../../api/vouchers';
+import { getStockTransferVoucherNextNo, saveStockTransferVoucher, getStockQty, getStockTransfers, updateStockTransferVoucher, deleteStockTransferVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', fromWarehouseId: '', qty: 1, stockQty: null });
 
@@ -19,12 +20,29 @@ const StockTransferVoucherForm = () => {
   const [products,      setProducts]      = useState([]);
   const [submitting,    setSubmitting]    = useState(false);
   const [message,       setMessage]       = useState(null);
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',      label: 'Voucher No' },
+    { key: 'date',           label: 'Date',           render: v => fmtDate(v.date) },
+    { key: 'fromWarehouse',  label: 'From Warehouse', render: v => v.fromWarehouse?.name || v.fromWarehouseName || '—' },
+    { key: 'toWarehouse',    label: 'To Warehouse',   render: v => v.toWarehouse?.name   || v.toWarehouseName   || '—' },
+    { key: 'items',          label: 'Items',          render: v => v.items?.length ?? '—' },
+    { key: 'narration',      label: 'Narration',      render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
-    Promise.all([getWarehouses(), getProducts(), getStockTransferVoucherNextNo()])
-      .then(([wh, prods, { voucherNo: no }]) => { setWarehouses(wh); setProducts(prods); setVoucherNo(no); })
-      .catch(() => setMessage({ type: 'error', text: 'Failed to load form data' }));
-  }, []);
+    setLoadingVouchers(true);
+    Promise.all([getWarehouses(), getProducts(), getStockTransferVoucherNextNo(), getStockTransfers()])
+      .then(([wh, prods, { voucherNo: no }, vlist]) => { setWarehouses(wh); setProducts(prods); setVoucherNo(no); setVouchers(vlist); })
+      .catch(() => setMessage({ type: 'error', text: 'Failed to load form data' }))
+      .finally(() => setLoadingVouchers(false));
+  }, [activeBranch?.id]);
 
   const addRow    = () => setRows(r => [...r, emptyRow()]);
   const removeRow = (id) => { if (rows.length > 1) setRows(r => r.filter(x => x.id !== id)); };
@@ -89,8 +107,9 @@ const StockTransferVoucherForm = () => {
           qty:             parseFloat(r.qty),
         })),
       });
-      const nextVn = await getStockTransferVoucherNextNo();
+      const [nextVn, vlist] = await Promise.all([getStockTransferVoucherNextNo(), getStockTransfers()]);
       setVoucherNo(nextVn.voucherNo);
+      setVouchers(vlist);
       reset();
       setMessage({ type: 'success', text: `Voucher ${voucher.voucherNo} saved with ${validRows.length} item(s)` });
     } catch (err) {
@@ -101,6 +120,7 @@ const StockTransferVoucherForm = () => {
   };
 
   return (
+    <>
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New Stock Transfer Voucher</h2>
@@ -264,6 +284,17 @@ const StockTransferVoucherForm = () => {
         </div>
       </form>
     </section>
+
+      <VoucherList
+        title="Stock Transfer Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deleteStockTransferVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updateStockTransferVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
+    </>
   );
 };
 

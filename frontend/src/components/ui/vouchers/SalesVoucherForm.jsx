@@ -11,8 +11,9 @@ const PAYMENT_TERMS_OPTIONS = [
 ];
 import { Link } from 'react-router-dom';
 import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
-import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty } from '../../../api/vouchers';
+import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty, getSales, updateSalesVoucher, deleteSalesVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, lowerLimit: null, upperLimit: null, stockQty: null });
 
@@ -32,12 +33,30 @@ const SalesVoucherForm = () => {
   const [saving,          setSaving]          = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',    label: 'Voucher No' },
+    { key: 'date',         label: 'Date',     render: v => fmtDate(v.date) },
+    { key: 'customer',     label: 'Customer', render: v => v.customer?.name || v.customerName || '—' },
+    { key: 'paymentTerms', label: 'Terms',    render: v => v.paymentTerms || '—' },
+    { key: 'totalAmount',  label: 'Total',    render: v => `₹${Number(v.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { key: 'items',        label: 'Items',    render: v => v.items?.length ?? '—' },
+    { key: 'narration',    label: 'Narration', render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
-    Promise.all([getCustomers(), getProducts(), getWarehouses(), getSalesVoucherNextNo()])
-      .then(([cust, prod, wh, vn]) => {
-        setCustomers(cust); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo);
-      }).catch(err => setError(err?.message || 'Failed to load form data'));
+    setLoadingVouchers(true);
+    Promise.all([getCustomers(), getProducts(), getWarehouses(), getSalesVoucherNextNo(), getSales()])
+      .then(([cust, prod, wh, vn, vlist]) => {
+        setCustomers(cust); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); setVouchers(vlist);
+      }).catch(err => setError(err?.message || 'Failed to load form data'))
+      .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
 
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
@@ -103,8 +122,9 @@ const SalesVoucherForm = () => {
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
       setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
-      const vn = await getSalesVoucherNextNo();
+      const [vn, vlist] = await Promise.all([getSalesVoucherNextNo(), getSales()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -118,6 +138,7 @@ const SalesVoucherForm = () => {
   };
 
   return (
+    <>
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New {type} Voucher</h2>
@@ -316,6 +337,17 @@ const SalesVoucherForm = () => {
         </div>
       </form>
     </section>
+
+      <VoucherList
+        title="Sales Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deleteSalesVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updateSalesVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
+    </>
   );
 };
 

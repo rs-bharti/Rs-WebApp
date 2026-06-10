@@ -3,8 +3,9 @@ import { Plus, X, ExternalLink } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { Link } from 'react-router-dom';
 import { getProducts, getWarehouses } from '../../../api/masters';
-import { getStockDataVoucherNextNo, saveStockDataVoucher, getStockQty } from '../../../api/vouchers';
+import { getStockDataVoucherNextNo, saveStockDataVoucher, getStockQty, getStockData, updateStockDataVoucher, deleteStockDataVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, stockQty: null });
 
@@ -21,12 +22,27 @@ const StockDataVoucherForm = () => {
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState('');
   const [success,   setSuccess]   = useState('');
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo', label: 'Voucher No' },
+    { key: 'date',      label: 'Date',    render: v => fmtDate(v.date) },
+    { key: 'items',     label: 'Items',   render: v => v.items?.length ?? '—' },
+    { key: 'narration', label: 'Narration', render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
-    Promise.all([getProducts(), getWarehouses(), getStockDataVoucherNextNo()])
-      .then(([prod, wh, vn]) => { setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); })
-      .catch(err => setError(err?.message || 'Failed to load form data'));
-  }, []);
+    setLoadingVouchers(true);
+    Promise.all([getProducts(), getWarehouses(), getStockDataVoucherNextNo(), getStockData()])
+      .then(([prod, wh, vn, vlist]) => { setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); setVouchers(vlist); })
+      .catch(err => setError(err?.message || 'Failed to load form data'))
+      .finally(() => setLoadingVouchers(false));
+  }, [activeBranch?.id]);
 
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
   const removeRow = (id) => { if (rows.length > 1) setRows(prev => prev.filter(r => r.id !== id)); };
@@ -74,8 +90,9 @@ const StockDataVoucherForm = () => {
       setSuccess(`Voucher ${voucher.voucherNo} saved with ${validRows.length} item(s)`);
       setRows([emptyRow()]);
       setNarration('');
-      const vn = await getStockDataVoucherNextNo();
+      const [vn, vlist] = await Promise.all([getStockDataVoucherNextNo(), getStockData()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -88,6 +105,7 @@ const StockDataVoucherForm = () => {
   };
 
   return (
+    <>
     <section className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="px-4 py-4 md:px-8 md:py-6 border-b border-stone-100 flex justify-between items-center">
         <h2 className="text-2xl font-user-serif font-bold text-rs-text-primary">New {type} Voucher</h2>
@@ -235,6 +253,17 @@ const StockDataVoucherForm = () => {
         </div>
       </form>
     </section>
+
+      <VoucherList
+        title="Stock Data Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deleteStockDataVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updateStockDataVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
+    </>
   );
 };
 

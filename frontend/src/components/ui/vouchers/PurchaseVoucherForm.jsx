@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Plus, X, ExternalLink } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
-import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty } from '../../../api/vouchers';
+import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty, getPurchases, updatePurchaseVoucher, deletePurchaseVoucher } from '../../../api/vouchers';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
+import VoucherList, { fmtDate } from './VoucherList';
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, stockQty: null });
 
@@ -29,23 +30,43 @@ const PurchaseVoucherForm = () => {
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
   const [quickCreate, setQuickCreate] = useState(null);
+  const [vouchers, setVouchers]               = useState([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+
+  const COLUMNS = [
+    { key: 'voucherNo',     label: 'Voucher No' },
+    { key: 'date',          label: 'Date',         render: v => fmtDate(v.date) },
+    { key: 'supplier',      label: 'Supplier',     render: v => v.supplier?.name || '—' },
+    { key: 'paymentMethod', label: 'Method',       render: v => v.paymentMethod?.name || '—' },
+    { key: 'totalAmount',   label: 'Amount',       render: v => `₹${Number(v.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { key: 'items',         label: 'Items',        render: v => v.items?.length ?? '—' },
+    { key: 'narration',     label: 'Narration',    render: v => v.narration || '—' },
+  ];
+  const EDIT_FIELDS = [
+    { key: 'date',      label: 'Date',      type: 'date' },
+    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+  ];
 
   useEffect(() => {
     setPaymentMethodId('');
     setPaymentMethods([]);
+    setLoadingVouchers(true);
     Promise.all([
       getSuppliers(),
       getProducts(),
       getWarehouses(),
       getPaymentMethods(),
       getPurchaseVoucherNextNo(),
-    ]).then(([supp, prod, wh, pm, vn]) => {
+      getPurchases(),
+    ]).then(([supp, prod, wh, pm, vn, vlist]) => {
       setSuppliers(supp);
       setProducts(prod);
       setWarehouses(wh);
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
-    }).catch(err => setError(err?.message || 'Failed to load form data'));
+      setVouchers(vlist);
+    }).catch(err => setError(err?.message || 'Failed to load form data'))
+      .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
 
   const addRow    = () => setRows(prev => [...prev, emptyRow()]);
@@ -103,8 +124,9 @@ const PurchaseVoucherForm = () => {
       setSupplierId('');
       setPaymentMethodId('');
       setNarration('');
-      const vn = await getPurchaseVoucherNextNo();
+      const [vn, vlist] = await Promise.all([getPurchaseVoucherNextNo(), getPurchases()]);
       setVoucherNo(vn.voucherNo);
+      setVouchers(vlist);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -310,6 +332,16 @@ const PurchaseVoucherForm = () => {
           onCreated={(item) => { setPaymentMethods(prev => [...prev, item]); setPaymentMethodId(String(item.id)); setQuickCreate(null); }}
         />
       )}
+
+      <VoucherList
+        title="Purchase Voucher Entries"
+        vouchers={vouchers}
+        columns={COLUMNS}
+        editFields={EDIT_FIELDS}
+        onDelete={async (id) => { await deletePurchaseVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
+        onUpdate={async (id, data) => { const u = await updatePurchaseVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        loading={loadingVouchers}
+      />
     </>
   );
 };

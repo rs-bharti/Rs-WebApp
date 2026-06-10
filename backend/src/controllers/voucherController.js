@@ -915,42 +915,272 @@ const getExpenseVouchers = async (req, res) => {
 
 const createExpenseVoucher = async (req, res) => {
   try {
-    const { expenseId, amount, narration, date } = req.body;
+    const { expenseId, paymentMethodId, amount, narration, date } = req.body;
     if (!expenseId || amount == null)
       return res.status(400).json({ message: 'expenseId and amount are required' });
 
     const branchId = getBranchId(req);
 
-    const expenseRec = await prisma.expenseMaster.findUnique({ where: { id: Number(expenseId) }, select: { name: true } });
+    const [expenseRec, pmRec] = await Promise.all([
+      prisma.expenseMaster.findUnique({ where: { id: Number(expenseId) }, select: { name: true } }),
+      paymentMethodId ? prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }) : null,
+    ]);
 
     const voucher = await prisma.expenseVoucher.create({
       data: {
-        voucherNo:   await nextNo('expenseVoucher', 'EXP'),
-        expenseId:   Number(expenseId),
-        expenseName: expenseRec?.name || null,
-        amount:      Number(amount),
-        narration:   narration || null,
-        date:        date ? new Date(date) : new Date(),
-        createdById: req.user.id,
-        branchId:    branchId || null,
+        voucherNo:         await nextNo('expenseVoucher', 'EXP'),
+        expenseId:         Number(expenseId),
+        expenseName:       expenseRec?.name || null,
+        paymentMethodId:   paymentMethodId ? Number(paymentMethodId) : 1,
+        paymentMethodName: pmRec?.name || null,
+        amount:            Number(amount),
+        narration:         narration || null,
+        date:              date ? new Date(date) : new Date(),
+        createdById:       req.user.id,
+        branchId:          branchId || null,
       },
     });
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
 
+// ── DELETE handlers ────────────────────────────────────────────────────────────
+
+const deleteContra = async (req, res) => {
+  try {
+    await prisma.contraVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteReceipt = async (req, res) => {
+  try {
+    await prisma.receiptVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deletePayment = async (req, res) => {
+  try {
+    await prisma.paymentVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deletePurchase = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const v  = await prisma.purchaseVoucher.findUnique({ where: { id }, select: { voucherNo: true } });
+    if (v) {
+      await prisma.$transaction([
+        prisma.supplierTransaction.deleteMany({ where: { refVoucherNo: v.voucherNo } }),
+        prisma.purchaseVoucher.delete({ where: { id } }),
+      ]);
+    }
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteSales = async (req, res) => {
+  try {
+    await prisma.salesVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deletePurchaseReturn = async (req, res) => {
+  try {
+    await prisma.purchaseReturnVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteSalesReturn = async (req, res) => {
+  try {
+    await prisma.salesReturnVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteStockData = async (req, res) => {
+  try {
+    await prisma.stockDataVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteStockTransfer = async (req, res) => {
+  try {
+    await prisma.stockTransferVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteExpenseVoucher = async (req, res) => {
+  try {
+    await prisma.expenseVoucher.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// ── UPDATE handlers ────────────────────────────────────────────────────────────
+
+const updateReceipt = async (req, res) => {
+  try {
+    const { date, amount, narration } = req.body;
+    const updated = await prisma.receiptVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(amount   != null       && { amount: Number(amount) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updatePayment = async (req, res) => {
+  try {
+    const { date, amount, narration } = req.body;
+    const updated = await prisma.paymentVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(amount   != null       && { amount: Number(amount) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateContra = async (req, res) => {
+  try {
+    const { date, amount, narration } = req.body;
+    const updated = await prisma.contraVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(amount   != null       && { amount: Number(amount) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateExpenseVoucher = async (req, res) => {
+  try {
+    const { date, amount, narration } = req.body;
+    const updated = await prisma.expenseVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(amount   != null       && { amount: Number(amount) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateSales = async (req, res) => {
+  try {
+    const { date, narration } = req.body;
+    const updated = await prisma.salesVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updatePurchase = async (req, res) => {
+  try {
+    const { date, narration } = req.body;
+    const updated = await prisma.purchaseVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateSalesReturn = async (req, res) => {
+  try {
+    const { date, narration } = req.body;
+    const updated = await prisma.salesReturnVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updatePurchaseReturn = async (req, res) => {
+  try {
+    const { date, narration } = req.body;
+    const updated = await prisma.purchaseReturnVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateStockData = async (req, res) => {
+  try {
+    const { date, narration } = req.body;
+    const updated = await prisma.stockDataVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateStockTransfer = async (req, res) => {
+  try {
+    const { date, narration } = req.body;
+    const updated = await prisma.stockTransferVoucher.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        ...(date     !== undefined && { date: new Date(date) }),
+        ...(narration !== undefined && { narration: narration || null }),
+      },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 module.exports = {
-  getContraNextNo,        getContras,        createContra,
-  getReceiptNextNo,       getReceipts,       createReceipt,
-  getPaymentNextNo,       getPayments,       createPayment,
-  getPurchaseNextNo,      getPurchases,      createPurchase,
-  getSalesNextNo,         getSales,          createSales,
-  getPurchaseReturnNextNo, getPurchaseReturns, createPurchaseReturn,
-  getSalesReturnNextNo,   getSalesReturns,   createSalesReturn,
+  getContraNextNo,        getContras,        createContra,        deleteContra,        updateContra,
+  getReceiptNextNo,       getReceipts,       createReceipt,       deleteReceipt,       updateReceipt,
+  getPaymentNextNo,       getPayments,       createPayment,       deletePayment,       updatePayment,
+  getPurchaseNextNo,      getPurchases,      createPurchase,      deletePurchase,      updatePurchase,
+  getSalesNextNo,         getSales,          createSales,         deleteSales,         updateSales,
+  getPurchaseReturnNextNo, getPurchaseReturns, createPurchaseReturn, deletePurchaseReturn, updatePurchaseReturn,
+  getSalesReturnNextNo,   getSalesReturns,   createSalesReturn,   deleteSalesReturn,   updateSalesReturn,
   getDashboard,
-  getStockDataNextNo,    getStockData,    createStockData,
-  getStockTransferNextNo, getStockTransfers, createStockTransfer,
+  getStockDataNextNo,    getStockData,    createStockData,    deleteStockData,    updateStockData,
+  getStockTransferNextNo, getStockTransfers, createStockTransfer, deleteStockTransfer, updateStockTransfer,
   getStockQty,
   getStockQtyByWarehouse,
-  getExpenseNextNo, getExpenseVouchers, createExpenseVoucher,
+  getExpenseNextNo, getExpenseVouchers, createExpenseVoucher, deleteExpenseVoucher, updateExpenseVoucher,
 };
