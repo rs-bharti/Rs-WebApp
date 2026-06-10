@@ -6,7 +6,7 @@ import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
   Repeat, Undo2, LogOut, Users, Building,
   Database, Truck, Package, Warehouse,
-  ClipboardList, ArrowLeftRight, X, Receipt, Tag, Ruler
+  ClipboardList, ArrowLeftRight, X, Receipt
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
@@ -39,14 +39,10 @@ const VOUCHER_ROUTES = {
 };
 
 const MASTER_ROUTES = {
-  'Customer':        { slug: 'customer',        icon: Users },
-  'Warehouse':       { slug: 'warehouse',       icon: Warehouse },
-  'Supplier':        { slug: 'supplier',        icon: Truck },
-  'Product':         { slug: 'product',         icon: Package },
-  'Category':        { slug: 'category',        icon: Tag },
-  'Unit':            { slug: 'unit',            icon: Ruler },
-  'Payment Method':  { slug: 'payment-method',  icon: CreditCard },
-  'Expense':         { slug: 'expense',          icon: Receipt },
+  'Customer':  { slug: 'customer',  icon: Users },
+  'Warehouse': { slug: 'warehouse', icon: Warehouse },
+  'Supplier':  { slug: 'supplier',  icon: Truck },
+  'Product':   { slug: 'product',   icon: Package },
 };
 
 const OTHER_ROUTES = {

@@ -338,20 +338,20 @@ model ExpenseVoucher {
   id                Int                 @id @default(autoincrement())
   voucherNo         String              @unique
   expenseId         Int
-  paymentMethodId   Int
+  paymentMethodId   Int?
   amount            Float
   narration         String?
   date              DateTime
   branchId          Int?
   createdById       Int
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   expenseName       String?
   paymentMethodName String?
-  branch            Branch?             @relation(fields: [branchId], references: [id])
-  createdBy         User                @relation(fields: [createdById], references: [id])
-  expense           ExpenseMaster       @relation(fields: [expenseId], references: [id])
-  paymentMethod     PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
+  branch            Branch?              @relation(fields: [branchId], references: [id])
+  createdBy         User                 @relation(fields: [createdById], references: [id])
+  expense           ExpenseMaster        @relation(fields: [expenseId], references: [id])
+  paymentMethod     PaymentMethodMaster? @relation(fields: [paymentMethodId], references: [id])
 }
 
 model PurchaseVoucher {

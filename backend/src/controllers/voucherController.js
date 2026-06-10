@@ -817,29 +817,24 @@ const getExpenseVouchers = async (req, res) => {
 
 const createExpenseVoucher = async (req, res) => {
   try {
-    const { expenseId, paymentMethodId, amount, narration, date } = req.body;
-    if (!expenseId || !paymentMethodId || amount == null)
-      return res.status(400).json({ message: 'expenseId, paymentMethodId, and amount are required' });
+    const { expenseId, amount, narration, date } = req.body;
+    if (!expenseId || amount == null)
+      return res.status(400).json({ message: 'expenseId and amount are required' });
 
     const branchId = getBranchId(req);
 
-    const [expenseRec, pmRec] = await Promise.all([
-      prisma.expenseMaster.findUnique({ where: { id: Number(expenseId) }, select: { name: true } }),
-      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
-    ]);
+    const expenseRec = await prisma.expenseMaster.findUnique({ where: { id: Number(expenseId) }, select: { name: true } });
 
     const voucher = await prisma.expenseVoucher.create({
       data: {
-        voucherNo:        await nextNo('expenseVoucher', 'EXP'),
-        expenseId:        Number(expenseId),
-        expenseName:      expenseRec?.name || null,
-        paymentMethodId:  Number(paymentMethodId),
-        paymentMethodName: pmRec?.name || null,
-        amount:           Number(amount),
-        narration:        narration || null,
-        date:             date ? new Date(date) : new Date(),
-        createdById:      req.user.id,
-        branchId:         branchId || null,
+        voucherNo:   await nextNo('expenseVoucher', 'EXP'),
+        expenseId:   Number(expenseId),
+        expenseName: expenseRec?.name || null,
+        amount:      Number(amount),
+        narration:   narration || null,
+        date:        date ? new Date(date) : new Date(),
+        createdById: req.user.id,
+        branchId:    branchId || null,
       },
     });
     res.status(201).json(voucher);

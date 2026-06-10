@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, Plus } from 'lucide-react';
-import { getExpenses, getPaymentMethods } from '../../../api/masters';
+import { getExpenses } from '../../../api/masters';
 import { getExpenseVoucherNextNo, saveExpenseVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import QuickCreateModal from '../QuickCreateModal';
@@ -9,15 +9,13 @@ const ExpenseVoucherForm = () => {
   const type = 'Expense';
   const { activeBranch } = useAuth();
 
-  const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
-  const [voucherNo,       setVoucherNo]       = useState('');
-  const [expenseId,       setExpenseId]       = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [amount,          setAmount]          = useState('');
-  const [narration,       setNarration]       = useState('');
+  const [date,        setDate]        = useState(new Date().toISOString().split('T')[0]);
+  const [voucherNo,   setVoucherNo]   = useState('');
+  const [expenseId,   setExpenseId]   = useState('');
+  const [amount,      setAmount]      = useState('');
+  const [narration,   setNarration]   = useState('');
 
-  const [expenses,       setExpenses]       = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [expenses,    setExpenses]    = useState([]);
 
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState('');
@@ -26,16 +24,12 @@ const ExpenseVoucherForm = () => {
 
   useEffect(() => {
     setExpenseId('');
-    setPaymentMethodId('');
     setExpenses([]);
-    setPaymentMethods([]);
     Promise.all([
       getExpenses(),
-      getPaymentMethods(),
       getExpenseVoucherNextNo(),
-    ]).then(([exp, pm, vn]) => {
+    ]).then(([exp, vn]) => {
       setExpenses(exp);
-      setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
     }).catch(err => setError(err?.message || 'Failed to load form data'));
   }, [activeBranch?.id]);
@@ -44,22 +38,19 @@ const ExpenseVoucherForm = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    if (!expenseId)                          return setError('Please select an expense type');
-    if (!paymentMethodId)                    return setError('Please select a payment method');
-    if (!amount || parseFloat(amount) <= 0)  return setError('Please enter a valid amount');
+    if (!expenseId)                         return setError('Please select an expense type');
+    if (!amount || parseFloat(amount) <= 0) return setError('Please enter a valid amount');
     setSaving(true);
     try {
       const voucher = await saveExpenseVoucher({
         date,
-        expenseId:       parseInt(expenseId),
-        paymentMethodId: parseInt(paymentMethodId),
-        amount:          parseFloat(amount),
-        narration:       narration || undefined,
-        branchId:        activeBranch?.id,
+        expenseId: parseInt(expenseId),
+        amount:    parseFloat(amount),
+        narration: narration || undefined,
+        branchId:  activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
       setExpenseId('');
-      setPaymentMethodId('');
       setAmount('');
       setNarration('');
       const vn = await getExpenseVoucherNextNo();
@@ -73,7 +64,6 @@ const ExpenseVoucherForm = () => {
 
   const handleDiscard = () => {
     setExpenseId('');
-    setPaymentMethodId('');
     setAmount('');
     setNarration('');
     setError('');
@@ -118,42 +108,22 @@ const ExpenseVoucherForm = () => {
           </div>
         </div>
 
-        {/* Expense Type + Payment Method */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-2xl">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Expense Type</label>
-              <button type="button" onClick={() => setQuickCreate('Expense')}
-                className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer"
-                title="Add new expense type">
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={expenseId} onChange={e => setExpenseId(e.target.value)} required>
-                <option value="" disabled>Select Expense</option>
-                {expenses.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
+        {/* Expense Type */}
+        <div className="max-w-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Expense Type</label>
+            <button type="button" onClick={() => setQuickCreate('Expense')}
+              className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer"
+              title="Add new expense type">
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
-              <button type="button" onClick={() => setQuickCreate('Payment Method')}
-                className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer"
-                title="Add new payment method">
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
-              <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} required>
-                <option value="" disabled>Select Method</option>
-                {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
-            </div>
+          <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors flex items-center">
+            <select className="w-full bg-transparent text-sm font-medium outline-none appearance-none cursor-pointer" value={expenseId} onChange={e => setExpenseId(e.target.value)} required>
+              <option value="" disabled>Select Expense</option>
+              {expenses.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+            </select>
+            <ChevronDown className="w-4 h-4 text-stone-400 pointer-events-none" />
           </div>
         </div>
 
@@ -202,9 +172,6 @@ const ExpenseVoucherForm = () => {
             if (quickCreate === 'Expense') {
               setExpenses(prev => [...prev, item]);
               setExpenseId(String(item.id));
-            } else if (quickCreate === 'Payment Method') {
-              setPaymentMethods(prev => [...prev, item]);
-              setPaymentMethodId(String(item.id));
             }
             setQuickCreate(null);
           }}
