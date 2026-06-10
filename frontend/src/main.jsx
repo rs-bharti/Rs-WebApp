@@ -10,6 +10,7 @@ const SKIP_TYPES = new Set(['date','number','email','password','checkbox','radio
 
 function shouldUppercase(el) {
   if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return false;
+  if (el.readOnly) return false;
   if (el.dataset?.noUpper) return false;
   if (window.location.pathname === '/login') return false;
   return !SKIP_TYPES.has((el.type || '').toLowerCase());

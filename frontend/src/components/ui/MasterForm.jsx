@@ -67,9 +67,13 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
   const display  = displayFn || (o => o.name);
   const selected = options.find(o => String(o.id) === String(value));
 
-  const filtered = options
-    .filter(o => display(o).toLowerCase().includes(search.toLowerCase()))
-    .slice(0, 60);
+  const q = search.toLowerCase();
+  const filtered = q
+    ? [
+        ...options.filter(o => display(o).toLowerCase().startsWith(q)),
+        ...options.filter(o => !display(o).toLowerCase().startsWith(q) && display(o).toLowerCase().includes(q)),
+      ].slice(0, 60)
+    : options.slice(0, 60);
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -711,10 +715,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     DR
                   </button>
                 </div>
-                <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span>
+                <div className={cn('flex items-center flex-1 rounded-xl border overflow-hidden transition-all', isAdmin ? 'border-brand-bg bg-brand-bg/20 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/10' : 'border-stone-200 bg-stone-50 focus-within:border-rs-text-primary focus-within:ring-2 focus-within:ring-rs-text-primary/10')}>
+                  <span className={cn('pl-4 text-sm flex-shrink-0', isAdmin ? 'text-brand-primary/50' : 'text-stone-400')}>{currencySymbol}</span>
                   <input
-                    className={cn(inputCls, 'pl-8', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
+                    className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
                     type="number" min="0" step="0.01" placeholder="0.00"
                     value={f('openingBalance')} onChange={upd('openingBalance')}
                   />
@@ -765,10 +769,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     DR
                   </button>
                 </div>
-                <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span>
+                <div className={cn('flex items-center flex-1 rounded-xl border overflow-hidden transition-all', isAdmin ? 'border-brand-bg bg-brand-bg/20 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/10' : 'border-stone-200 bg-stone-50 focus-within:border-rs-text-primary focus-within:ring-2 focus-within:ring-rs-text-primary/10')}>
+                  <span className={cn('pl-4 text-sm flex-shrink-0', isAdmin ? 'text-brand-primary/50' : 'text-stone-400')}>{currencySymbol}</span>
                   <input
-                    className={cn(inputCls, 'pl-8', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
+                    className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
                     type="number" min="0" step="0.01" placeholder="0.00"
                     value={f('openingBalance')} onChange={upd('openingBalance')}
                   />
@@ -803,11 +807,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="space-y-2">
             <label className={labelCls}>Lower Limit (Min Price) <span className="text-red-400">*</span></label>
-            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('lowerLimit')} onChange={upd('lowerLimit')} required /></div>
+            <div className={cn('flex items-center rounded-xl border overflow-hidden transition-all', isAdmin ? 'border-brand-bg bg-brand-bg/20 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/10' : 'border-stone-200 bg-stone-50 focus-within:border-rs-text-primary focus-within:ring-2 focus-within:ring-rs-text-primary/10')}><span className={cn('pl-4 text-sm flex-shrink-0', isAdmin ? 'text-brand-primary/50' : 'text-stone-400')}>{currencySymbol}</span><input className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', isAdmin ? 'text-brand-primary placeholder:text-brand-primary/30' : 'text-rs-text-muted/60 placeholder:text-rs-text-muted/60')} type="number" placeholder="0.00" min="0" step="0.01" value={f('lowerLimit')} onChange={upd('lowerLimit')} required /></div>
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Upper Limit (Max Price) <span className="text-red-400">*</span></label>
-            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('upperLimit')} onChange={upd('upperLimit')} required /></div>
+            <div className={cn('flex items-center rounded-xl border overflow-hidden transition-all', isAdmin ? 'border-brand-bg bg-brand-bg/20 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/10' : 'border-stone-200 bg-stone-50 focus-within:border-rs-text-primary focus-within:ring-2 focus-within:ring-rs-text-primary/10')}><span className={cn('pl-4 text-sm flex-shrink-0', isAdmin ? 'text-brand-primary/50' : 'text-stone-400')}>{currencySymbol}</span><input className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', isAdmin ? 'text-brand-primary placeholder:text-brand-primary/30' : 'text-rs-text-muted/60 placeholder:text-rs-text-muted/60')} type="number" placeholder="0.00" min="0" step="0.01" value={f('upperLimit')} onChange={upd('upperLimit')} required /></div>
           </div>
           <div className="space-y-2"><label className={labelCls}>Barcode</label><input className={inputCls} type="text" placeholder="Scan or enter barcode" value={f('barcode')} onChange={upd('barcode')} /></div>
         </div>
@@ -1071,10 +1075,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                               <td className={tdCls}>{r.category?.name || '—'}</td>
                               <td className={tdCls}>{r.unit?.unitName || '—'}</td>
                               <td className="px-4 py-2">
-                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">{currencySymbol}</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.lowerLimit} onChange={e => setEditData(p => ({ ...p, lowerLimit: e.target.value }))} /></div>
+                                <div className="flex items-center rounded-lg border border-stone-200 bg-white overflow-hidden"><span className="pl-3 text-stone-400 text-xs flex-shrink-0">{currencySymbol}</span><input className="flex-1 py-1.5 pr-3 bg-transparent text-sm outline-none focus:ring-0 transition-all" type="number" min="0" step="0.01" value={editData.lowerLimit} onChange={e => setEditData(p => ({ ...p, lowerLimit: e.target.value }))} /></div>
                               </td>
                               <td className="px-4 py-2">
-                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">{currencySymbol}</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.upperLimit} onChange={e => setEditData(p => ({ ...p, upperLimit: e.target.value }))} /></div>
+                                <div className="flex items-center rounded-lg border border-stone-200 bg-white overflow-hidden"><span className="pl-3 text-stone-400 text-xs flex-shrink-0">{currencySymbol}</span><input className="flex-1 py-1.5 pr-3 bg-transparent text-sm outline-none focus:ring-0 transition-all" type="number" min="0" step="0.01" value={editData.upperLimit} onChange={e => setEditData(p => ({ ...p, upperLimit: e.target.value }))} /></div>
                               </td>
                               <td className="px-4 py-2"><input className={inlineCls} value={editData.barcode} onChange={e => setEditData(p => ({ ...p, barcode: e.target.value }))} placeholder="—" /></td>
                               <td className="px-4 py-2">
