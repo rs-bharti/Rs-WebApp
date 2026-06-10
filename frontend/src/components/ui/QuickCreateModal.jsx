@@ -6,6 +6,7 @@ import {
   getCategories,    createCategory,    deleteCategory,    updateCategory,
   getUnits,         createUnit,        deleteUnit,        updateUnit,
   getPaymentMethods, createPaymentMethod, deletePaymentMethod, updatePaymentMethod,
+  getExpenses,      createExpense,     deleteExpense,     updateExpense,
 } from '../../api/masters';
 
 const CONFIGS = {
@@ -53,6 +54,20 @@ const CONFIGS = {
     toOption:  (r) => ({ id: r.id, name: r.name }),
     label:     (r) => r.name,
     editFields: [{ key: 'name', placeholder: 'Payment method name' }],
+    editInit:  (r) => ({ name: r.name }),
+  },
+  'Expense': {
+    title: 'Expense Type',
+    fields: [
+      { key: 'name', label: 'Expense Name', placeholder: 'e.g. Rent, Electricity, Salary', required: true },
+    ],
+    getAll:    () => getExpenses(),
+    save:      (data) => createExpense({ name: data.name.trim() }),
+    remove:    (id) => deleteExpense(id),
+    edit:      (id, data) => updateExpense(id, { name: data.name.trim() }),
+    toOption:  (r) => ({ id: r.id, name: r.name }),
+    label:     (r) => r.name,
+    editFields: [{ key: 'name', placeholder: 'Expense name' }],
     editInit:  (r) => ({ name: r.name }),
   },
 };

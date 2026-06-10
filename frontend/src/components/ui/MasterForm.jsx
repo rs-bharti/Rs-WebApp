@@ -13,6 +13,7 @@ import {
   getCustomers,     createCustomer,    updateCustomer,    deleteCustomer,
   getProducts,      createProduct,     updateProduct,     deleteProduct,
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+  getExpenses,      createExpense,     updateExpense,     deleteExpense,
   getWarehouses,    createWarehouse,   updateWarehouse,   deleteWarehouse,
 } from '../../api/masters';
 
@@ -183,9 +184,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const isUnit           = type === 'Unit';
   const isCategory       = type === 'Category';
   const isPaymentMethod  = type === 'Payment Method';
+  const isExpense        = type === 'Expense';
   const isWarehouse      = type === 'Warehouse';
   const isAdmin          = userRole === 'admin';
-  const showList         = isCustomer || isDetailed || isProduct || isBranch || isPaymentMethod || isWarehouse || isCategory || isUnit;
+  const showList         = isCustomer || isDetailed || isProduct || isBranch || isPaymentMethod || isWarehouse || isCategory || isUnit || isExpense;
 
   const [formData, setFormData] = useState({});
   const [saving,   setSaving]   = useState(false);
@@ -265,6 +267,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       else if (isPaymentMethod) await deletePaymentMethod(id);
       else if (isUnit)          await deleteUnit(id);
       else if (isCategory)      await deleteCategory(id);
+      else if (isExpense)       await deleteExpense(id);
       setRecords(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       setError(err.message || 'Failed to delete.');
@@ -296,6 +299,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           else if (isWarehouse)     rows = await getWarehouses();
           else if (isCategory)      rows = await getCategories();
           else if (isUnit)          rows = await getUnits();
+          else if (isExpense)       rows = await getExpenses();
           setRecords(rows);
         }
       } catch (err) { console.error('Failed to load data:', err); }
@@ -401,6 +405,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       if (isPaymentMethod) {
         if (!f('name')) return setError('Payment method name is required');
         newRow = await createPaymentMethod({ name: f('name') });
+      } else if (isExpense) {
+        if (!f('name')) return setError('Expense name is required');
+        newRow = await createExpense({ name: f('name') });
       } else if (type === 'Category') {
         newRow = await createCategory({ name: f('name') });
       } else if (isUnit) {
@@ -522,6 +529,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         updated = await updateCategory(id, { name: editData.name.trim() });
       } else if (isPaymentMethod) {
         updated = await updatePaymentMethod(id, { name: editData.name.trim() });
+      } else if (isExpense) {
+        updated = await updateExpense(id, { name: editData.name.trim() });
       }
       setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
       setEditingId(null);
@@ -799,6 +808,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     if (isPaymentMethod) return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
         <div className="space-y-2"><label className={labelCls}>Payment Method Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Cash, Bank Transfer, UPI" value={f('name')} onChange={upd('name')} required /></div>
+      </div>
+    );
+
+    if (isExpense) return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
+        <div className="space-y-2"><label className={labelCls}>Expense Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Rent, Electricity, Salary" value={f('name')} onChange={upd('name')} required /></div>
       </div>
     );
 
@@ -1328,6 +1343,72 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                           {isEditing ? (
                             <>
                               <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Category name" /></td>
+                              <td className="px-4 py-2">
+                                <div className="flex items-center gap-2">
+                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
+                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                              <td className="px-4 py-2">
+                                <div className="flex items-center gap-3">
+                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700"><Pencil className="w-3.5 h-3.5" /></button>
+                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Expense list ─────────────────────────────────────────────────────────
+    if (isExpense) {
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q)) : records;
+      return (
+        <div className={dividerCls}>
+          <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
+            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+              Expense Master ({filteredRecords.length})
+            </h3>
+            <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search expenses…" />
+          </div>
+          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
+          <div className="px-8 pb-8">
+            {loadingList ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
+            ) : filteredRecords.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No expense types yet.'}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse max-w-lg">
+                  <thead>
+                    <tr className={headCls}>
+                      <th className={thCls}>#</th>
+                      <th className={thCls}>Name</th>
+                      <th className={thCls}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRecords.map((r, i) => {
+                      const isEditing = editingId === r.id;
+                      return (
+                        <tr key={r.id} className={trHoverCls}>
+                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                          {isEditing ? (
+                            <>
+                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Expense name" /></td>
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-2">
                                   <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>

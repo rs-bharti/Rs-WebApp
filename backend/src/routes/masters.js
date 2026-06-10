@@ -13,6 +13,7 @@ const {
   getCustomerTransactions, createCustomerTransaction,
   getProducts,   createProduct,  updateProduct,  deleteProduct,
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+  getExpenses,   createExpense,  updateExpense,  deleteExpense,
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
 } = require('../controllers/masterController');
 
@@ -62,6 +63,11 @@ router.get('/payment-methods',        getPaymentMethods);
 router.post('/payment-methods',       requirePermission('masters', 'Payment Method'), createPaymentMethod);
 router.put('/payment-methods/:id',    requirePermission('masters', 'Payment Method'), updatePaymentMethod);
 router.delete('/payment-methods/:id', requirePermission('masters', 'Payment Method'), deletePaymentMethod);
+
+router.get('/expenses',        getExpenses);
+router.post('/expenses',       requirePermission('masters', 'Expense'), createExpense);
+router.put('/expenses/:id',    requirePermission('masters', 'Expense'), updateExpense);
+router.delete('/expenses/:id', requirePermission('masters', 'Expense'), deleteExpense);
 
 router.get('/warehouses',        getWarehouses);
 router.post('/warehouses',       requirePermission('masters', 'Warehouse'), createWarehouse);

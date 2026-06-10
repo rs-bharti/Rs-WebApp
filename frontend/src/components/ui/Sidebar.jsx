@@ -6,7 +6,7 @@ import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
   Repeat, Undo2, LogOut, Users, Building,
   Database, Truck, Package, Warehouse,
-  ClipboardList, ArrowLeftRight, X
+  ClipboardList, ArrowLeftRight, X, Receipt, Tag, Ruler
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
@@ -28,20 +28,25 @@ const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
 const VOUCHER_ROUTES = {
   'Receipt':         { slug: 'receipt',        icon: FileText },
   'Payment':         { slug: 'payment',         icon: CreditCard },
+  'Expense':         { slug: 'expense',         icon: Receipt },
   'Sales':           { slug: 'sales',           icon: Menu },
   'Sales Return':    { slug: 'sales-return',    icon: RotateCcw },
   'Purchase':        { slug: 'purchase',        icon: ShoppingCart },
   'Contra':          { slug: 'contra',          icon: Repeat },
   'Purchase Return': { slug: 'purchase-return', icon: Undo2 },
-  'Stock Data':     { slug: 'stock-data',     icon: ClipboardList },
-  'Stock Transfer': { slug: 'stock-transfer', icon: ArrowLeftRight },
+  'Stock Data':      { slug: 'stock-data',      icon: ClipboardList },
+  'Stock Transfer':  { slug: 'stock-transfer',  icon: ArrowLeftRight },
 };
 
 const MASTER_ROUTES = {
-  'Customer':  { slug: 'customer',  icon: Users },
-  'Warehouse': { slug: 'warehouse', icon: Warehouse },
-  'Supplier':  { slug: 'supplier',  icon: Truck },
-  'Product':   { slug: 'product',   icon: Package },
+  'Customer':        { slug: 'customer',        icon: Users },
+  'Warehouse':       { slug: 'warehouse',       icon: Warehouse },
+  'Supplier':        { slug: 'supplier',        icon: Truck },
+  'Product':         { slug: 'product',         icon: Package },
+  'Category':        { slug: 'category',        icon: Tag },
+  'Unit':            { slug: 'unit',            icon: Ruler },
+  'Payment Method':  { slug: 'payment-method',  icon: CreditCard },
+  'Expense':         { slug: 'expense',          icon: Receipt },
 };
 
 const OTHER_ROUTES = {

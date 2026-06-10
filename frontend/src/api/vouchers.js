@@ -56,5 +56,9 @@ export const saveStockTransferVoucher      = (body) => apiFetch('/api/vouchers/t
 export const getStockQty = (productId, warehouseId) =>
   apiFetch(`/api/vouchers/stock-qty?productId=${productId}&warehouseId=${warehouseId}`);
 
+// ── Expense Voucher ────────────────────────────────────────────────────────────
+export const getExpenseVoucherNextNo = ()     => apiFetch('/api/vouchers/expense/next-number');
+export const saveExpenseVoucher      = (body) => apiFetch('/api/vouchers/expense', { method: 'POST', body: JSON.stringify(body) });
+
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 export const getDashboard = () => apiFetch('/api/vouchers/dashboard');

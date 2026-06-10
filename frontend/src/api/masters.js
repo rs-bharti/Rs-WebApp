@@ -82,3 +82,9 @@ export const getPaymentMethods    = ()          => apiFetch('/api/masters/paymen
 export const createPaymentMethod  = (body)      => apiFetch('/api/masters/payment-methods', { method: 'POST',   body: JSON.stringify(body) });
 export const updatePaymentMethod  = (id, body)  => apiFetch(`/api/masters/payment-methods/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
 export const deletePaymentMethod  = (id)        => apiFetch(`/api/masters/payment-methods/${id}`, { method: 'DELETE' });
+
+// ── Expense Master ─────────────────────────────────────────────────────────────
+export const getExpenses    = ()          => apiFetch('/api/masters/expenses');
+export const createExpense  = (body)      => apiFetch('/api/masters/expenses', { method: 'POST',   body: JSON.stringify(body) });
+export const updateExpense  = (id, body)  => apiFetch(`/api/masters/expenses/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
+export const deleteExpense  = (id)        => apiFetch(`/api/masters/expenses/${id}`, { method: 'DELETE' });

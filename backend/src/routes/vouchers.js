@@ -12,6 +12,7 @@ const {
   getStockDataNextNo,    getStockData,    createStockData,
   getStockTransferNextNo, getStockTransfers, createStockTransfer,
   getStockQty,
+  getExpenseNextNo, getExpenseVouchers, createExpenseVoucher,
 } = require('../controllers/voucherController');
 
 const router = express.Router();
@@ -55,5 +56,9 @@ router.post('/data',                    createStockData);
 router.get('/transfer/next-number',     getStockTransferNextNo);
 router.get('/transfer',                 getStockTransfers);
 router.post('/transfer',                createStockTransfer);
+
+router.get('/expense/next-number',  getExpenseNextNo);
+router.get('/expense',              getExpenseVouchers);
+router.post('/expense',             createExpenseVoucher);
 
 module.exports = router;

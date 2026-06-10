@@ -791,6 +791,61 @@ const getStockQty = async (req, res) => {
   }
 };
 
+// ── Expense Voucher ────────────────────────────────────────────────────────────
+const getExpenseNextNo = async (_req, res) => {
+  try { res.json({ voucherNo: await nextNo('expenseVoucher', 'EXP') }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const getExpenseVouchers = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
+    const rows = await prisma.expenseVoucher.findMany({
+      where,
+      include: {
+        expense:       { select: { id: true, name: true } },
+        paymentMethod: { select: { id: true, name: true } },
+        createdBy:     { select: { name: true } },
+        branch:        { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(rows);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
+const createExpenseVoucher = async (req, res) => {
+  try {
+    const { expenseId, paymentMethodId, amount, narration, date } = req.body;
+    if (!expenseId || !paymentMethodId || amount == null)
+      return res.status(400).json({ message: 'expenseId, paymentMethodId, and amount are required' });
+
+    const branchId = getBranchId(req);
+
+    const [expenseRec, pmRec] = await Promise.all([
+      prisma.expenseMaster.findUnique({ where: { id: Number(expenseId) }, select: { name: true } }),
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
+    ]);
+
+    const voucher = await prisma.expenseVoucher.create({
+      data: {
+        voucherNo:        await nextNo('expenseVoucher', 'EXP'),
+        expenseId:        Number(expenseId),
+        expenseName:      expenseRec?.name || null,
+        paymentMethodId:  Number(paymentMethodId),
+        paymentMethodName: pmRec?.name || null,
+        amount:           Number(amount),
+        narration:        narration || null,
+        date:             date ? new Date(date) : new Date(),
+        createdById:      req.user.id,
+        branchId:         branchId || null,
+      },
+    });
+    res.status(201).json(voucher);
+  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
+};
+
 module.exports = {
   getContraNextNo,        getContras,        createContra,
   getReceiptNextNo,       getReceipts,       createReceipt,
@@ -803,4 +858,5 @@ module.exports = {
   getStockDataNextNo,    getStockData,    createStockData,
   getStockTransferNextNo, getStockTransfers, createStockTransfer,
   getStockQty,
+  getExpenseNextNo, getExpenseVouchers, createExpenseVoucher,
 };
