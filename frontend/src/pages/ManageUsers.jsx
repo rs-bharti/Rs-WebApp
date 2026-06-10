@@ -7,8 +7,8 @@ import { cn } from '../lib/utils';
 import { getUsers, deleteUser, updateUserPermissions, getBranches } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 
-const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
-const MASTER_MODULES  = ['Customer', 'Area', 'Payment Method', 'Supplier', 'Product', 'Category', 'Unit', 'Warehouse'];
+const VOUCHER_MODULES = ['Receipt', 'Payment', 'Expense', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
+const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse'];
 const OTHER_MODULES   = ['Client Ledger', 'Stock Ledger', 'Client Balance', 'Stock Quantity', 'Product Statement', 'Customer Statement', 'All Customer Balance', 'All Balance Stock'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
@@ -107,7 +107,7 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-8">
 
           {/* Voucher Access */}
           <div>
