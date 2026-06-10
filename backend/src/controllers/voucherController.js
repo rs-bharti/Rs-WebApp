@@ -791,6 +791,97 @@ const getStockQty = async (req, res) => {
   }
 };
 
+// ── Stock Qty by Warehouse (all products) ─────────────────────────────────────
+const getStockQtyByWarehouse = async (req, res) => {
+  try {
+    const { warehouseId } = req.query;
+    if (!warehouseId) return res.status(400).json({ message: 'warehouseId is required' });
+
+    const branchId = getBranchId(req);
+    const wid = Number(warehouseId);
+
+    const products = await prisma.product.findMany({
+      where: branchId ? { branchId } : {},
+      include: { unit: true },
+      orderBy: { name: 'asc' },
+    });
+
+    if (products.length === 0) return res.json([]);
+
+    const pids = products.map(p => p.id);
+
+    const [sdGroups, purGroups, salGroups, srGroups, prGroups, tiGroups, toGroups] =
+      await Promise.all([
+        prisma.stockDataVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, voucher: { warehouseId: wid } },
+          _sum: { qty: true },
+        }),
+        prisma.purchaseVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, voucher: { warehouseId: wid } },
+          _sum: { qty: true },
+        }),
+        prisma.salesVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, voucher: { warehouseId: wid } },
+          _sum: { qty: true },
+        }),
+        prisma.salesReturnVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, warehouseId: wid },
+          _sum: { qty: true },
+        }),
+        prisma.purchaseReturnVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, voucher: { warehouseId: wid } },
+          _sum: { qty: true },
+        }),
+        prisma.stockTransferVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, voucher: { toWarehouseId: wid } },
+          _sum: { qty: true },
+        }),
+        prisma.stockTransferVoucherItem.groupBy({
+          by: ['productId'],
+          where: { productId: { in: pids }, voucher: { fromWarehouseId: wid } },
+          _sum: { qty: true },
+        }),
+      ]);
+
+    const buildMap = (groups) =>
+      Object.fromEntries(groups.map(g => [g.productId, g._sum.qty || 0]));
+
+    const sd  = buildMap(sdGroups);
+    const pur = buildMap(purGroups);
+    const sal = buildMap(salGroups);
+    const sr  = buildMap(srGroups);
+    const pr  = buildMap(prGroups);
+    const ti  = buildMap(tiGroups);
+    const to  = buildMap(toGroups);
+
+    const result = products.map(p => ({
+      id:   p.id,
+      name: p.name,
+      unit: p.unit?.unitName || '',
+      qty:  Math.max(0,
+        (sd[p.id]  || 0) +
+        (pur[p.id] || 0) +
+        (ti[p.id]  || 0) +
+        (sr[p.id]  || 0) -
+        (sal[p.id] || 0) -
+        (pr[p.id]  || 0) -
+        (to[p.id]  || 0)
+      ),
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // ── Expense Voucher ────────────────────────────────────────────────────────────
 const getExpenseNextNo = async (_req, res) => {
   try { res.json({ voucherNo: await nextNo('expenseVoucher', 'EXP') }); }
@@ -853,5 +944,6 @@ module.exports = {
   getStockDataNextNo,    getStockData,    createStockData,
   getStockTransferNextNo, getStockTransfers, createStockTransfer,
   getStockQty,
+  getStockQtyByWarehouse,
   getExpenseNextNo, getExpenseVouchers, createExpenseVoucher,
 };

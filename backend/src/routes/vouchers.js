@@ -12,6 +12,7 @@ const {
   getStockDataNextNo,    getStockData,    createStockData,
   getStockTransferNextNo, getStockTransfers, createStockTransfer,
   getStockQty,
+  getStockQtyByWarehouse,
   getExpenseNextNo, getExpenseVouchers, createExpenseVoucher,
 } = require('../controllers/voucherController');
 
@@ -20,6 +21,7 @@ router.use(authenticate);
 
 router.get('/dashboard',                getDashboard);
 router.get('/stock-qty',               getStockQty);
+router.get('/stock-qty-warehouse',     getStockQtyByWarehouse);
 
 router.get('/contra/next-number',       getContraNextNo);
 router.get('/contra',                   getContras);

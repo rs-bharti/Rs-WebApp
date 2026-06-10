@@ -491,21 +491,26 @@ const getCustomers = async (req, res) => {
   try {
     const branchId = getBranchId(req);
     const where = branchId ? { branchId } : {};
-    const rows = await prisma.customer.findMany({
-      where,
-      orderBy: { name: 'asc' },
-      select: {
-        id: true, name: true, phone: true, email: true, gstNo: true, address: true, area: true,
-        cityName: true, stateName: true, countryName: true,
-        contacts:     { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
-        transactions: { select: { type: true, amount: true } },
-      },
-    });
-    const result = rows.map(r => {
-      const balance = r.transactions.reduce((sum, t) => sum + (t.type === 'CR' ? t.amount : -t.amount), 0);
-      const { transactions, ...rest } = r;
-      return { ...rest, balance };
-    });
+    const [rows, txList] = await Promise.all([
+      prisma.customer.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        select: {
+          id: true, name: true, phone: true, email: true, gstNo: true, address: true, area: true,
+          cityName: true, stateName: true, countryName: true,
+          contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
+        },
+      }),
+      prisma.customerTransaction.findMany({
+        where: branchId ? { customer: { branchId } } : {},
+        select: { customerId: true, type: true, amount: true },
+      }),
+    ]);
+    const balanceMap = {};
+    for (const t of txList) {
+      balanceMap[t.customerId] = (balanceMap[t.customerId] || 0) + (t.type === 'CR' ? t.amount : -t.amount);
+    }
+    const result = rows.map(r => ({ ...r, balance: balanceMap[r.id] || 0 }));
     res.json(result);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
