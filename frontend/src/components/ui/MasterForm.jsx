@@ -174,7 +174,7 @@ const ListSearch = ({ value, onChange, placeholder = 'Search…' }) => (
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
-  const { activeBranch, clearBranch } = useAuth();
+  const { activeBranch, clearBranch, currencySymbol } = useAuth();
   const navigate = useNavigate();
 
   const isDetailed       = type === 'Supplier';
@@ -683,7 +683,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                   </button>
                 </div>
                 <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span>
                   <input
                     className={cn(inputCls, 'pl-8', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
                     type="number" min="0" step="0.01" placeholder="0.00"
@@ -692,7 +692,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
                   <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
-                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} ₹{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -737,7 +737,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                   </button>
                 </div>
                 <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span>
                   <input
                     className={cn(inputCls, 'pl-8', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
                     type="number" min="0" step="0.01" placeholder="0.00"
@@ -746,7 +746,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
                   <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
-                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} ₹{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -774,11 +774,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="space-y-2">
             <label className={labelCls}>Lower Limit (Min Price) <span className="text-red-400">*</span></label>
-            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('lowerLimit')} onChange={upd('lowerLimit')} required /></div>
+            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('lowerLimit')} onChange={upd('lowerLimit')} required /></div>
           </div>
           <div className="space-y-2">
             <label className={labelCls}>Upper Limit (Max Price) <span className="text-red-400">*</span></label>
-            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">₹</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('upperLimit')} onChange={upd('upperLimit')} required /></div>
+            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-sm">{currencySymbol}</span><input className={cn(inputCls, 'pl-10')} type="number" placeholder="0.00" min="0" step="0.01" value={f('upperLimit')} onChange={upd('upperLimit')} required /></div>
           </div>
           <div className="space-y-2"><label className={labelCls}>Barcode</label><input className={inputCls} type="text" placeholder="Scan or enter barcode" value={f('barcode')} onChange={upd('barcode')} /></div>
         </div>
@@ -923,7 +923,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                                   <td className={tdCls}>
                                     {r.balance !== undefined && r.balance !== null ? (
                                       <span className={cn('text-xs font-bold px-2 py-1 rounded-full', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
-                                        {r.balance >= 0 ? 'CR' : 'DR'} ₹{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        {r.balance >= 0 ? 'CR' : 'DR'} {currencySymbol}{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                       </span>
                                     ) : '—'}
                                   </td>
@@ -1042,10 +1042,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                               <td className={tdCls}>{r.category?.name || '—'}</td>
                               <td className={tdCls}>{r.unit?.unitName || '—'}</td>
                               <td className="px-4 py-2">
-                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">₹</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.lowerLimit} onChange={e => setEditData(p => ({ ...p, lowerLimit: e.target.value }))} /></div>
+                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">{currencySymbol}</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.lowerLimit} onChange={e => setEditData(p => ({ ...p, lowerLimit: e.target.value }))} /></div>
                               </td>
                               <td className="px-4 py-2">
-                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">₹</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.upperLimit} onChange={e => setEditData(p => ({ ...p, upperLimit: e.target.value }))} /></div>
+                                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs">{currencySymbol}</span><input className={cn(inlineCls, 'pl-6')} type="number" min="0" step="0.01" value={editData.upperLimit} onChange={e => setEditData(p => ({ ...p, upperLimit: e.target.value }))} /></div>
                               </td>
                               <td className="px-4 py-2"><input className={inlineCls} value={editData.barcode} onChange={e => setEditData(p => ({ ...p, barcode: e.target.value }))} placeholder="—" /></td>
                               <td className="px-4 py-2">
@@ -1062,8 +1062,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                               <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
                               <td className={tdCls}>{r.category?.name || '—'}</td>
                               <td className={tdCls}>{r.unit?.unitName || '—'}</td>
-                              <td className={tdCls}>₹ {Number(r.lowerLimit).toLocaleString()}</td>
-                              <td className={tdCls}>₹ {Number(r.upperLimit).toLocaleString()}</td>
+                              <td className={tdCls}>{currencySymbol} {Number(r.lowerLimit).toLocaleString()}</td>
+                              <td className={tdCls}>{currencySymbol} {Number(r.upperLimit).toLocaleString()}</td>
                               <td className={tdCls}>{r.barcode || '—'}</td>
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-3">

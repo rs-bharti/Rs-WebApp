@@ -10,7 +10,7 @@ const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehou
 
 const PurchaseReturnVoucherForm = () => {
   const type = 'Purchase Return';
-  const { activeBranch } = useAuth();
+  const { activeBranch, currencySymbol } = useAuth();
 
   const [rows,            setRows]            = useState([emptyRow()]);
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
@@ -134,7 +134,7 @@ const PurchaseReturnVoucherForm = () => {
                 <option value="" disabled>Select Supplier</option>
                 {suppliers.map(s => {
                   const bal = s.balance ?? 0;
-                  const tag = bal >= 0 ? `CR ₹${Math.abs(bal).toLocaleString()}` : `DR ₹${Math.abs(bal).toLocaleString()}`;
+                  const tag = bal >= 0 ? `CR ${currencySymbol}${Math.abs(bal).toLocaleString()}` : `DR ${currencySymbol}${Math.abs(bal).toLocaleString()}`;
                   return <option key={s.id} value={s.id}>{s.name} — {tag}</option>;
                 })}
               </select>
@@ -147,7 +147,7 @@ const PurchaseReturnVoucherForm = () => {
               const isCR = bal >= 0;
               return (
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
-                  {isCR ? 'CR' : 'DR'} ₹{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {isCR ? 'CR' : 'DR'} {currencySymbol}{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               );
             })()}
@@ -225,7 +225,7 @@ const PurchaseReturnVoucherForm = () => {
                           onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-rs-text-primary">
-                        ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {currencySymbol} {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-2 py-3 text-center">
                         <button type="button" onClick={() => removeRow(row.id)}
@@ -254,7 +254,7 @@ const PurchaseReturnVoucherForm = () => {
             <div className="flex justify-between items-end">
               <span className="font-bold text-rs-text-primary text-sm uppercase tracking-widest">Grand Total</span>
               <span className="text-3xl font-user-serif font-bold text-rs-text-primary tracking-tight">
-                ₹ {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>

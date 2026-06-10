@@ -50,6 +50,12 @@
   body {
     @apply bg-brand-bg font-sans text-gray-800 antialiased transition-colors duration-300;
   }
+
+  /* Visual uppercase for all text inputs and textareas except excluded types */
+  input:not([type="date"]):not([type="number"]):not([type="email"]):not([type="password"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):not([type="range"]):not([type="time"]):not([type="datetime-local"]):not([data-no-upper]),
+  textarea:not([data-no-upper]) {
+    text-transform: uppercase;
+  }
 }
 
 /* Global dark mode surface overrides — covers voucher forms, tables, modals, inputs */

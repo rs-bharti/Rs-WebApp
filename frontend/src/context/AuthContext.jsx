@@ -86,6 +86,9 @@ export const AuthProvider = ({ children }) => {
     return branchList.filter(b => allowed.includes(Number(b.id)));
   };
 
+  // Currency symbol derived from the active branch's country
+  const currencySymbol = activeBranch?.country?.currency || '₹';
+
   return (
     <AuthContext.Provider
       value={{
@@ -105,6 +108,7 @@ export const AuthProvider = ({ children }) => {
         canAccessOther,
         canAccessBranch,
         filterBranches,
+        currencySymbol,
         // List of branches this user can access [{id, name}]
         allowedBranches: isAdmin
           ? []   // admin sees all — handled separately via API

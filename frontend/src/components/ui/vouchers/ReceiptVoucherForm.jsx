@@ -8,7 +8,7 @@ import QuickCreateModal from '../QuickCreateModal';
 
 const ReceiptVoucherForm = () => {
   const type = 'Receipt';
-  const { activeBranch } = useAuth();
+  const { activeBranch, currencySymbol } = useAuth();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo, setVoucherNo] = useState('');
@@ -127,7 +127,7 @@ const ReceiptVoucherForm = () => {
                 <option value="" disabled>Select Customer</option>
                 {customers.map(c => {
                   const bal = c.balance ?? 0;
-                  const tag = bal >= 0 ? `CR ₹${Math.abs(bal).toLocaleString()}` : `DR ₹${Math.abs(bal).toLocaleString()}`;
+                  const tag = bal >= 0 ? `CR ${currencySymbol}${Math.abs(bal).toLocaleString()}` : `DR ${currencySymbol}${Math.abs(bal).toLocaleString()}`;
                   return <option key={c.id} value={c.id}>{c.name} — {tag}</option>;
                 })}
               </select>
@@ -140,7 +140,7 @@ const ReceiptVoucherForm = () => {
               const isCR = bal >= 0;
               return (
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
-                  {isCR ? 'CR' : 'DR'} ₹{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {isCR ? 'CR' : 'DR'} {currencySymbol}{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               );
             })()}
@@ -166,7 +166,7 @@ const ReceiptVoucherForm = () => {
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>
             <div className="relative border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
-              <span className="absolute left-0 top-0 text-stone-400 text-sm font-semibold">₹</span>
+              <span className="absolute left-0 top-0 text-stone-400 text-sm font-semibold">{currencySymbol}</span>
               <input className="w-full bg-transparent pl-4 text-sm font-bold text-rs-text-primary outline-none" placeholder="0.00" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
             </div>
           </div>
@@ -182,7 +182,7 @@ const ReceiptVoucherForm = () => {
             <div className="flex justify-between items-end">
               <span className="font-bold text-rs-text-primary text-sm uppercase tracking-widest">Grand Total</span>
               <span className="text-3xl font-user-serif font-bold text-rs-text-primary tracking-tight">
-                ₹ {parseFloat(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol} {parseFloat(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>

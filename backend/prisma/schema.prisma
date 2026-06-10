@@ -496,21 +496,23 @@ model StockTransferVoucherItem {
 }
 
 model ContraVoucher {
-  id                  Int                 @id @default(autoincrement())
-  voucherNo           String              @unique
-  fromPaymentMethodId Int
-  toPaymentMethodId   Int
-  amount              Float
-  narration           String?
-  date                DateTime
-  createdById         Int
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  branchId            Int?
-  branch              Branch?             @relation(fields: [branchId], references: [id])
-  createdBy           User                @relation(fields: [createdById], references: [id])
-  fromPaymentMethod   PaymentMethodMaster @relation("ContraFrom", fields: [fromPaymentMethodId], references: [id])
-  toPaymentMethod     PaymentMethodMaster @relation("ContraTo", fields: [toPaymentMethodId], references: [id])
+  id                      Int                 @id @default(autoincrement())
+  voucherNo               String              @unique
+  fromPaymentMethodId     Int
+  fromPaymentMethodName   String?
+  toPaymentMethodId       Int
+  toPaymentMethodName     String?
+  amount                  Float
+  narration               String?
+  date                    DateTime
+  createdById             Int
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  branchId                Int?
+  branch                  Branch?             @relation(fields: [branchId], references: [id])
+  createdBy               User                @relation(fields: [createdById], references: [id])
+  fromPaymentMethod       PaymentMethodMaster @relation("ContraFrom", fields: [fromPaymentMethodId], references: [id])
+  toPaymentMethod         PaymentMethodMaster @relation("ContraTo", fields: [toPaymentMethodId], references: [id])
 }
 
 model ReceiptVoucher {

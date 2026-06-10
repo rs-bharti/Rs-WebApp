@@ -9,7 +9,7 @@ const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehou
 
 const SalesVoucherForm = () => {
   const type = 'Sales';
-  const { activeBranch } = useAuth();
+  const { activeBranch, currencySymbol } = useAuth();
 
   const [rows,            setRows]            = useState([emptyRow()]);
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
@@ -152,7 +152,7 @@ const SalesVoucherForm = () => {
                 <option value="" disabled>Select Customer</option>
                 {customers.map(c => {
                   const bal = c.balance ?? 0;
-                  const tag = bal >= 0 ? `CR ₹${Math.abs(bal).toLocaleString()}` : `DR ₹${Math.abs(bal).toLocaleString()}`;
+                  const tag = bal >= 0 ? `CR ${currencySymbol}${Math.abs(bal).toLocaleString()}` : `DR ${currencySymbol}${Math.abs(bal).toLocaleString()}`;
                   return <option key={c.id} value={c.id}>{c.name} — {tag}</option>;
                 })}
               </select>
@@ -165,7 +165,7 @@ const SalesVoucherForm = () => {
               const isCR = bal >= 0;
               return (
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
-                  {isCR ? 'CR' : 'DR'} ₹{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {isCR ? 'CR' : 'DR'} {currencySymbol}{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               );
             })()}
@@ -266,14 +266,14 @@ const SalesVoucherForm = () => {
                         <input className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none ${belowMin || aboveMax ? 'text-amber-600 font-bold' : ''}`}
                           type="number" min="0" value={row.rate}
                           onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
-                        {belowMin && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Below min ₹{row.lowerLimit}</div>}
-                        {aboveMax && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Above max ₹{row.upperLimit}</div>}
+                        {belowMin && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Below min {currencySymbol}{row.lowerLimit}</div>}
+                        {aboveMax && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Above max {currencySymbol}{row.upperLimit}</div>}
                         {!belowMin && !aboveMax && row.lowerLimit !== null && row.upperLimit !== null && (
-                          <div className="text-[10px] text-right text-stone-400 mt-0.5">₹{row.lowerLimit}–₹{row.upperLimit}</div>
+                          <div className="text-[10px] text-right text-stone-400 mt-0.5">{currencySymbol}{row.lowerLimit}–{currencySymbol}{row.upperLimit}</div>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-rs-text-primary">
-                        ₹ {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {currencySymbol} {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-2 py-3 text-center">
                         <button type="button" onClick={() => removeRow(row.id)}
@@ -303,7 +303,7 @@ const SalesVoucherForm = () => {
             <div className="flex justify-between items-end">
               <span className="font-bold text-rs-text-primary text-sm uppercase tracking-widest">Grand Total</span>
               <span className="text-3xl font-user-serif font-bold text-rs-text-primary tracking-tight">
-                ₹ {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol} {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>

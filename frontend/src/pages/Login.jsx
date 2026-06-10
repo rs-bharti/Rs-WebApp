@@ -97,6 +97,7 @@ const Login = () => {
                 type="email"
                 placeholder="Enter your email"
                 required
+                data-no-upper
                 className="w-full border-none p-0 focus:ring-0 text-[15px] text-stone-800 bg-transparent placeholder:text-stone-300 outline-none"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -112,6 +113,7 @@ const Login = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 required
+                data-no-upper
                 className="w-full border-none p-0 focus:ring-0 text-[15px] text-stone-800 bg-transparent placeholder:text-stone-300 outline-none pr-8"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

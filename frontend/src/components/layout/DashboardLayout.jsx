@@ -50,7 +50,7 @@ const StatCard = ({ title, amount, trend, trendType, role }) => (
 const DashboardLayout = ({ userRole = 'admin' }) => {
   const location = useLocation();
   const navigate  = useNavigate();
-  const { user, activeBranch, allowedBranches, isAdmin } = useAuth();
+  const { user, activeBranch, allowedBranches, isAdmin, currencySymbol } = useAuth();
   const userName = user?.name || 'Admin User';
   const { isDark, toggle: toggleTheme } = useTheme();
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
@@ -154,21 +154,21 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
           )}>
             <StatCard
               title={userRole === 'admin' ? "Cash Position" : "Cash Balance"}
-              amount={userRole === 'admin' ? "₹42,850" : "₹12,450"}
+              amount={userRole === 'admin' ? `${currencySymbol}42,850` : `${currencySymbol}12,450`}
               trend="+2.4% FROM LAST MONTH"
               trendType="up"
               role={userRole}
             />
             <StatCard
               title="Bank Balance"
-              amount={userRole === 'admin' ? "₹12,84,900" : "₹84,120"}
+              amount={userRole === 'admin' ? `${currencySymbol}12,84,900` : `${currencySymbol}84,120`}
               trend={userRole === 'admin' ? "PRIMARY SAVINGS & ESCROW" : "LAST SYNCED: 2 MINS AGO"}
               trendType={userRole === 'admin' ? "neutral" : "up"}
               role={userRole}
             />
             <StatCard
               title={userRole === 'admin' ? "Total Receivables" : "Digital Wallet"}
-              amount={userRole === 'admin' ? "₹1,56,220" : "₹3,205"}
+              amount={userRole === 'admin' ? `${currencySymbol}1,56,220` : `${currencySymbol}3,205`}
               trend={userRole === 'admin' ? "OUTSTANDING FROM CLIENTS" : "Main Operating Wallet"}
               trendType={userRole === 'admin' ? "up" : "neutral"}
               role={userRole}

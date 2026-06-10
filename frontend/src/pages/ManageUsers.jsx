@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Navigate } from 'react-router-dom';
 import {
   Users, Trash2, Settings2, FileText, Database, Building2, X, AlertTriangle,
@@ -15,8 +16,8 @@ const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});
 
 // ── Delete Confirmation Modal ──────────────────────────────────────────────
-const DeleteModal = ({ user, onConfirm, onCancel, loading }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+const DeleteModal = ({ user, onConfirm, onCancel, loading }) => createPortal(
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
       <div className="bg-rose-600 px-6 py-5 flex items-center gap-3">
         <AlertTriangle className="w-6 h-6 text-white flex-shrink-0" />
@@ -41,7 +42,8 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading }) => (
         </div>
       </div>
     </div>
-  </div>
+  </div>,
+  document.body
 );
 
 // ── Edit Permissions Modal ─────────────────────────────────────────────────
@@ -69,6 +71,11 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const allVoucher = VOUCHER_MODULES.every(v => voucherAccess[v]);
   const allMaster  = MASTER_MODULES.every(m => masterAccess[m]);
   const allOther   = OTHER_MODULES.every(o => otherAccess[o]);
@@ -93,8 +100,8 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
 
         <div className="bg-brand-primary px-6 py-5 flex items-center justify-between flex-shrink-0">
@@ -225,7 +232,8 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -52,16 +52,23 @@ const createContra = async (req, res) => {
       return res.status(400).json({ message: 'From and To accounts must be different' });
 
     const branchId = getBranchId(req);
+    const [fromRecord, toRecord] = await Promise.all([
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(fromPaymentMethodId) }, select: { name: true } }),
+      prisma.paymentMethodMaster.findUnique({ where: { id: Number(toPaymentMethodId) },   select: { name: true } }),
+    ]);
+
     const voucher = await prisma.contraVoucher.create({
       data: {
-        voucherNo:           await nextNo('contraVoucher', 'CV'),
-        fromPaymentMethodId: Number(fromPaymentMethodId),
-        toPaymentMethodId:   Number(toPaymentMethodId),
-        amount:              Number(amount),
-        narration:           narration || null,
-        date:                date ? new Date(date) : new Date(),
-        createdById:         req.user.id,
-        branchId:            branchId || null,
+        voucherNo:              await nextNo('contraVoucher', 'CV'),
+        fromPaymentMethodId:    Number(fromPaymentMethodId),
+        fromPaymentMethodName:  fromRecord?.name || null,
+        toPaymentMethodId:      Number(toPaymentMethodId),
+        toPaymentMethodName:    toRecord?.name || null,
+        amount:                 Number(amount),
+        narration:              narration || null,
+        date:                   date ? new Date(date) : new Date(),
+        createdById:            req.user.id,
+        branchId:               branchId || null,
       },
     });
     res.status(201).json(voucher);
