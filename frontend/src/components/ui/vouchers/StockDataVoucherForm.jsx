@@ -7,7 +7,7 @@ import { getStockDataVoucherNextNo, saveStockDataVoucher, getStockQty, getStockD
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
 
-const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, stockQty: null });
+const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: '', stockQty: null });
 
 const StockDataVoucherForm = () => {
   const type = 'Stock Data';
@@ -68,7 +68,8 @@ const StockDataVoucherForm = () => {
     }
   };
 
-  const totalQty = rows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
+  const totalQty    = rows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
+  const totalAmount = rows.reduce((s, r) => s + (parseFloat(r.qty) || 0) * (parseFloat(r.rate) || 0), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,7 +87,7 @@ const StockDataVoucherForm = () => {
         warehouseId: parseInt(validRows[0].warehouseId),
         narration:   narration || undefined,
         branchId:    activeBranch?.id,
-        items:       validRows.map(r => ({ productId: parseInt(r.productId), warehouseId: parseInt(r.warehouseId), qty: parseFloat(r.qty) })),
+        items:       validRows.map(r => ({ productId: parseInt(r.productId), warehouseId: parseInt(r.warehouseId), qty: parseFloat(r.qty), rate: r.rate !== '' ? parseFloat(r.rate) : undefined })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved with ${validRows.length} item(s)`);
       setRows([emptyRow()]);
@@ -145,14 +146,16 @@ const StockDataVoucherForm = () => {
         <div className="space-y-4">
           <h5 className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Stock Items</h5>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse min-w-[850px]">
+            <table className="w-full text-sm text-left border-collapse min-w-[950px]">
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-8">#</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name <Link to="/dashboard/master/product" className="inline-flex items-center justify-center ml-1 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all align-middle" title="Go to Product Master"><ExternalLink className="w-4 h-4" /></Link></th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-44">Warehouse <Link to="/dashboard/master/warehouse" className="inline-flex items-center justify-center ml-1 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all align-middle" title="Go to Warehouse Master"><ExternalLink className="w-4 h-4" /></Link></th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-28">Curr. Stock</th>
-                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-44">Add Qty</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Add Qty</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Rate</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-32">Amount</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -209,6 +212,21 @@ const StockDataVoucherForm = () => {
                         )}
                       </td>
 
+                      {/* Rate */}
+                      <td className="px-4 py-3 text-right">
+                        <input
+                          className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
+                          type="number" min="0" step="0.01" placeholder="0.00" value={row.rate}
+                          onChange={e => updateRow(row.id, 'rate', e.target.value)} />
+                      </td>
+
+                      {/* Amount */}
+                      <td className="px-4 py-3 text-right">
+                        <span className="font-bold text-rs-text-primary">
+                          {((parseFloat(row.qty) || 0) * (parseFloat(row.rate) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+
                       <td className="px-2 py-3 text-center">
                         <button type="button" onClick={() => removeRow(row.id)}
                           className="text-stone-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer">
@@ -232,11 +250,17 @@ const StockDataVoucherForm = () => {
             <textarea className="w-full bg-rs-cream/20 border border-stone-200 rounded-lg p-4 text-sm resize-none outline-none focus:border-rs-text-primary transition-colors"
               placeholder="Enter additional details..." rows="4" value={narration} onChange={e => setNarration(e.target.value)} />
           </div>
-          <div className="w-full md:w-72 flex flex-col justify-end">
-            <div className="bg-rs-cream/40 rounded-xl p-5 flex justify-between items-center">
+          <div className="w-full md:w-80 flex flex-col justify-end gap-3">
+            <div className="bg-rs-cream/40 rounded-xl p-4 flex justify-between items-center">
               <span className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest">Total Quantity</span>
-              <span className="text-3xl font-user-serif font-bold text-rs-text-primary tracking-tight">
+              <span className="text-2xl font-user-serif font-bold text-rs-text-primary tracking-tight">
                 {totalQty.toLocaleString()}
+              </span>
+            </div>
+            <div className="bg-rs-text-primary/5 rounded-xl p-4 flex justify-between items-center">
+              <span className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest">Total Amount</span>
+              <span className="text-2xl font-user-serif font-bold text-rs-text-primary tracking-tight">
+                {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>

@@ -643,6 +643,7 @@ const createStockData = async (req, res) => {
             productId:   parseInt(i.productId),
             productName: productNameMap[parseInt(i.productId)] || null,
             qty:         parseFloat(i.qty),
+            rate:        i.rate !== undefined && i.rate !== '' ? parseFloat(i.rate) : null,
           })),
         },
       },
