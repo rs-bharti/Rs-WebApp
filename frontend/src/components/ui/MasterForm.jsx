@@ -522,7 +522,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     }
   };
 
-  // ── Inline edit handlers (product list) ──────────────────────────────────────
+  // ── Edit handlers ────────────────────────────────────────────────────────────
   const startEdit = (r) => {
     setEditingId(r.id);
     if (isProduct)
@@ -569,8 +569,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       } else if (isExpense) {
         updated = await updateExpense(id, { name: editData.name.trim() });
       }
-      setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
-      if (viewRecord?.id === id) setViewRecord(prev => ({ ...prev, ...updated }));
+      setRecords(prev => prev.map(r => r.id === id ? { ...r, ...editData, ...updated } : r));
+      if (viewRecord?.id === id) setViewRecord(prev => ({ ...prev, ...editData, ...updated }));
       setEditingId(null);
     } catch (err) {
       setEditError(err.message || 'Failed to save');
