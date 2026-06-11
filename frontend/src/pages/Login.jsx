@@ -43,7 +43,7 @@ const Login = () => {
       if (branches.length === 1) {
         // Only 1 branch → auto select and go to dashboard
         const branchName = user.permissions?.branchNames?.[0] || `Branch ${branches[0]}`;
-        localStorage.setItem('activeBranch', JSON.stringify({ id: branches[0], name: branchName }));
+        sessionStorage.setItem('activeBranch', JSON.stringify({ id: branches[0], name: branchName }));
         navigate('/dashboard');
         return;
       }

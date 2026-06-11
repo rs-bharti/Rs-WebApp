@@ -267,6 +267,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [savingEdit,  setSavingEdit]  = useState(false);
   const [editError,   setEditError]   = useState('');
   const [showListModal, setShowListModal] = useState(false);
+  const [viewRecord,  setViewRecord]  = useState(null);
 
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
@@ -539,6 +540,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setEditError('');
   };
   const cancelEdit = () => { setEditingId(null); setEditData({}); setEditError(''); };
+  const openView   = (r) => { setViewRecord(r); setEditingId(null); setEditData({}); setEditError(''); };
+  const closeView  = () => { setViewRecord(null); setEditingId(null); setEditData({}); setEditError(''); };
 
   const saveEdit = async (id) => {
     setEditError('');
@@ -567,6 +570,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         updated = await updateExpense(id, { name: editData.name.trim() });
       }
       setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
+      if (viewRecord?.id === id) setViewRecord(prev => ({ ...prev, ...updated }));
       setEditingId(null);
     } catch (err) {
       setEditError(err.message || 'Failed to save');
@@ -873,16 +877,18 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     const headCls    = cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20');
     const dividerCls = cn('border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100');
     const q          = listSearch.trim().toLowerCase();
-    const inlineCls  = 'w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all';
+    const viewBtnCls = cn(
+      'px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer',
+      isAdmin
+        ? 'border-brand-primary/30 text-brand-primary hover:bg-brand-primary hover:text-white hover:border-transparent'
+        : 'border-rs-text-primary/30 text-rs-text-primary hover:bg-rs-text-primary hover:text-white hover:border-transparent'
+    );
 
     // ── Customer / Supplier table ────────────────────────────────────────────
     if (isCustomer || isDetailed) {
-      const allContacts = records.flatMap(r =>
-        (r.contacts || []).map(cp => ({ ...cp, parentName: r.name }))
-      );
+      const allContacts = records.flatMap(r => (r.contacts || []).map(cp => ({ ...cp, parentName: r.name })));
       const filteredRecords  = q ? records.filter(r => r.name?.toLowerCase().includes(q) || r.phone?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q)) : records;
       const filteredContacts = q ? allContacts.filter(cp => cp.name?.toLowerCase().includes(q) || cp.parentName?.toLowerCase().includes(q)) : allContacts;
-
       return (
         <>
           <div className={dividerCls}>
@@ -915,69 +921,41 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <th className={thCls}>GST No</th>
                         <th className={thCls}>Email</th>
                         {(isDetailed || isCustomer) && <th className={thCls}>Balance</th>}
+                        <th className={thCls}></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredRecords.map((r, i) => {
-                        const isEditing = editingId === r.id;
-                        return (
-                          <tr key={r.id} className={trHoverCls}>
-                            <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                            {isEditing ? (
-                              <>
-                                <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Name" /></td>
-                                <td className="px-4 py-2"><input className={inlineCls} value={editData.phone} onChange={e => setEditData(p => ({ ...p, phone: e.target.value }))} placeholder="Phone" /></td>
-                                <td className={tdCls}>{r.cityName || '—'}</td>
-                                <td className={tdCls}>{r.stateName || '—'}</td>
-                                <td className={tdCls}>{r.countryName || '—'}</td>
-                                <td className="px-4 py-2"><input className={inlineCls} value={editData.area} onChange={e => setEditData(p => ({ ...p, area: e.target.value }))} placeholder="Area" /></td>
-                                <td className="px-4 py-2"><input className={inlineCls} value={editData.gstNo} onChange={e => setEditData(p => ({ ...p, gstNo: e.target.value }))} placeholder="GST No" /></td>
-                                <td className="px-4 py-2"><input className={inlineCls} value={editData.email} onChange={e => setEditData(p => ({ ...p, email: e.target.value }))} placeholder="Email" /></td>
-                                {(isDetailed || isCustomer) && <td className={tdCls}>{r.balance !== undefined ? (r.balance >= 0 ? 'CR' : 'DR') : '—'}</td>}
-                                <td className="px-4 py-2">
-                                  <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                    <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                  </div>
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                                <td className={tdCls}>{r.phone || '—'}</td>
-                                <td className={cn(tdCls, 'font-medium')}>{r.cityName || '—'}</td>
-                                <td className={tdCls}>{r.stateName || '—'}</td>
-                                <td className={tdCls}>{r.countryName || '—'}</td>
-                                <td className={tdCls}>{r.area || '—'}</td>
-                                <td className={tdCls}>{r.gstNo || '—'}</td>
-                                <td className={tdCls}>{r.email || '—'}</td>
-                                {(isDetailed || isCustomer) && (
-                                  <td className={tdCls}>
-                                    {r.balance !== undefined && r.balance !== null ? (
-                                      <span className={cn('text-xs font-bold px-2 py-1 rounded-full', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
-                                        {r.balance >= 0 ? 'CR' : 'DR'} {currencySymbol}{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                      </span>
-                                    ) : '—'}
-                                  </td>
-                                )}
-                                <td className="px-4 py-2">
-                                  <div className="flex items-center gap-3">
-                                    <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700"><Pencil className="w-3.5 h-3.5" /></button>
-                                    <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                  </div>
-                                </td>
-                              </>
-                            )}
-                          </tr>
-                        );
-                      })}
+                      {filteredRecords.map((r, i) => (
+                        <tr key={r.id} className={trHoverCls}>
+                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                          <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                          <td className={tdCls}>{r.phone || '—'}</td>
+                          <td className={cn(tdCls, 'font-medium')}>{r.cityName || '—'}</td>
+                          <td className={tdCls}>{r.stateName || '—'}</td>
+                          <td className={tdCls}>{r.countryName || '—'}</td>
+                          <td className={tdCls}>{r.area || '—'}</td>
+                          <td className={tdCls}>{r.gstNo || '—'}</td>
+                          <td className={tdCls}>{r.email || '—'}</td>
+                          {(isDetailed || isCustomer) && (
+                            <td className={tdCls}>
+                              {r.balance !== undefined && r.balance !== null ? (
+                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
+                                  {r.balance >= 0 ? 'CR' : 'DR'} {currencySymbol}{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
+                              ) : '—'}
+                            </td>
+                          )}
+                          <td className="px-4 py-3 text-right">
+                            <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
           </div>
-
           <div className={dividerCls}>
             <div className="px-4 py-3 md:px-8 md:py-4 flex items-center gap-2">
               <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
@@ -989,9 +967,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
               {loadingList ? (
                 <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
               ) : filteredContacts.length === 0 ? (
-                <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                  {q ? 'No results found.' : 'No contact persons added yet.'}
-                </p>
+                <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No contact persons added yet.'}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
@@ -1026,12 +1002,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       );
     }
 
-    // ── Product list (with inline edit + search) ─────────────────────────────
+    // ── Product list ─────────────────────────────────────────────────────────
     if (isProduct) {
-      const filteredRecords = q
-        ? records.filter(r => r.name?.toLowerCase().includes(q) || r.category?.name?.toLowerCase().includes(q) || r.barcode?.toLowerCase().includes(q))
-        : records;
-
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q) || r.category?.name?.toLowerCase().includes(q) || r.barcode?.toLowerCase().includes(q)) : records;
       return (
         <div className={dividerCls}>
           <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
@@ -1040,7 +1013,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search products…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1062,52 +1034,20 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} /></td>
-                              <td className={tdCls}>{r.category?.name || '—'}</td>
-                              <td className={tdCls}>{r.unit?.unitName || '—'}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center rounded-lg border border-stone-200 bg-white overflow-hidden"><span className="pl-3 text-stone-400 text-xs flex-shrink-0">{currencySymbol}</span><input className="flex-1 py-1.5 pr-3 bg-transparent text-sm outline-none focus:ring-0 transition-all" type="number" min="0" step="0.01" value={editData.lowerLimit} onChange={e => setEditData(p => ({ ...p, lowerLimit: e.target.value }))} /></div>
-                              </td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center rounded-lg border border-stone-200 bg-white overflow-hidden"><span className="pl-3 text-stone-400 text-xs flex-shrink-0">{currencySymbol}</span><input className="flex-1 py-1.5 pr-3 bg-transparent text-sm outline-none focus:ring-0 transition-all" type="number" min="0" step="0.01" value={editData.upperLimit} onChange={e => setEditData(p => ({ ...p, upperLimit: e.target.value }))} /></div>
-                              </td>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.barcode} onChange={e => setEditData(p => ({ ...p, barcode: e.target.value }))} placeholder="—" /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">
-                                    {savingEdit ? 'Saving…' : 'Save'}
-                                  </button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                              <td className={tdCls}>{r.category?.name || '—'}</td>
-                              <td className={tdCls}>{r.unit?.unitName || '—'}</td>
-                              <td className={tdCls}>{currencySymbol} {Number(r.lowerLimit).toLocaleString()}</td>
-                              <td className={tdCls}>{currencySymbol} {Number(r.upperLimit).toLocaleString()}</td>
-                              <td className={tdCls}>{r.barcode || '—'}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 transition-colors disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={tdCls}>{r.category?.name || '—'}</td>
+                        <td className={tdCls}>{r.unit?.unitName || '—'}</td>
+                        <td className={tdCls}>{currencySymbol} {Number(r.lowerLimit).toLocaleString()}</td>
+                        <td className={tdCls}>{currencySymbol} {Number(r.upperLimit).toLocaleString()}</td>
+                        <td className={tdCls}>{r.barcode || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1128,7 +1068,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search payment methods…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1145,35 +1084,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1197,7 +1116,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </div>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search branches…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1219,45 +1137,20 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Branch name" /></td>
-                              <td className={tdCls}>{r.country?.name || '—'}</td>
-                              <td className={tdCls}>{r.state?.name || '—'}</td>
-                              <td className={tdCls}>{r.city?.name || '—'}</td>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.address} onChange={e => setEditData(p => ({ ...p, address: e.target.value }))} placeholder="Address" /></td>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.area} onChange={e => setEditData(p => ({ ...p, area: e.target.value }))} placeholder="Area" /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                              <td className={tdCls}>{r.country?.name || '—'}</td>
-                              <td className={tdCls}>{r.state?.name || '—'}</td>
-                              <td className={cn(tdCls, 'font-medium')}>{r.city?.name || '—'}</td>
-                              <td className={tdCls}>{r.address || '—'}</td>
-                              <td className={tdCls}>{r.area || '—'}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 transition-colors disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={tdCls}>{r.country?.name || '—'}</td>
+                        <td className={tdCls}>{r.state?.name || '—'}</td>
+                        <td className={cn(tdCls, 'font-medium')}>{r.city?.name || '—'}</td>
+                        <td className={tdCls}>{r.address || '—'}</td>
+                        <td className={tdCls}>{r.area || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1278,7 +1171,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search warehouses…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1297,39 +1189,17 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Warehouse name" /></td>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.area} onChange={e => setEditData(p => ({ ...p, area: e.target.value }))} placeholder="Area" /></td>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.address} onChange={e => setEditData(p => ({ ...p, address: e.target.value }))} placeholder="Address" /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                              <td className={tdCls}>{r.area || '—'}</td>
-                              <td className={tdCls}>{r.address || '—'}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 transition-colors disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={tdCls}>{r.area || '—'}</td>
+                        <td className={tdCls}>{r.address || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1350,7 +1220,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search categories…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1367,35 +1236,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Category name" /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1416,7 +1265,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search expenses…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1433,35 +1281,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} placeholder="Expense name" /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1482,7 +1310,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search units…" />
           </div>
-          {editError && <p className="mx-8 mb-2 text-sm text-red-500">{editError}</p>}
           <div className="px-8 pb-8">
             {loadingList ? (
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
@@ -1500,37 +1327,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((r, i) => {
-                      const isEditing = editingId === r.id;
-                      return (
-                        <tr key={r.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          {isEditing ? (
-                            <>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.unitName} onChange={e => setEditData(p => ({ ...p, unitName: e.target.value }))} placeholder="Unit name" /></td>
-                              <td className="px-4 py-2"><input className={inlineCls} value={editData.shortName} onChange={e => setEditData(p => ({ ...p, shortName: e.target.value }))} placeholder="Short name" /></td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 disabled:opacity-50">{savingEdit ? 'Saving…' : 'Save'}</button>
-                                  <button type="button" onClick={cancelEdit} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td className={cn(tdCls, 'font-semibold')}>{r.unitName}</td>
-                              <td className={tdCls}>{r.shortName || '—'}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-3">
-                                  <button type="button" onClick={() => startEdit(r)} className="text-stone-400 hover:text-stone-700"><Pencil className="w-3.5 h-3.5" /></button>
-                                  <button type="button" onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-red-300 hover:text-red-500 disabled:opacity-50"><Trash2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.unitName}</td>
+                        <td className={tdCls}>{r.shortName || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1637,6 +1443,131 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 Yes, Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {viewRecord && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={e => e.target === e.currentTarget && closeView()}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className={cn('flex items-center justify-between px-6 py-4 border-b', isAdmin ? 'bg-brand-bg/40 border-brand-bg' : 'bg-rs-cream/40 border-stone-100')}>
+              <div>
+                <p className={cn('text-xs font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Record Details</p>
+                <p className={cn('text-base font-bold mt-0.5', isAdmin ? 'font-admin-serif text-brand-primary' : 'font-user-serif text-rs-text-primary')}>
+                  {viewRecord.name || viewRecord.unitName || '—'}
+                </p>
+              </div>
+              <button type="button" onClick={closeView} className={cn('cursor-pointer transition-colors', isAdmin ? 'text-brand-primary/30 hover:text-brand-primary' : 'text-stone-400 hover:text-stone-600')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editingId === viewRecord.id ? (
+              <>
+                <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                  {editError && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{editError}</p>}
+                  {(isProduct
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'lowerLimit', label: 'Lower Limit', type: 'number' }, { key: 'upperLimit', label: 'Upper Limit', type: 'number' }, { key: 'barcode', label: 'Barcode', type: 'text' }]
+                    : isBranch || isWarehouse
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
+                    : isCustomer || isDetailed
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }, { key: 'gstNo', label: 'GST No', type: 'text' }, { key: 'email', label: 'Email', type: 'email' }]
+                    : isUnit
+                    ? [{ key: 'unitName', label: 'Unit Name', type: 'text' }, { key: 'shortName', label: 'Short Name', type: 'text' }]
+                    : [{ key: 'name', label: 'Name', type: 'text' }]
+                  ).map(f => (
+                    <div key={f.key}>
+                      <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">{f.label}</label>
+                      <input
+                        type={f.type}
+                        step={f.type === 'number' ? '0.01' : undefined}
+                        min={f.type === 'number' ? '0' : undefined}
+                        value={editData[f.key] ?? ''}
+                        onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
+                        className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3">
+                  <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-lg text-xs font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer">
+                    Cancel
+                  </button>
+                  <button type="button" onClick={() => saveEdit(viewRecord.id)} disabled={savingEdit}
+                    className={cn('px-5 py-2 rounded-lg text-xs font-bold text-white hover:brightness-110 disabled:opacity-60 cursor-pointer', isAdmin ? 'bg-brand-primary' : 'bg-rs-text-primary')}>
+                    {savingEdit ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="px-6 py-5 grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
+                  {(isCustomer || isDetailed
+                    ? [
+                        { label: 'Name', value: viewRecord.name },
+                        { label: 'Phone', value: viewRecord.phone },
+                        { label: 'City', value: viewRecord.cityName },
+                        { label: 'State', value: viewRecord.stateName },
+                        { label: 'Country', value: viewRecord.countryName },
+                        { label: 'Area', value: viewRecord.area },
+                        { label: 'GST No', value: viewRecord.gstNo },
+                        { label: 'Email', value: viewRecord.email },
+                        ...(viewRecord.balance !== undefined && viewRecord.balance !== null
+                          ? [{ label: 'Balance', value: `${viewRecord.balance >= 0 ? 'CR' : 'DR'} ${currencySymbol}${Math.abs(viewRecord.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}` }]
+                          : []),
+                      ]
+                    : isProduct
+                    ? [
+                        { label: 'Name', value: viewRecord.name },
+                        { label: 'Category', value: viewRecord.category?.name },
+                        { label: 'Unit', value: viewRecord.unit?.unitName },
+                        { label: 'Lower Limit', value: `${currencySymbol} ${Number(viewRecord.lowerLimit).toLocaleString()}` },
+                        { label: 'Upper Limit', value: `${currencySymbol} ${Number(viewRecord.upperLimit).toLocaleString()}` },
+                        { label: 'Barcode', value: viewRecord.barcode },
+                      ]
+                    : isBranch
+                    ? [
+                        { label: 'Name', value: viewRecord.name },
+                        { label: 'Country', value: viewRecord.country?.name },
+                        { label: 'State', value: viewRecord.state?.name },
+                        { label: 'City', value: viewRecord.city?.name },
+                        { label: 'Address', value: viewRecord.address },
+                        { label: 'Area', value: viewRecord.area },
+                      ]
+                    : isWarehouse
+                    ? [
+                        { label: 'Name', value: viewRecord.name },
+                        { label: 'Area', value: viewRecord.area },
+                        { label: 'Address', value: viewRecord.address },
+                      ]
+                    : isUnit
+                    ? [
+                        { label: 'Unit Name', value: viewRecord.unitName },
+                        { label: 'Short Name', value: viewRecord.shortName },
+                      ]
+                    : [{ label: 'Name', value: viewRecord.name }]
+                  ).map((p, i) => (
+                    <div key={i}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1">{p.label}</p>
+                      <p className="text-sm font-semibold text-rs-text-primary">{p.value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3">
+                  <button type="button" onClick={() => { handleDelete(viewRecord.id); closeView(); }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-all cursor-pointer">
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                  <button type="button" onClick={() => startEdit(viewRecord)}
+                    className={cn('inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold text-white hover:brightness-110 transition-all cursor-pointer', isAdmin ? 'bg-brand-primary' : 'bg-rs-text-primary')}>
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

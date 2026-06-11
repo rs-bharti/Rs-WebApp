@@ -931,7 +931,7 @@ const createExpenseVoucher = async (req, res) => {
         voucherNo:         await nextNo('expenseVoucher', 'EXP'),
         expenseId:         Number(expenseId),
         expenseName:       expenseRec?.name || null,
-        paymentMethodId:   paymentMethodId ? Number(paymentMethodId) : 1,
+        paymentMethodId:   paymentMethodId ? Number(paymentMethodId) : null,
         paymentMethodName: pmRec?.name || null,
         amount:            Number(amount),
         narration:         narration || null,

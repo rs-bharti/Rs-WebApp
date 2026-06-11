@@ -1,10 +1,10 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const authHeaders = () => {
-  const activeBranch = JSON.parse(localStorage.getItem('activeBranch') || 'null');
+  const activeBranch = JSON.parse(sessionStorage.getItem('activeBranch') || 'null');
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
+    Authorization: `Bearer ${sessionStorage.getItem('token')}`,
     ...(activeBranch?.id ? { 'X-Branch-Id': String(activeBranch.id) } : {}),
   };
 };

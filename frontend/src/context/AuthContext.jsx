@@ -9,16 +9,19 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
-    const storedToken  = localStorage.getItem('token');
-    const storedUser   = localStorage.getItem('user');
-    const storedBranch = localStorage.getItem('activeBranch');
+    // Clear any stale localStorage auth data from the old storage strategy
+    ['token', 'user', 'userRole', 'userName', 'activeBranch'].forEach(k => localStorage.removeItem(k));
+
+    const storedToken  = sessionStorage.getItem('token');
+    const storedUser   = sessionStorage.getItem('user');
+    const storedBranch = sessionStorage.getItem('activeBranch');
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
         if (storedBranch) setActiveBranch(JSON.parse(storedBranch));
       } catch {
-        localStorage.clear();
+        sessionStorage.clear();
       }
     }
     setLoading(false);
@@ -27,27 +30,27 @@ export const AuthProvider = ({ children }) => {
   const login = (userData, authToken) => {
     setUser(userData);
     setToken(authToken);
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('userRole', userData.role);
-    localStorage.setItem('userName', userData.name);
+    sessionStorage.setItem('token', authToken);
+    sessionStorage.setItem('user', JSON.stringify(userData));
+    sessionStorage.setItem('userRole', userData.role);
+    sessionStorage.setItem('userName', userData.name);
   };
 
   const selectBranch = (branch) => {
     setActiveBranch(branch);
-    localStorage.setItem('activeBranch', JSON.stringify(branch));
+    sessionStorage.setItem('activeBranch', JSON.stringify(branch));
   };
 
   const clearBranch = () => {
     setActiveBranch(null);
-    localStorage.removeItem('activeBranch');
+    sessionStorage.removeItem('activeBranch');
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
     setActiveBranch(null);
-    localStorage.clear();
+    sessionStorage.clear();
   };
 
   const isAdmin = user?.role === 'admin';
