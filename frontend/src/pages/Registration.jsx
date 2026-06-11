@@ -139,7 +139,7 @@ const SuccessPopup = ({ data, onClose }) => {
 
 const VOUCHER_MODULES = ['Receipt', 'Payment', 'Expense', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
 const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse'];
-const OTHER_MODULES   = ['Client Ledger', 'Stock Ledger', 'Client Balance', 'Stock Quantity', 'Product Statement', 'Customer Statement', 'All Customer Balance', 'All Balance Stock'];
+const OTHER_MODULES   = ['Client Ledger', 'Stock Ledger', 'Client Balance', 'Stock Quantity', 'Customer Statement', 'All Customer Balance', 'All Balance Stock'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});

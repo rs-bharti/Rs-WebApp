@@ -18,7 +18,7 @@ import StockTransferVoucherForm from './components/ui/vouchers/StockTransferVouc
 import ExpenseVoucherForm from './components/ui/vouchers/ExpenseVoucherForm';
 import MasterForm from './components/ui/MasterForm';
 import StockQuantityPage from './pages/StockQuantityPage';
-import ProductStatementPage from './pages/ProductStatementPage';
+import ProductInfoPage from './pages/ProductInfoPage';
 import SupplierLedgerPage from './pages/SupplierLedgerPage';
 import { useAuth } from './context/AuthContext';
 
@@ -69,7 +69,7 @@ function App() {
 
 
           <Route path="other/stock-quantity" element={<StockQuantityPage />} />
-          <Route path="other/product-statement" element={<ProductStatementPage />} />
+          <Route path="other/product-info" element={<ProductInfoPage />} />
           <Route path="other/supplier-ledger" element={<SupplierLedgerPage />} />
 
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />

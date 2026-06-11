@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, ClipboardList, TrendingUp, TrendingDown, Package, Warehouse, Calendar, ArrowRightLeft } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, RefreshCw, ClipboardList, TrendingUp, TrendingDown, Package } from 'lucide-react';
 import { getWarehouses, getProducts } from '../api/masters';
 import { getProductLedger } from '../api/vouchers';
 import SelectSearch from '../components/ui/SelectSearch';
 
-const ProductStatementPage = () => {
+const ProductInfoPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -112,7 +112,7 @@ const ProductStatementPage = () => {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 tracking-tight">Product Statement Ledger</h1>
+          <h1 className="text-2xl font-semibold text-stone-800 tracking-tight">Product Details</h1>
           <p className="text-sm text-stone-400 mt-1">Detailed inventory transactions list</p>
         </div>
 
@@ -170,7 +170,7 @@ const ProductStatementPage = () => {
       ) : loading ? (
         <div className="text-center py-20 text-stone-400 text-sm flex items-center justify-center gap-2">
           <RefreshCw className="w-5 h-5 animate-spin text-brand-primary" />
-          <span>Loading ledger data...</span>
+          <span>Loading details...</span>
         </div>
       ) : ledgerData ? (
         <div className="space-y-6">
@@ -303,4 +303,4 @@ const ProductStatementPage = () => {
   );
 };
 
-export default ProductStatementPage;
+export default ProductInfoPage;

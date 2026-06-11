@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Warehouse, Search, X } from 'lucide-react';
 import { getWarehouses } from '../api/masters';
 import { getStockQtyByWarehouse } from '../api/vouchers';
 
 const StockQuantityPage = () => {
+  const navigate = useNavigate();
   const [warehouses,        setWarehouses]        = useState([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [rows,              setRows]              = useState([]);
@@ -149,16 +150,13 @@ const StockQuantityPage = () => {
                   </tr>
                 ) : (
                   filtered.map((row, i) => (
-                    <tr key={row.id} className="hover:bg-stone-50 transition-colors">
+                    <tr
+                      key={row.id}
+                      onClick={() => navigate(`/dashboard/other/product-info?productId=${row.id}&warehouseId=${selectedWarehouse}`)}
+                      className="hover:bg-stone-50 dark:hover:bg-brand-sidebar/50 transition-colors cursor-pointer"
+                    >
                       <td className="px-4 py-3 text-stone-400">{i + 1}</td>
-                      <td className="px-4 py-3 text-stone-700 font-medium">
-                        <Link
-                          to={`/dashboard/other/product-statement?productId=${row.id}&warehouseId=${selectedWarehouse}`}
-                          className="text-brand-primary hover:underline transition-colors"
-                        >
-                          {row.name}
-                        </Link>
-                      </td>
+                      <td className="px-4 py-3 text-stone-700 font-medium">{row.name}</td>
                       <td className={`px-4 py-3 text-right font-semibold tabular-nums ${row.qty === 0 ? 'text-stone-300' : 'text-stone-800'}`}>
                         {row.qty}
                       </td>
