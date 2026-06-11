@@ -7,7 +7,7 @@ import {
   Repeat, Undo2, LogOut, Users,
   Database, Truck, Package, Warehouse,
   ClipboardList, ArrowLeftRight, X, Receipt,
-  ChevronDown, BookOpen, LayoutGrid, BookMarked,
+  ChevronDown, BookOpen, LayoutGrid, BookMarked, CalendarDays,
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
@@ -47,6 +47,7 @@ const MASTER_ROUTES = {
 };
 
 const OTHER_ROUTES = {
+  'DSR':               { slug: 'other/day-book',          icon: CalendarDays },
   'Client Ledger':     { slug: 'other/client-ledger',     icon: FileText },
   'Supplier Ledger':   { slug: 'other/supplier-ledger',   icon: Truck },
   'Stock Ledger':      { slug: 'other/stock-quantity',    icon: Package },
