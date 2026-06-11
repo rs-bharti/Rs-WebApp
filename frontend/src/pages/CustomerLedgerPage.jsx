@@ -255,6 +255,8 @@ const CustomerLedgerPage = () => {
   const [loadingList, setLoadingList] = useState(true);
   const [error,       setError]       = useState('');
   const [search,      setSearch]      = useState('');
+  const [fromDate,    setFromDate]    = useState('');
+  const [toDate,      setToDate]      = useState('');
 
   useEffect(() => {
     getCustomers()
@@ -280,18 +282,42 @@ const CustomerLedgerPage = () => {
   };
 
   const allRows = ledgerData?.ledger || [];
+
+  // Date filter → recompute running balance for the period
+  const dateFiltered = (fromDate || toDate)
+    ? allRows.filter(r => {
+        const d = new Date(r.date);
+        if (fromDate && d < new Date(fromDate + 'T00:00:00')) return false;
+        if (toDate   && d > new Date(toDate   + 'T23:59:59')) return false;
+        return true;
+      })
+    : allRows;
+
+  let runBal = 0;
+  const periodRows = dateFiltered.map(r => {
+    runBal += r.type === 'CR' ? r.amount : -r.amount;
+    return { ...r, balance: Math.round(runBal * 100) / 100 };
+  });
+
+  // Search filter on top of date filter
   const filtered = search.trim()
-    ? allRows.filter(r =>
+    ? periodRows.filter(r =>
         (r.voucherNo || '').toLowerCase().includes(search.toLowerCase()) ||
         (r.narration || '').toLowerCase().includes(search.toLowerCase()) ||
         (r.source || '').toLowerCase().includes(search.toLowerCase()) ||
         (r.items || []).some(i => (i.productName || '').toLowerCase().includes(search.toLowerCase()))
       )
-    : allRows;
+    : periodRows;
 
-  const summary  = ledgerData?.summary || {};
   const customer = ledgerData?.customer;
-  const closing  = allRows.length ? allRows[allRows.length - 1].balance : 0;
+  const closing  = periodRows.length ? periodRows[periodRows.length - 1].balance : 0;
+
+  // Recompute summary from filtered period
+  const summary = {
+    totalSales:        periodRows.filter(r => r.source === 'sales').reduce((s, r) => s + r.amount, 0),
+    totalSalesReturns: periodRows.filter(r => r.source === 'sales_return').reduce((s, r) => s + r.amount, 0),
+    totalReceipts:     periodRows.filter(r => r.source === 'receipt').reduce((s, r) => s + r.amount, 0),
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-300">
@@ -335,6 +361,44 @@ const CustomerLedgerPage = () => {
           />
         )}
       </div>
+
+      {/* ── Date Filter ── */}
+      {selectedId && (
+        <div className="bg-white border border-stone-200 rounded-xl px-5 py-3.5 mb-5 shadow-sm flex items-center gap-4 flex-wrap">
+          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Filter Period</span>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-stone-500 whitespace-nowrap">From</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 bg-stone-50 cursor-pointer"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-stone-500 whitespace-nowrap">To</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 bg-stone-50 cursor-pointer"
+            />
+          </div>
+          {(fromDate || toDate) && (
+            <>
+              <button
+                onClick={() => { setFromDate(''); setToDate(''); }}
+                className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+              <span className="text-xs text-stone-400 ml-auto">
+                {periodRows.length} of {allRows.length} entries in period
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ── Error ── */}
       {error && (
