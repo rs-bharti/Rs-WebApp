@@ -878,10 +878,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     const dividerCls = cn('border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100');
     const q          = listSearch.trim().toLowerCase();
     const viewBtnCls = cn(
-      'px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer',
-      isAdmin
-        ? 'border-brand-primary/30 text-brand-primary hover:bg-brand-primary hover:text-white hover:border-transparent'
-        : 'border-rs-text-primary/30 text-rs-text-primary hover:bg-rs-text-primary hover:text-white hover:border-transparent'
+      'px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer',
+      isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white'
     );
 
     // ── Customer / Supplier table ────────────────────────────────────────────

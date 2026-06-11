@@ -208,7 +208,7 @@ const PaymentVoucherForm = () => {
 
         {/* Actions */}
         <div className="flex justify-between items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
-          <button type="button" onClick={() => setShowList(true)} className="flex items-center gap-2 text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+          <button type="button" onClick={() => setShowList(true)} className="flex items-center gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
             <List className="w-4 h-4" /> View Entries
           </button>
           <div className="flex items-center gap-8">
