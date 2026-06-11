@@ -20,6 +20,7 @@ import MasterForm from './components/ui/MasterForm';
 import StockQuantityPage from './pages/StockQuantityPage';
 import ProductInfoPage from './pages/ProductInfoPage';
 import SupplierLedgerPage from './pages/SupplierLedgerPage';
+import CustomerLedgerPage from './pages/CustomerLedgerPage';
 import { useAuth } from './context/AuthContext';
 
 const MasterRouteWrapper = ({ userRole }) => {
@@ -71,6 +72,7 @@ function App() {
           <Route path="other/stock-quantity" element={<StockQuantityPage />} />
           <Route path="other/product-info" element={<ProductInfoPage />} />
           <Route path="other/supplier-ledger" element={<SupplierLedgerPage />} />
+          <Route path="other/client-ledger"   element={<CustomerLedgerPage />} />
 
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />
 

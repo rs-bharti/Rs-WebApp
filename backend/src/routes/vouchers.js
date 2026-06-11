@@ -16,6 +16,7 @@ const {
   getExpenseNextNo, getExpenseVouchers, createExpenseVoucher, deleteExpenseVoucher, updateExpenseVoucher,
   getProductLedger,
   getSupplierLedger,
+  getCustomerLedger,
 } = require('../controllers/voucherController');
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.get('/stock-qty',               getStockQty);
 router.get('/stock-qty-warehouse',     getStockQtyByWarehouse);
 router.get('/product-ledger',          getProductLedger);
 router.get('/supplier-ledger/:supplierId', getSupplierLedger);
+router.get('/customer-ledger/:customerId', getCustomerLedger);
 
 router.get('/contra/next-number',       getContraNextNo);
 router.get('/contra',                   getContras);
