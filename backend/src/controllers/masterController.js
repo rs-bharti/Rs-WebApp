@@ -6,6 +6,30 @@ const getBranchId = (req) => {
   return req.user.branchId || null;
 };
 
+const FK_MESSAGES = {
+  stockdatavoucher:     'Cannot delete — this record is used in Stock Data vouchers.',
+  stocktransfervoucher: 'Cannot delete — this record is used in Stock Transfer vouchers.',
+  salesreturnvoucher:   'Cannot delete — this record is used in Sales Return vouchers.',
+  salesvoucher:         'Cannot delete — this record is used in Sales vouchers.',
+  purchasereturnvoucher:'Cannot delete — this record is used in Purchase Return vouchers.',
+  purchasevoucher:      'Cannot delete — this record is used in Purchase vouchers.',
+  receiptvoucher:       'Cannot delete — this record is used in Receipt vouchers.',
+  paymentvoucher:       'Cannot delete — this record is used in Payment vouchers.',
+  contravoucher:        'Cannot delete — this record is used in Contra vouchers.',
+  expensevoucher:       'Cannot delete — this record is used in Expense vouchers.',
+  product:              'Cannot delete — Products are linked to this record. Remove them first.',
+  customer:             'Cannot delete — Customers are linked to this record.',
+  supplier:             'Cannot delete — Suppliers are linked to this record.',
+};
+
+const fkFriendlyMsg = (err) => {
+  const raw = (err.meta?.field_name || err.message || '').toLowerCase();
+  for (const [key, msg] of Object.entries(FK_MESSAGES)) {
+    if (raw.includes(key)) return msg;
+  }
+  return 'Cannot delete — this record is currently used by other data. Remove those references first.';
+};
+
 const prismaErr = (err) => {
   if (err.code === 'P2002') return `This ${(err.meta?.target || ['record'])[0]?.replace(/Id$/, '') || 'record'} already exists.`;
   if (err.code === 'P2003') {
@@ -13,9 +37,11 @@ const prismaErr = (err) => {
     if (field.includes('branchId') || field.includes('Branch')) {
       return 'BRANCH_INVALID: Your selected branch no longer exists. Please log out and select a valid branch.';
     }
-    return 'A related record was not found. Please refresh and try again.';
+    return fkFriendlyMsg(err);
   }
   if (err.code === 'P2025') return 'Record not found.';
+  // Catch FK violations that surface as plain errors (SQLite / some adapters)
+  if ((err.message || '').toLowerCase().includes('foreign key constraint')) return fkFriendlyMsg(err);
   return err.message || 'Server error';
 };
 
@@ -237,7 +263,7 @@ const deleteBranch = async (req, res) => {
   try {
     await prisma.branch.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Categories ─────────────────────────────────────────────────────────────────
@@ -287,7 +313,7 @@ const deleteCategory = async (req, res) => {
   try {
     await prisma.categoryMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Units ──────────────────────────────────────────────────────────────────────
@@ -332,7 +358,7 @@ const deleteUnit = async (req, res) => {
   try {
     await prisma.unitMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Suppliers ──────────────────────────────────────────────────────────────────
@@ -483,7 +509,7 @@ const deleteSupplier = async (req, res) => {
   try {
     await prisma.supplier.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Customers ──────────────────────────────────────────────────────────────────
@@ -639,7 +665,7 @@ const deleteCustomer = async (req, res) => {
   try {
     await prisma.customer.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Products ───────────────────────────────────────────────────────────────────
@@ -710,7 +736,7 @@ const deleteProduct = async (req, res) => {
   try {
     await prisma.product.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Payment Methods ────────────────────────────────────────────────────────────
@@ -764,7 +790,7 @@ const deletePaymentMethod = async (req, res) => {
   try {
     await prisma.paymentMethodMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Expense Master ─────────────────────────────────────────────────────────────
@@ -814,7 +840,7 @@ const deleteExpense = async (req, res) => {
   try {
     await prisma.expenseMaster.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Warehouses ─────────────────────────────────────────────────────────────────
@@ -824,7 +850,7 @@ const getWarehouses = async (req, res) => {
     const where = branchId ? { branchId } : {};
     const rows = await prisma.warehouseMaster.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createWarehouse = async (req, res) => {
@@ -842,7 +868,7 @@ const createWarehouse = async (req, res) => {
       },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const updateWarehouse = async (req, res) => {
@@ -858,14 +884,14 @@ const updateWarehouse = async (req, res) => {
       },
     });
     res.json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const deleteWarehouse = async (req, res) => {
   try {
     await prisma.warehouseMaster.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Warehouse deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ message: err.message }); }
+  } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
 module.exports = {

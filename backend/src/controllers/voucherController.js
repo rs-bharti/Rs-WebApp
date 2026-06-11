@@ -1,5 +1,12 @@
 const prisma = require('../utils/prisma');
 
+const prismaErr = (err) => {
+  if (err.code === 'P2025') return 'Voucher not found.';
+  if (err.code === 'P2003' || (err.message || '').toLowerCase().includes('foreign key constraint'))
+    return 'Cannot delete — this voucher is referenced by other records.';
+  return err.message || 'Server error';
+};
+
 async function nextNo(model, prefix) {
   const year = new Date().getFullYear();
   const fullPrefix = `${prefix}-${year}-`;
@@ -949,21 +956,21 @@ const deleteContra = async (req, res) => {
   try {
     await prisma.contraVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deleteReceipt = async (req, res) => {
   try {
     await prisma.receiptVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deletePayment = async (req, res) => {
   try {
     await prisma.paymentVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deletePurchase = async (req, res) => {
@@ -977,49 +984,49 @@ const deletePurchase = async (req, res) => {
       ]);
     }
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deleteSales = async (req, res) => {
   try {
     await prisma.salesVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deletePurchaseReturn = async (req, res) => {
   try {
     await prisma.purchaseReturnVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deleteSalesReturn = async (req, res) => {
   try {
     await prisma.salesReturnVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deleteStockData = async (req, res) => {
   try {
     await prisma.stockDataVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deleteStockTransfer = async (req, res) => {
   try {
     await prisma.stockTransferVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 const deleteExpenseVoucher = async (req, res) => {
   try {
     await prisma.expenseVoucher.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── UPDATE handlers ────────────────────────────────────────────────────────────
