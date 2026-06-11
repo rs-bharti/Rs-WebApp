@@ -136,12 +136,13 @@ const StockQuantityPage = () => {
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Product Name</th>
                   <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Quantity</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Unit</th>
+                  <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-stone-300 text-sm">
+                    <td colSpan={5} className="px-4 py-12 text-center text-stone-300 text-sm">
                       {search ? `No products match "${search}"` : 'No products found'}
                     </td>
                   </tr>
@@ -154,6 +155,9 @@ const StockQuantityPage = () => {
                         {row.qty}
                       </td>
                       <td className="px-4 py-3 text-stone-400">{row.unit}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-stone-700 font-semibold">
+                        {(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -168,6 +172,9 @@ const StockQuantityPage = () => {
                       {filtered.reduce((s, r) => s + r.qty, 0)}
                     </td>
                     <td className="px-4 py-3" />
+                    <td className="px-4 py-3 text-right font-bold text-stone-800 tabular-nums">
+                      {filtered.reduce((s, r) => s + (r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
                   </tr>
                 </tfoot>
               )}

@@ -824,17 +824,16 @@ const getStockQtyByWarehouse = async (req, res) => {
 
     const pids = products.map(p => p.id);
 
-    const [sdGroups, purGroups, salGroups, srGroups, prGroups, tiGroups, toGroups] =
+    const [sdItems, purGroups, salGroups, srGroups, prGroups, tiGroups, toGroups] =
       await Promise.all([
-        prisma.stockDataVoucherItem.groupBy({
-          by: ['productId'],
+        prisma.stockDataVoucherItem.findMany({
           where: { productId: { in: pids }, voucher: { warehouseId: wid } },
-          _sum: { qty: true },
+          select: { productId: true, qty: true, rate: true },
         }),
         prisma.purchaseVoucherItem.groupBy({
           by: ['productId'],
           where: { productId: { in: pids }, voucher: { warehouseId: wid } },
-          _sum: { qty: true },
+          _sum: { qty: true, amount: true },
         }),
         prisma.salesVoucherItem.groupBy({
           by: ['productId'],
@@ -849,7 +848,7 @@ const getStockQtyByWarehouse = async (req, res) => {
         prisma.purchaseReturnVoucherItem.groupBy({
           by: ['productId'],
           where: { productId: { in: pids }, voucher: { warehouseId: wid } },
-          _sum: { qty: true },
+          _sum: { qty: true, amount: true },
         }),
         prisma.stockTransferVoucherItem.groupBy({
           by: ['productId'],
@@ -863,29 +862,42 @@ const getStockQtyByWarehouse = async (req, res) => {
         }),
       ]);
 
-    const buildMap = (groups) =>
-      Object.fromEntries(groups.map(g => [g.productId, g._sum.qty || 0]));
+    // Aggregate stock data qty and amount (qty × rate) per product
+    const sdQtyMap = {}, sdAmountMap = {};
+    sdItems.forEach(item => {
+      sdQtyMap[item.productId]    = (sdQtyMap[item.productId]    || 0) + item.qty;
+      sdAmountMap[item.productId] = (sdAmountMap[item.productId] || 0) + item.qty * (item.rate || 0);
+    });
 
-    const sd  = buildMap(sdGroups);
-    const pur = buildMap(purGroups);
-    const sal = buildMap(salGroups);
-    const sr  = buildMap(srGroups);
-    const pr  = buildMap(prGroups);
-    const ti  = buildMap(tiGroups);
-    const to  = buildMap(toGroups);
+    const buildMap    = (groups, field = 'qty') =>
+      Object.fromEntries(groups.map(g => [g.productId, g._sum[field] || 0]));
+
+    const pur    = buildMap(purGroups);
+    const purAmt = buildMap(purGroups, 'amount');
+    const sal    = buildMap(salGroups);
+    const sr     = buildMap(srGroups);
+    const pr     = buildMap(prGroups);
+    const prAmt  = buildMap(prGroups, 'amount');
+    const ti     = buildMap(tiGroups);
+    const to     = buildMap(toGroups);
 
     const result = products.map(p => ({
-      id:   p.id,
-      name: p.name,
-      unit: p.unit?.unitName || '',
-      qty:  Math.max(0,
-        (sd[p.id]  || 0) +
-        (pur[p.id] || 0) +
-        (ti[p.id]  || 0) +
-        (sr[p.id]  || 0) -
-        (sal[p.id] || 0) -
-        (pr[p.id]  || 0) -
-        (to[p.id]  || 0)
+      id:     p.id,
+      name:   p.name,
+      unit:   p.unit?.unitName || '',
+      qty:    Math.max(0,
+        (sdQtyMap[p.id] || 0) +
+        (pur[p.id]  || 0) +
+        (ti[p.id]   || 0) +
+        (sr[p.id]   || 0) -
+        (sal[p.id]  || 0) -
+        (pr[p.id]   || 0) -
+        (to[p.id]   || 0)
+      ),
+      amount: Math.max(0,
+        (sdAmountMap[p.id] || 0) +
+        (purAmt[p.id]      || 0) -
+        (prAmt[p.id]       || 0)
       ),
     }));
 
