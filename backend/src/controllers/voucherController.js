@@ -197,16 +197,15 @@ const getPurchases = async (req, res) => {
 
 const createPurchase = async (req, res) => {
   try {
-    const { supplierId, paymentMethodId, warehouseId, date, items, narration } = req.body;
-    if (!supplierId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
+    const { supplierId, paymentTerms, warehouseId, date, items, narration } = req.body;
+    if (!supplierId || !items?.length)
+      return res.status(400).json({ message: 'supplierId and items are required' });
 
     const branchId = getBranchId(req);
 
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [supplierRecord, paymentMethodRecord, warehouseRecord, productRecords] = await Promise.all([
+    const [supplierRecord, warehouseRecord, productRecords] = await Promise.all([
       prisma.supplier.findUnique({ where: { id: Number(supplierId) }, select: { name: true } }),
-      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
         : Promise.resolve(null),
@@ -221,17 +220,17 @@ const createPurchase = async (req, res) => {
 
     const voucher = await prisma.purchaseVoucher.create({
       data: {
-        voucherNo:         await nextNo('purchaseVoucher', 'PUR'),
-        supplierId:        Number(supplierId),
-        supplierName:      supplierRecord?.name || null,
-        branchId:          branchId,
-        warehouseId:       warehouseId ? Number(warehouseId) : null,
-        warehouseName:     warehouseRecord?.name || null,
-        paymentMethodId:   Number(paymentMethodId),
-        paymentMethodName: paymentMethodRecord?.name || null,
-        date:              date ? new Date(date) : new Date(),
+        voucherNo:    await nextNo('purchaseVoucher', 'PUR'),
+        supplierId:   Number(supplierId),
+        supplierName: supplierRecord?.name || null,
+        branchId:     branchId,
+        warehouseId:  warehouseId ? Number(warehouseId) : null,
+        warehouseName: warehouseRecord?.name || null,
+        paymentTerms: paymentTerms || null,
+        narration:    narration || null,
+        date:         date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        createdById:       req.user.id,
+        createdById:  req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
@@ -1101,12 +1100,13 @@ const updateSales = async (req, res) => {
 
 const updatePurchase = async (req, res) => {
   try {
-    const { date, narration } = req.body;
+    const { date, narration, paymentTerms } = req.body;
     const updated = await prisma.purchaseVoucher.update({
       where: { id: parseInt(req.params.id) },
       data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(narration !== undefined && { narration: narration || null }),
+        ...(date         !== undefined && { date: new Date(date) }),
+        ...(narration    !== undefined && { narration: narration || null }),
+        ...(paymentTerms !== undefined && { paymentTerms: paymentTerms || null }),
       },
     });
     res.json(updated);

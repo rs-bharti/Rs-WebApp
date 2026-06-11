@@ -110,7 +110,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                       <button
                         type="button"
                         onClick={() => handleView(v)}
-                        className="px-3 py-1.5 rounded-lg border border-rs-text-primary/30 text-[10px] font-bold uppercase tracking-widest text-rs-text-primary hover:bg-rs-text-primary hover:text-white hover:border-transparent transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-rs-text-primary text-white text-[10px] font-bold uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer"
                       >
                         View
                       </button>
@@ -193,6 +193,17 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                           onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
                           className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50 resize-none"
                         />
+                      ) : f.type === 'select' ? (
+                        <select
+                          value={editData[f.key] ?? ''}
+                          onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
+                          className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50 cursor-pointer"
+                        >
+                          <option value="">— Select —</option>
+                          {(f.options || []).map(o => (
+                            <option key={o.id} value={o.id}>{o.name}</option>
+                          ))}
+                        </select>
                       ) : (
                         <input
                           type={f.type}

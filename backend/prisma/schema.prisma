@@ -359,7 +359,7 @@ model PurchaseVoucher {
   voucherNo         String                @unique
   supplierId        Int
   branchId          Int
-  paymentMethodId   Int
+  paymentMethodId   Int?
   createdById       Int
   date              DateTime
   subTotal          Float                 @default(0)
@@ -369,12 +369,13 @@ model PurchaseVoucher {
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   supplierName      String?
-  paymentMethodName String?
+  paymentTerms      String?
+  narration         String?
   warehouseId       Int?
   warehouseName     String?
   branch            Branch                @relation(fields: [branchId], references: [id])
   createdBy         User                  @relation(fields: [createdById], references: [id])
-  paymentMethod     PaymentMethodMaster   @relation(fields: [paymentMethodId], references: [id])
+  paymentMethod     PaymentMethodMaster?  @relation(fields: [paymentMethodId], references: [id])
   supplier          Supplier              @relation(fields: [supplierId], references: [id])
   warehouse         WarehouseMaster?      @relation(fields: [warehouseId], references: [id])
   items             PurchaseVoucherItem[]

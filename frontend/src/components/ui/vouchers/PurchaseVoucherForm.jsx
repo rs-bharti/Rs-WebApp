@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
+import { getSuppliers, getProducts, getWarehouses } from '../../../api/masters';
 import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty, getPurchases, updatePurchaseVoucher, deletePurchaseVoucher } from '../../../api/vouchers';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import QuickCreateModal from '../QuickCreateModal';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
+
+const PAYMENT_TERMS_OPTIONS = [
+  { id: '60 Days Consignment Basis', name: '60 Days Consignment Basis' },
+  { id: '45 Days Consignment Basis', name: '45 Days Consignment Basis' },
+  { id: '30 Days Consignment Basis', name: '30 Days Consignment Basis' },
+  { id: '15 Days Consignment Basis', name: '15 Days Consignment Basis' },
+  { id: 'Cash',                      name: 'Cash' },
+];
 
 const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehouseId: '', qty: 1, rate: 0, amount: 0, stockQty: null });
 
@@ -14,22 +21,20 @@ const PurchaseVoucherForm = () => {
   const type = 'Purchase';
   const { activeBranch, currencySymbol } = useAuth();
 
-  const [rows,            setRows]            = useState([emptyRow()]);
-  const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
-  const [voucherNo,       setVoucherNo]       = useState('');
-  const [supplierId,      setSupplierId]      = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [narration,       setNarration]       = useState('');
+  const [rows,         setRows]        = useState([emptyRow()]);
+  const [date,         setDate]        = useState(new Date().toISOString().split('T')[0]);
+  const [voucherNo,    setVoucherNo]   = useState('');
+  const [supplierId,   setSupplierId]  = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [narration,    setNarration]   = useState('');
 
-  const [suppliers,      setSuppliers]      = useState([]);
-  const [products,       setProducts]       = useState([]);
-  const [warehouses,     setWarehouses]     = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [suppliers,  setSuppliers]  = useState([]);
+  const [products,   setProducts]   = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
 
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
-  const [quickCreate, setQuickCreate] = useState(null);
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
@@ -38,32 +43,29 @@ const PurchaseVoucherForm = () => {
     { key: 'voucherNo',     label: 'Voucher No' },
     { key: 'date',          label: 'Date',         render: v => fmtDate(v.date) },
     { key: 'supplier',      label: 'Supplier',     render: v => v.supplier?.name || '—' },
-    { key: 'paymentMethod', label: 'Method',       render: v => v.paymentMethod?.name || '—' },
+    { key: 'paymentTerms',  label: 'Payment Terms', render: v => v.paymentTerms || '—' },
     { key: 'totalAmount',   label: 'Amount',       render: v => `₹${Number(v.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
     { key: 'items',         label: 'Items',        render: v => v.items?.length ?? '—' },
     { key: 'narration',     label: 'Narration',    render: v => v.narration || '—' },
   ];
   const EDIT_FIELDS = [
-    { key: 'date',      label: 'Date',      type: 'date' },
-    { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+    { key: 'date',         label: 'Date',          type: 'date' },
+    { key: 'paymentTerms', label: 'Payment Terms',  type: 'select', options: PAYMENT_TERMS_OPTIONS },
+    { key: 'narration',    label: 'Narration',      type: 'textarea', placeholder: 'Optional remarks' },
   ];
 
   useEffect(() => {
-    setPaymentMethodId('');
-    setPaymentMethods([]);
     setLoadingVouchers(true);
     Promise.all([
       getSuppliers(),
       getProducts(),
       getWarehouses(),
-      getPaymentMethods(),
       getPurchaseVoucherNextNo(),
       getPurchases(),
-    ]).then(([supp, prod, wh, pm, vn, vlist]) => {
+    ]).then(([supp, prod, wh, vn, vlist]) => {
       setSuppliers(supp);
       setProducts(prod);
       setWarehouses(wh);
-      setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
     }).catch(err => setError(err?.message || 'Failed to load form data'))
@@ -100,19 +102,19 @@ const PurchaseVoucherForm = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    if (!supplierId)      return setError('Please select a supplier');
-    if (!paymentMethodId) return setError('Please select a payment method');
+    if (!supplierId)   return setError('Please select a supplier');
+    if (!paymentTerms) return setError('Please select payment terms');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
     setSaving(true);
     try {
       const voucher = await savePurchaseVoucher({
         date,
-        supplierId:      parseInt(supplierId),
-        paymentMethodId: parseInt(paymentMethodId),
-        warehouseId:     validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
-        narration:       narration || undefined,
-        branchId:        activeBranch?.id,
+        supplierId:  parseInt(supplierId),
+        paymentTerms,
+        warehouseId: validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
+        narration:   narration || undefined,
+        branchId:    activeBranch?.id,
         items: validItems.map(r => ({
           productId:   parseInt(r.productId),
           warehouseId: r.warehouseId ? parseInt(r.warehouseId) : undefined,
@@ -123,7 +125,7 @@ const PurchaseVoucherForm = () => {
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
       setRows([emptyRow()]);
       setSupplierId('');
-      setPaymentMethodId('');
+      setPaymentTerms('');
       setNarration('');
       const [vn, vlist] = await Promise.all([getPurchaseVoucherNextNo(), getPurchases()]);
       setVoucherNo(vn.voucherNo);
@@ -138,7 +140,7 @@ const PurchaseVoucherForm = () => {
   const handleDiscard = () => {
     setRows([emptyRow()]);
     setSupplierId('');
-    setPaymentMethodId('');
+    setPaymentTerms('');
     setNarration('');
     setError('');
     setSuccess('');
@@ -207,17 +209,14 @@ const PurchaseVoucherForm = () => {
           </div>
         </div>
 
-        {/* Payment Method */}
+        {/* Payment Terms */}
         <div className="max-w-xs space-y-2">
-          <div className="flex items-center justify-between">
-          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
-          <button type="button" onClick={() => setQuickCreate("Payment Method")} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Create new Payment Method"><Plus className="w-4 h-4" /></button>
-        </div>
+          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Terms</label>
           <SelectSearch
-            value={paymentMethodId}
-            onChange={setPaymentMethodId}
-            options={paymentMethods}
-            placeholder="Select Payment Method"
+            value={paymentTerms}
+            onChange={setPaymentTerms}
+            options={PAYMENT_TERMS_OPTIONS}
+            placeholder="Select Payment Terms"
           />
         </div>
 
@@ -330,14 +329,6 @@ const PurchaseVoucherForm = () => {
         </div>
       </form>
     </section>
-
-      {quickCreate && (
-        <QuickCreateModal
-          type={quickCreate}
-          onClose={() => setQuickCreate(null)}
-          onCreated={(item) => { setPaymentMethods(prev => [...prev, item]); setPaymentMethodId(String(item.id)); setQuickCreate(null); }}
-        />
-      )}
 
       <VoucherListModal
         isOpen={showList}
