@@ -48,7 +48,7 @@ const MASTER_ROUTES = {
 const OTHER_ROUTES = {
   'Client Ledger':     { slug: 'other/client-ledger',     icon: FileText },
   'Supplier Ledger':   { slug: 'other/supplier-ledger',   icon: Truck },
-  'Stock Quantity':    { slug: 'other/stock-quantity',    icon: Package },
+  'Stock Ledger':      { slug: 'other/stock-quantity',    icon: Package },
 };
 
 const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {

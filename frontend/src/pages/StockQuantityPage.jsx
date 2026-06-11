@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Warehouse, Search, X } from 'lucide-react';
+import { RefreshCw, Warehouse, Search, X, Package, ChevronRight } from 'lucide-react';
 import { getWarehouses } from '../api/masters';
 import { getStockQtyByWarehouse } from '../api/vouchers';
 
@@ -45,22 +45,31 @@ const StockQuantityPage = () => {
     ? rows.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
     : rows;
 
+  const totalQty    = filtered.reduce((s, r) => s + r.qty, 0);
+  const totalAmount = filtered.reduce((s, r) => s + (r.amount || 0), 0);
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 animate-in fade-in duration-300">
+
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-stone-800 tracking-tight">Stock Quantity Ledger</h1>
-        <p className="text-sm text-stone-400 mt-1">Current stock levels per warehouse</p>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="p-2 bg-rs-text-primary/10 rounded-xl">
+            <Package className="w-5 h-5 text-rs-text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-rs-text-primary font-user-serif tracking-tight">Stock Ledger</h1>
+        </div>
+        <p className="text-sm text-rs-text-muted ml-11">Select a warehouse to view current stock levels. Click any product to see its full ledger.</p>
       </div>
 
-      {/* Filter row */}
+      {/* Filter bar */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Warehouse className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Warehouse className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-rs-text-muted pointer-events-none" />
           <select
             value={selectedWarehouse}
             onChange={handleWarehouseChange}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-300 appearance-none cursor-pointer"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-rs-text-primary focus:outline-none focus:ring-2 focus:ring-rs-text-primary/20 focus:border-rs-text-primary appearance-none cursor-pointer transition-all"
           >
             <option value="">Select warehouse…</option>
             {warehouses.map(w => (
@@ -70,20 +79,17 @@ const StockQuantityPage = () => {
         </div>
 
         {selectedWarehouse && (
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-rs-text-muted pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search product…"
-              className="w-full pl-9 pr-8 py-2.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-700 placeholder-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-300"
+              className="w-full pl-9 pr-8 py-2.5 text-sm border border-stone-200 rounded-xl bg-white text-rs-text-primary placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-rs-text-primary/20 focus:border-rs-text-primary transition-all"
             />
             {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 transition-colors cursor-pointer"
-              >
+              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 transition-colors cursor-pointer">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -95,7 +101,7 @@ const StockQuantityPage = () => {
             onClick={handleRefresh}
             disabled={loading}
             title="Refresh"
-            className="p-2.5 rounded-lg border border-stone-200 bg-white text-stone-500 hover:text-stone-800 hover:border-stone-300 transition-colors disabled:opacity-40 cursor-pointer"
+            className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -104,47 +110,52 @@ const StockQuantityPage = () => {
 
       {/* Error */}
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600">
-          {error}
-        </div>
+        <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>
       )}
 
-      {/* Table */}
+      {/* Content */}
       {!selectedWarehouse ? (
-        <div className="text-center py-20 text-stone-300 text-sm">
-          Select a warehouse to view stock quantities
+        <div className="text-center py-24 border border-dashed border-stone-200 rounded-2xl bg-white flex flex-col items-center gap-3">
+          <Warehouse className="w-10 h-10 text-stone-200" />
+          <p className="text-sm text-stone-400">Select a warehouse above to view stock</p>
         </div>
       ) : loading ? (
-        <div className="text-center py-20 text-stone-400 text-sm">Loading…</div>
+        <div className="text-center py-24 flex items-center justify-center gap-2 text-rs-text-muted text-sm">
+          <RefreshCw className="w-4 h-4 animate-spin" /> Loading…
+        </div>
       ) : (
         <>
-          <div className="flex items-center justify-between mb-3">
-            {selectedName && (
-              <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">
+          {/* Sub-header */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted bg-rs-cream/60 px-2.5 py-1 rounded-lg border border-rs-accent-bg">
                 {selectedName}
-              </p>
-            )}
-            {search && (
-              <p className="text-xs text-stone-400 ml-auto">
-                {filtered.length} of {rows.length} products
-              </p>
-            )}
+              </span>
+              {search && (
+                <span className="text-xs text-stone-400">{filtered.length} of {rows.length} products</span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">
+              Click row to view ledger
+            </span>
           </div>
-          <div className="border border-stone-200 rounded-xl overflow-hidden">
+
+          <div className="border border-stone-100 rounded-2xl overflow-hidden shadow-sm bg-white">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-stone-50 border-b border-stone-200">
-                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-10">#</th>
-                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Product Name</th>
-                  <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Quantity</th>
-                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Unit</th>
-                  <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Amount</th>
+                <tr className="bg-rs-cream/30 border-b border-stone-100">
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-rs-text-muted w-10">#</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Product Name</th>
+                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Quantity</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Unit</th>
+                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Amount</th>
+                  <th className="px-4 py-3 w-8"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-50">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-stone-300 text-sm">
+                    <td colSpan={6} className="px-4 py-16 text-center text-stone-300 text-sm">
                       {search ? `No products match "${search}"` : 'No products found'}
                     </td>
                   </tr>
@@ -153,16 +164,21 @@ const StockQuantityPage = () => {
                     <tr
                       key={row.id}
                       onClick={() => navigate(`/dashboard/other/product-info?productId=${row.id}&warehouseId=${selectedWarehouse}`)}
-                      className="hover:bg-stone-50 dark:hover:bg-brand-sidebar/50 transition-colors cursor-pointer"
+                      className="hover:bg-rs-cream/20 active:bg-rs-cream/40 transition-colors cursor-pointer group"
                     >
-                      <td className="px-4 py-3 text-stone-400">{i + 1}</td>
-                      <td className="px-4 py-3 text-stone-700 font-medium">{row.name}</td>
-                      <td className={`px-4 py-3 text-right font-semibold tabular-nums ${row.qty === 0 ? 'text-stone-300' : 'text-stone-800'}`}>
-                        {row.qty}
+                      <td className="px-4 py-3.5 text-stone-400 text-xs font-bold">{i + 1}</td>
+                      <td className="px-4 py-3.5 text-rs-text-primary font-semibold group-hover:text-rs-text-primary">{row.name}</td>
+                      <td className="px-4 py-3.5 text-right font-bold tabular-nums">
+                        <span className={row.qty === 0 ? 'text-stone-300' : row.qty < 0 ? 'text-red-500' : 'text-rs-text-primary'}>
+                          {row.qty}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-stone-400">{row.unit}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-stone-700 font-semibold">
+                      <td className="px-4 py-3.5 text-rs-text-muted text-xs">{row.unit}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-rs-text-primary font-semibold">
                         {(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-3 py-3.5 text-stone-300 group-hover:text-rs-text-primary transition-colors">
+                        <ChevronRight className="w-4 h-4" />
                       </td>
                     </tr>
                   ))
@@ -170,17 +186,14 @@ const StockQuantityPage = () => {
               </tbody>
               {filtered.length > 0 && (
                 <tfoot>
-                  <tr className="bg-stone-50 border-t border-stone-200">
-                    <td colSpan={2} className="px-4 py-3 text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                      Total
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-stone-800 tabular-nums">
-                      {filtered.reduce((s, r) => s + r.qty, 0)}
-                    </td>
+                  <tr className="bg-rs-cream/30 border-t border-stone-100">
+                    <td colSpan={2} className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Total</td>
+                    <td className="px-4 py-3 text-right font-bold text-rs-text-primary tabular-nums">{totalQty}</td>
                     <td className="px-4 py-3" />
-                    <td className="px-4 py-3 text-right font-bold text-stone-800 tabular-nums">
-                      {filtered.reduce((s, r) => s + (r.amount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <td className="px-4 py-3 text-right font-bold text-rs-text-primary tabular-nums">
+                      {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
+                    <td />
                   </tr>
                 </tfoot>
               )}

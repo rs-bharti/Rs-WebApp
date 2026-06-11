@@ -719,25 +719,25 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 <div className="flex rounded-lg overflow-hidden border border-stone-200 flex-shrink-0">
                   <button type="button"
                     onClick={() => setFormData(p => ({ ...p, obType: 'CR' }))}
-                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', (f('obType') || 'CR') === 'CR' ? 'bg-green-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
+                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', (f('obType') || 'CR') === 'CR' ? 'bg-red-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
                     CR
                   </button>
                   <button type="button"
                     onClick={() => setFormData(p => ({ ...p, obType: 'DR' }))}
-                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', f('obType') === 'DR' ? 'bg-red-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
+                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', f('obType') === 'DR' ? 'bg-green-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
                     DR
                   </button>
                 </div>
                 <div className={cn('flex items-center flex-1 rounded-xl border overflow-hidden transition-all', isAdmin ? 'border-brand-bg bg-brand-bg/20 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/10' : 'border-stone-200 bg-stone-50 focus-within:border-rs-text-primary focus-within:ring-2 focus-within:ring-rs-text-primary/10')}>
                   <span className={cn('pl-4 text-sm flex-shrink-0', isAdmin ? 'text-brand-primary/50' : 'text-stone-400')}>{currencySymbol}</span>
                   <input
-                    className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
+                    className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', f('obType') === 'DR' ? 'text-green-600 font-bold' : 'text-red-500 font-bold')}
                     type="number" min="0" step="0.01" placeholder="0.00"
                     value={f('openingBalance')} onChange={upd('openingBalance')}
                   />
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
-                  <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
+                  <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
                     {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
@@ -773,25 +773,25 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 <div className="flex rounded-lg overflow-hidden border border-stone-200 flex-shrink-0">
                   <button type="button"
                     onClick={() => setFormData(p => ({ ...p, obType: 'CR' }))}
-                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', (f('obType') || 'CR') === 'CR' ? 'bg-green-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
+                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', (f('obType') || 'CR') === 'CR' ? 'bg-red-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
                     CR
                   </button>
                   <button type="button"
                     onClick={() => setFormData(p => ({ ...p, obType: 'DR' }))}
-                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', f('obType') === 'DR' ? 'bg-red-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
+                    className={cn('px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors', f('obType') === 'DR' ? 'bg-green-500 text-white' : 'bg-stone-50 text-stone-400 hover:text-stone-600')}>
                     DR
                   </button>
                 </div>
                 <div className={cn('flex items-center flex-1 rounded-xl border overflow-hidden transition-all', isAdmin ? 'border-brand-bg bg-brand-bg/20 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/10' : 'border-stone-200 bg-stone-50 focus-within:border-rs-text-primary focus-within:ring-2 focus-within:ring-rs-text-primary/10')}>
                   <span className={cn('pl-4 text-sm flex-shrink-0', isAdmin ? 'text-brand-primary/50' : 'text-stone-400')}>{currencySymbol}</span>
                   <input
-                    className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', f('obType') === 'DR' ? 'text-red-500 font-bold' : 'text-green-600 font-bold')}
+                    className={cn('flex-1 py-3 pr-4 bg-transparent text-sm outline-none', f('obType') === 'DR' ? 'text-green-600 font-bold' : 'text-red-500 font-bold')}
                     type="number" min="0" step="0.01" placeholder="0.00"
                     value={f('openingBalance')} onChange={upd('openingBalance')}
                   />
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
-                  <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
+                  <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
                     {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
@@ -945,7 +945,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                           {(isDetailed || isCustomer) && (
                             <td className={tdCls}>
                               {r.balance !== undefined && r.balance !== null ? (
-                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
+                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap', r.balance >= 0 ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
                                   {r.balance >= 0 ? 'CR' : 'DR'} {currencySymbol}{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </span>
                               ) : '—'}
