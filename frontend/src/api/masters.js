@@ -88,3 +88,7 @@ export const getExpenses    = ()          => apiFetch('/api/masters/expenses');
 export const createExpense  = (body)      => apiFetch('/api/masters/expenses', { method: 'POST',   body: JSON.stringify(body) });
 export const updateExpense  = (id, body)  => apiFetch(`/api/masters/expenses/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
 export const deleteExpense  = (id)        => apiFetch(`/api/masters/expenses/${id}`, { method: 'DELETE' });
+
+// ── Contact Persons ────────────────────────────────────────────────────────────
+export const updateContact = (id, body) => apiFetch(`/api/masters/contacts/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
+export const deleteContact = (id)       => apiFetch(`/api/masters/contacts/${id}`, { method: 'DELETE' });

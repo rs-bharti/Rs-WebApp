@@ -15,6 +15,7 @@ const {
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
   getExpenses,   createExpense,  updateExpense,  deleteExpense,
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
+  updateContact, deleteContact,
 } = require('../controllers/masterController');
 
 const router = express.Router();
@@ -73,5 +74,8 @@ router.get('/warehouses',        getWarehouses);
 router.post('/warehouses',       requirePermission('masters', 'Warehouse'), createWarehouse);
 router.put('/warehouses/:id',    requirePermission('masters', 'Warehouse'), updateWarehouse);
 router.delete('/warehouses/:id', requirePermission('masters', 'Warehouse'), deleteWarehouse);
+
+router.put('/contacts/:id',    updateContact);
+router.delete('/contacts/:id', deleteContact);
 
 module.exports = router;

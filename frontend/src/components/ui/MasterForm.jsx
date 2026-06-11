@@ -15,6 +15,7 @@ import {
   getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
   getExpenses,      createExpense,     updateExpense,     deleteExpense,
   getWarehouses,    createWarehouse,   updateWarehouse,   deleteWarehouse,
+  updateContact,    deleteContact,
 } from '../../api/masters';
 
 // Phone number max digits by country dial code (national subscriber number length)
@@ -269,6 +270,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [showListModal, setShowListModal] = useState(false);
   const [viewRecord,  setViewRecord]  = useState(null);
   const [contactsRecord, setContactsRecord] = useState(null);
+  const [editingContactId,  setEditingContactId]  = useState(null);
+  const [editContactData,   setEditContactData]   = useState({});
+  const [savingContact,     setSavingContact]      = useState(false);
+  const [contactErr,        setContactErr]         = useState('');
+  const [deleteContactId,   setDeleteContactId]   = useState(null);
+  const [deletingContact,   setDeletingContact]   = useState(false);
 
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
@@ -1563,7 +1570,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <div className="flex justify-end mb-3">
               <button
                 type="button"
-                onClick={() => setContactsRecord(null)}
+                onClick={() => { setContactsRecord(null); setEditingContactId(null); setDeleteContactId(null); setContactErr(''); }}
                 className="flex items-center gap-2 text-xs font-bold text-white/80 uppercase tracking-widest hover:text-white transition-colors cursor-pointer bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg border border-white/20"
               >
                 <X className="w-4 h-4" /> Close
@@ -1580,6 +1587,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </span>
               </div>
               <div className="px-6 py-5">
+                {contactErr && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg mb-4">{contactErr}</p>}
                 {(contactsRecord.contacts || []).length === 0 ? (
                   <p className={cn('text-center py-10 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No contact persons added for this {isCustomer ? 'customer' : 'supplier'}.</p>
                 ) : (
@@ -1592,18 +1600,92 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                           <th className={thCls}>Phone</th>
                           <th className={thCls}>Designation</th>
                           <th className={thCls}>Date of Birth</th>
+                          <th className={thCls}></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {(contactsRecord.contacts || []).map((cp, i) => (
-                          <tr key={cp.id || i} className={trHoverCls}>
-                            <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                            <td className={cn(tdCls, 'font-semibold')}>{cp.name || '—'}</td>
-                            <td className={tdCls}>{cp.phone || '—'}</td>
-                            <td className={tdCls}>{cp.designation || '—'}</td>
-                            <td className={tdCls}>{cp.dob ? cp.dob.split('T')[0].split('-').reverse().join('/') : '—'}</td>
-                          </tr>
-                        ))}
+                        {(contactsRecord.contacts || []).map((cp, i) => {
+                          const isEditing = editingContactId === cp.id;
+                          const isConfirmDelete = deleteContactId === cp.id;
+                          return (
+                            <tr key={cp.id || i} className={trHoverCls}>
+                              <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                              {isEditing ? (
+                                <>
+                                  <td className="px-3 py-2"><input type="text" value={editContactData.name ?? ''} onChange={e => setEditContactData(p => ({ ...p, name: e.target.value }))} className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm outline-none focus:border-rs-text-primary bg-stone-50" /></td>
+                                  <td className="px-3 py-2"><input type="text" value={editContactData.phone ?? ''} onChange={e => setEditContactData(p => ({ ...p, phone: e.target.value }))} className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm outline-none focus:border-rs-text-primary bg-stone-50" /></td>
+                                  <td className="px-3 py-2">
+                                    <select value={editContactData.designation ?? ''} onChange={e => setEditContactData(p => ({ ...p, designation: e.target.value }))} className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm outline-none focus:border-rs-text-primary bg-stone-50 cursor-pointer">
+                                      <option value="">Select…</option>
+                                      {['Manager', 'Owner', 'Sales Head', 'Procurement Head', 'Sales Boy', 'President', 'CEO'].map(d => <option key={d}>{d}</option>)}
+                                    </select>
+                                  </td>
+                                  <td className="px-3 py-2"><input type="date" value={editContactData.dob ?? ''} onChange={e => setEditContactData(p => ({ ...p, dob: e.target.value }))} className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm outline-none focus:border-rs-text-primary bg-stone-50" /></td>
+                                  <td className="px-3 py-2 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button type="button" onClick={() => { setEditingContactId(null); setContactErr(''); }} className="px-3 py-1.5 rounded-lg text-[10px] font-bold border border-stone-200 text-stone-500 hover:bg-stone-50 cursor-pointer">Cancel</button>
+                                      <button type="button" disabled={savingContact} onClick={async () => {
+                                        if (!editContactData.name?.trim()) { setContactErr('Name is required'); return; }
+                                        setSavingContact(true); setContactErr('');
+                                        try {
+                                          const updated = await updateContact(cp.id, editContactData);
+                                          const updatedContacts = contactsRecord.contacts.map(c => c.id === cp.id ? updated : c);
+                                          setContactsRecord(prev => ({ ...prev, contacts: updatedContacts }));
+                                          setRecords(prev => prev.map(r => r.id === contactsRecord.id ? { ...r, contacts: updatedContacts } : r));
+                                          setEditingContactId(null);
+                                        } catch (err) { setContactErr(err.message || 'Save failed'); }
+                                        finally { setSavingContact(false); }
+                                      }} className={cn('px-3 py-1.5 rounded-lg text-[10px] font-bold text-white disabled:opacity-60 cursor-pointer', isAdmin ? 'bg-brand-primary hover:brightness-110' : 'bg-rs-text-primary hover:brightness-110')}>
+                                        {savingContact ? 'Saving…' : 'Save'}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </>
+                              ) : isConfirmDelete ? (
+                                <>
+                                  <td colSpan={4} className={cn(tdCls, 'text-red-500 font-semibold')}>Delete "{cp.name}"? This cannot be undone.</td>
+                                  <td className="px-3 py-2 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button type="button" onClick={() => setDeleteContactId(null)} className="px-3 py-1.5 rounded-lg text-[10px] font-bold border border-stone-200 text-stone-500 hover:bg-stone-50 cursor-pointer">Cancel</button>
+                                      <button type="button" disabled={deletingContact} onClick={async () => {
+                                        setDeletingContact(true); setContactErr('');
+                                        try {
+                                          await deleteContact(cp.id);
+                                          const updatedContacts = contactsRecord.contacts.filter(c => c.id !== cp.id);
+                                          setContactsRecord(prev => ({ ...prev, contacts: updatedContacts }));
+                                          setRecords(prev => prev.map(r => r.id === contactsRecord.id ? { ...r, contacts: updatedContacts } : r));
+                                          setDeleteContactId(null);
+                                        } catch (err) { setContactErr(err.message || 'Delete failed'); }
+                                        finally { setDeletingContact(false); }
+                                      }} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 cursor-pointer">
+                                        {deletingContact ? 'Deleting…' : 'Yes, Delete'}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className={cn(tdCls, 'font-semibold')}>{cp.name || '—'}</td>
+                                  <td className={tdCls}>{cp.phone || '—'}</td>
+                                  <td className={tdCls}>{cp.designation || '—'}</td>
+                                  <td className={tdCls}>{cp.dob ? cp.dob.split('T')[0].split('-').reverse().join('/') : '—'}</td>
+                                  <td className="px-4 py-3 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button type="button" onClick={() => { setEditingContactId(cp.id); setEditContactData({ name: cp.name || '', phone: cp.phone || '', designation: cp.designation || '', dob: cp.dob ? cp.dob.split('T')[0] : '' }); setContactErr(''); setDeleteContactId(null); }}
+                                        className={cn('px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer', isAdmin ? 'border-brand-bg text-brand-primary hover:bg-brand-bg/30' : 'border-rs-text-primary/30 text-rs-text-primary hover:bg-rs-text-primary/5')}>
+                                        Edit
+                                      </button>
+                                      <button type="button" onClick={() => { setDeleteContactId(cp.id); setEditingContactId(null); setContactErr(''); }}
+                                        className="px-3 py-1.5 rounded-lg border border-red-200 text-red-500 text-[10px] font-bold uppercase tracking-widest hover:bg-red-50 transition-all cursor-pointer">
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
