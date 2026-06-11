@@ -46,14 +46,10 @@ const MASTER_ROUTES = {
 };
 
 const OTHER_ROUTES = {
-  'Client Ledger':        { slug: 'other/client-ledger',          icon: FileText },
-  'Stock Ledger':         { slug: 'other/stock-ledger',           icon: FileText },
-  'Client Balance':       { slug: 'other/client-balance',         icon: CreditCard },
-  'Stock Quantity':       { slug: 'other/stock-quantity',         icon: Package },
-  'Product Statement':    { slug: 'other/product-statement',      icon: FileText },
-  'Customer Statement':   { slug: 'other/customer-statement',     icon: FileText },
-  'All Customer Balance': { slug: 'other/all-customer-balance',   icon: Users },
-  'All Balance Stock':    { slug: 'other/all-balance-stock',      icon: Database },
+  'Client Ledger':     { slug: 'other/client-ledger',     icon: FileText },
+  'Supplier Ledger':   { slug: 'other/supplier-ledger',   icon: Truck },
+  'Stock Quantity':    { slug: 'other/stock-quantity',    icon: Package },
+  'Product Statement': { slug: 'other/product-statement', icon: FileText },
 };
 
 const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {

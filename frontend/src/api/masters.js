@@ -57,6 +57,23 @@ export const deleteSupplier = (id)        => apiFetch(`/api/masters/suppliers/${
 export const getSupplierTransactions   = (id)       => apiFetch(`/api/masters/suppliers/${id}/transactions`);
 export const createSupplierTransaction = (id, body) => apiFetch(`/api/masters/suppliers/${id}/transactions`, { method: 'POST', body: JSON.stringify(body) });
 
+// ── Supplier Ledger ────────────────────────────────────────────────────────────
+export const getSupplierLedger = async (supplierId) => {
+  const [supplier, transactions] = await Promise.all([
+    apiFetch(`/api/masters/suppliers`).then(list => list.find(s => String(s.id) === String(supplierId))),
+    apiFetch(`/api/masters/suppliers/${supplierId}/transactions`),
+  ]);
+  // Sort oldest first and compute running balance (CR = credit/reduce payable, DR = debit/increase payable)
+  const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let running = 0;
+  const ledger = sorted.map(tx => {
+    const isCredit = tx.type === 'CR';
+    running += isCredit ? tx.amount : -tx.amount;
+    return { ...tx, balance: running };
+  });
+  return { supplier, ledger };
+};
+
 // ── Customers ──────────────────────────────────────────────────────────────────
 export const getCustomers   = ()          => apiFetch('/api/masters/customers');
 export const createCustomer = (body)      => apiFetch('/api/masters/customers', { method: 'POST',   body: JSON.stringify(body) });
