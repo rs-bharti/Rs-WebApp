@@ -939,7 +939,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                           {(isDetailed || isCustomer) && (
                             <td className={tdCls}>
                               {r.balance !== undefined && r.balance !== null ? (
-                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
+                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap', r.balance >= 0 ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200')}>
                                   {r.balance >= 0 ? 'CR' : 'DR'} {currencySymbol}{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </span>
                               ) : '—'}
@@ -1395,20 +1395,22 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
       {showListModal && (
         <div
-          className="fixed inset-0 z-40 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-8 px-4"
+          className="fixed inset-0 z-40 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-8 px-4"
           onClick={e => e.target === e.currentTarget && setShowListModal(false)}
         >
-          <div className="w-full max-w-5xl">
+          <div className="w-full max-w-5xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-end mb-3">
               <button
                 type="button"
-                onClick={() => { setShowListModal(false); setListSearch(''); setEditingId(null); }}
-                className="flex items-center gap-2 text-xs font-bold text-white/80 uppercase tracking-widest hover:text-white transition-colors cursor-pointer bg-black/20 hover:bg-black/30 px-4 py-2 rounded-lg"
+                onClick={() => { setShowListModal(false); setListSearch(''); setEditingId(null); setViewRecord(null); }}
+                className="flex items-center gap-2 text-xs font-bold text-white/80 uppercase tracking-widest hover:text-white transition-colors cursor-pointer bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg border border-white/20"
               >
                 <X className="w-4 h-4" /> Close
               </button>
             </div>
-            {renderList()}
+            <div className={cn('bg-white rounded-2xl shadow-2xl overflow-hidden', isAdmin ? 'border border-brand-bg' : 'border border-stone-100')}>
+              {renderList()}
+            </div>
           </div>
         </div>
       )}
@@ -1474,7 +1476,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     : isBranch || isWarehouse
                     ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
                     : isCustomer || isDetailed
-                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }, { key: 'gstNo', label: 'GST No', type: 'text' }, { key: 'email', label: 'Email', type: 'email' }]
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'email', label: 'Email', type: 'email' }, { key: 'gstNo', label: 'GST No', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
                     : isUnit
                     ? [{ key: 'unitName', label: 'Unit Name', type: 'text' }, { key: 'shortName', label: 'Short Name', type: 'text' }]
                     : [{ key: 'name', label: 'Name', type: 'text' }]
