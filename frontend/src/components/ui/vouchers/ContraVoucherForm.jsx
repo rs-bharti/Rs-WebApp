@@ -34,7 +34,9 @@ const ContraVoucherForm = () => {
     { key: 'fromPaymentMethod',  label: 'From',  render: v => v.fromPaymentMethod?.name || v.fromPaymentMethodName || '—' },
     { key: 'toPaymentMethod',    label: 'To',    render: v => v.toPaymentMethod?.name   || v.toPaymentMethodName   || '—' },
     { key: 'amount',             label: 'Amount', render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-    { key: 'narration',          label: 'Narration', render: v => v.narration || '—' },
+    { key: 'narration',  label: 'Narration',  render: v => v.narration || '—' },
+    { key: 'branch',     label: 'Branch',     render: v => v.branch?.name || '—',    detailOnly: true },
+    { key: 'createdBy',  label: 'Created By', render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
     { key: 'date',      label: 'Date',      type: 'date' },

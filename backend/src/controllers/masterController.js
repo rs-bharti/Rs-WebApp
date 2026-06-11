@@ -456,7 +456,7 @@ const createSupplier = async (req, res) => {
     const row = await prisma.supplier.create({
       data,
       select: {
-        id: true, name: true, phone: true, email: true, area: true, address: true,
+        id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true,
         cityName: true, stateName: true, countryName: true,
         contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true } },
       },
@@ -499,7 +499,7 @@ const updateSupplier = async (req, res) => {
     const row = await prisma.supplier.update({
       where: { id: Number(req.params.id) },
       data,
-      select: { id: true, name: true, phone: true, email: true, city: { select: { id: true, name: true } } },
+      select: { id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true },
     });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
@@ -612,7 +612,7 @@ const createCustomer = async (req, res) => {
     const row = await prisma.customer.create({
       data,
       select: {
-        id: true, name: true, phone: true, email: true, area: true, address: true,
+        id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true,
         cityName: true, stateName: true, countryName: true,
         contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true } },
       },
@@ -655,7 +655,7 @@ const updateCustomer = async (req, res) => {
     const row = await prisma.customer.update({
       where: { id: Number(req.params.id) },
       data,
-      select: { id: true, name: true, phone: true, email: true, city: { select: { id: true, name: true } } },
+      select: { id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true },
     });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }

@@ -10,7 +10,7 @@ const VoucherListModal = ({ isOpen, onClose, ...props }) => {
       className="fixed inset-0 z-40 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-8 px-4"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-5xl">
+      <div className="w-full max-w-7xl">
         <div className="flex justify-end mb-3">
           <button
             type="button"

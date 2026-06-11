@@ -268,6 +268,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [editError,   setEditError]   = useState('');
   const [showListModal, setShowListModal] = useState(false);
   const [viewRecord,  setViewRecord]  = useState(null);
+  const [contactsRecord, setContactsRecord] = useState(null);
 
   // Prevents the selCountry/selState cascade from clearing values set by handleCityChange
   const skipCityEffectsRef = useRef(false);
@@ -944,50 +945,31 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                             </td>
                           )}
                           <td className="px-4 py-3 text-right">
-                            <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setContactsRecord(r)}
+                                className={cn(
+                                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer',
+                                  (r.contacts || []).length > 0
+                                    ? (isAdmin ? 'border-brand-bg text-brand-primary hover:bg-brand-bg/30' : 'border-rs-text-primary/30 text-rs-text-primary hover:bg-rs-text-primary/5')
+                                    : 'border-stone-200 text-stone-400 hover:bg-stone-50'
+                                )}
+                              >
+                                <Users2 className="w-3.5 h-3.5" />
+                                Contacts
+                                <span className={cn(
+                                  'text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center',
+                                  (r.contacts || []).length > 0
+                                    ? (isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')
+                                    : 'bg-stone-200 text-stone-400'
+                                )}>
+                                  {(r.contacts || []).length}
+                                </span>
+                              </button>
+                              <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                            </div>
                           </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className={dividerCls}>
-            <div className="px-4 py-3 md:px-8 md:py-4 flex items-center gap-2">
-              <Users2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
-              <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                Contact Persons ({filteredContacts.length})
-              </h3>
-            </div>
-            <div className="px-4 pb-4 md:px-8 md:pb-8">
-              {loadingList ? (
-                <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
-              ) : filteredContacts.length === 0 ? (
-                <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No contact persons added yet.'}</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                      <tr className={headCls}>
-                        <th className={thCls}>#</th>
-                        <th className={thCls}>{isCustomer ? 'Customer' : 'Supplier'}</th>
-                        <th className={thCls}>Contact Name</th>
-                        <th className={thCls}>Phone</th>
-                        <th className={thCls}>Designation</th>
-                        <th className={thCls}>Date of Birth</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredContacts.map((cp, i) => (
-                        <tr key={cp.id} className={trHoverCls}>
-                          <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
-                          <td className={cn(tdCls, 'font-medium text-brand-primary/70')}>{cp.parentName}</td>
-                          <td className={cn(tdCls, 'font-semibold')}>{cp.name}</td>
-                          <td className={tdCls}>{cp.phone || '—'}</td>
-                          <td className={tdCls}>{cp.designation || '—'}</td>
-                          <td className={tdCls}>{cp.dob ? cp.dob.split('-').reverse().join('/') : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1396,7 +1378,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           className="fixed inset-0 z-40 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-8 px-4"
           onClick={e => e.target === e.currentTarget && setShowListModal(false)}
         >
-          <div className="w-full max-w-5xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-7xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-end mb-3">
               <button
                 type="button"
@@ -1568,6 +1550,66 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {contactsRecord && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-8 px-4 animate-in fade-in duration-150"
+          onClick={e => e.target === e.currentTarget && setContactsRecord(null)}
+        >
+          <div className="w-full max-w-4xl animate-in zoom-in-95 duration-150">
+            <div className="flex justify-end mb-3">
+              <button
+                type="button"
+                onClick={() => setContactsRecord(null)}
+                className="flex items-center gap-2 text-xs font-bold text-white/80 uppercase tracking-widest hover:text-white transition-colors cursor-pointer bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg border border-white/20"
+              >
+                <X className="w-4 h-4" /> Close
+              </button>
+            </div>
+            <div className={cn('bg-white rounded-2xl shadow-2xl overflow-hidden', isAdmin ? 'border border-brand-bg' : 'border border-stone-100')}>
+              <div className={cn('flex items-center justify-between px-6 py-4 border-b', isAdmin ? 'bg-brand-bg/40 border-brand-bg' : 'bg-rs-cream/40 border-stone-100')}>
+                <div>
+                  <p className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Contact Persons</p>
+                  <p className={cn('text-base font-bold mt-0.5', isAdmin ? 'font-admin-serif text-brand-primary' : 'font-user-serif text-rs-text-primary')}>{contactsRecord.name}</p>
+                </div>
+                <span className={cn('text-xs font-bold px-3 py-1.5 rounded-full', isAdmin ? 'bg-brand-primary/10 text-brand-primary' : 'bg-rs-text-primary/10 text-rs-text-muted')}>
+                  {(contactsRecord.contacts || []).length} Contact{(contactsRecord.contacts || []).length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="px-6 py-5">
+                {(contactsRecord.contacts || []).length === 0 ? (
+                  <p className={cn('text-center py-10 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>No contact persons added for this {isCustomer ? 'customer' : 'supplier'}.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={cn('border-b', isAdmin ? 'bg-brand-bg/30 border-brand-bg' : 'bg-rs-cream/30 border-stone-100')}>
+                          <th className={thCls}>#</th>
+                          <th className={thCls}>Name</th>
+                          <th className={thCls}>Phone</th>
+                          <th className={thCls}>Designation</th>
+                          <th className={thCls}>Date of Birth</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(contactsRecord.contacts || []).map((cp, i) => (
+                          <tr key={cp.id || i} className={trHoverCls}>
+                            <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                            <td className={cn(tdCls, 'font-semibold')}>{cp.name || '—'}</td>
+                            <td className={tdCls}>{cp.phone || '—'}</td>
+                            <td className={tdCls}>{cp.designation || '—'}</td>
+                            <td className={tdCls}>{cp.dob ? cp.dob.split('T')[0].split('-').reverse().join('/') : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -25,12 +25,15 @@ const StockTransferVoucherForm = () => {
   const [showList,        setShowList]        = useState(false);
 
   const COLUMNS = [
-    { key: 'voucherNo',      label: 'Voucher No' },
-    { key: 'date',           label: 'Date',           render: v => fmtDate(v.date) },
-    { key: 'fromWarehouse',  label: 'From Warehouse', render: v => v.fromWarehouse?.name || v.fromWarehouseName || '—' },
-    { key: 'toWarehouse',    label: 'To Warehouse',   render: v => v.toWarehouse?.name   || v.toWarehouseName   || '—' },
-    { key: 'items',          label: 'Items',          render: v => v.items?.length ?? '—' },
-    { key: 'narration',      label: 'Narration',      render: v => v.narration || '—' },
+    { key: 'voucherNo',     label: 'Voucher No' },
+    { key: 'date',          label: 'Date',           render: v => fmtDate(v.date) },
+    { key: 'fromWarehouse', label: 'From Warehouse', render: v => v.fromWarehouse?.name || v.fromWarehouseName || '—' },
+    { key: 'toWarehouse',   label: 'To Warehouse',   render: v => v.toWarehouse?.name   || v.toWarehouseName   || '—' },
+    { key: 'items',         label: 'Products',       render: v => { const items = v.items || []; if (!items.length) return '—'; const first = items[0].product?.name || items[0].productName || '—'; return items.length > 1 ? `${first} +${items.length - 1}` : first; } },
+    { key: '_qty',          label: 'Qty',            render: v => { const items = v.items || []; const t = items.reduce((s, i) => s + (parseFloat(i.qty) || 0), 0); return t || '—'; } },
+    { key: 'narration',     label: 'Narration',      render: v => v.narration || '—' },
+    { key: 'branch',        label: 'Branch',         render: v => v.branch?.name || '—',    detailOnly: true },
+    { key: 'createdBy',     label: 'Created By',     render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
     { key: 'date',      label: 'Date',      type: 'date' },

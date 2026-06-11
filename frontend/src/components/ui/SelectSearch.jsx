@@ -1,18 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-/**
- * Searchable replacement for <select>.
- *
- * Props:
- *   value       – currently selected id (string or number)
- *   onChange    – called with the selected id as a string
- *   options     – [{ id, name, label? }]  label shown in list, name shown when selected
- *   placeholder – text shown when nothing selected
- *   variant     – 'underline' (default, border-b style) | 'inline' (table-cell, no border)
- *   disabled    – boolean
- */
 const SelectSearch = ({
   value,
   onChange,
@@ -21,10 +11,11 @@ const SelectSearch = ({
   disabled = false,
   variant = 'underline',
 }) => {
-  const [open, setOpen]   = useState(false);
-  const [query, setQuery] = useState('');
-  const containerRef      = useRef(null);
-  const inputRef          = useRef(null);
+  const [open, setOpen]     = useState(false);
+  const [query, setQuery]   = useState('');
+  const [pos, setPos]       = useState({ top: 0, left: 0, width: 0 });
+  const containerRef        = useRef(null);
+  const inputRef            = useRef(null);
 
   const selected = options.find(o => String(o.id) === String(value));
 
@@ -36,19 +27,15 @@ const SelectSearch = ({
     return [...starts, ...contains];
   })();
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
-        setQuery('');
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+  const calcPos = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
   }, []);
 
   const handleOpen = () => {
     if (disabled) return;
+    calcPos();
     setOpen(true);
     setQuery('');
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -60,8 +47,37 @@ const SelectSearch = ({
     setQuery('');
   };
 
-  const dropdown = open && (
-    <div className="absolute z-[60] top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-stone-200 rounded-lg shadow-xl overflow-hidden">
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Reposition on scroll/resize
+  useEffect(() => {
+    if (!open) return;
+    const handler = () => { calcPos(); };
+    window.addEventListener('scroll', handler, true);
+    window.addEventListener('resize', handler);
+    return () => {
+      window.removeEventListener('scroll', handler, true);
+      window.removeEventListener('resize', handler);
+    };
+  }, [open, calcPos]);
+
+  const dropdownPortal = open ? createPortal(
+    <div
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: Math.max(pos.width, 200), zIndex: 9999 }}
+      className="bg-white border border-stone-200 rounded-lg shadow-xl overflow-hidden"
+      onMouseDown={e => e.stopPropagation()}
+    >
       <div className="px-3 py-2 border-b border-stone-100 bg-stone-50">
         <input
           ref={inputRef}
@@ -89,8 +105,9 @@ const SelectSearch = ({
           ))
         }
       </ul>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 
   if (variant === 'inline') {
     return (
@@ -99,7 +116,7 @@ const SelectSearch = ({
           {selected ? selected.name : placeholder}
         </span>
         <ChevronDown className={cn('w-4 h-4 text-stone-400 flex-shrink-0 transition-transform duration-200', open && 'rotate-180')} />
-        {dropdown}
+        {dropdownPortal}
       </div>
     );
   }
@@ -137,7 +154,7 @@ const SelectSearch = ({
         onClick={handleOpen}
         className={cn('w-4 h-4 text-stone-400 flex-shrink-0 cursor-pointer transition-transform duration-200', open && 'rotate-180')}
       />
-      {dropdown}
+      {dropdownPortal}
     </div>
   );
 };

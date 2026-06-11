@@ -42,9 +42,13 @@ const SalesReturnVoucherForm = () => {
     { key: 'date',         label: 'Date',          render: v => fmtDate(v.date) },
     { key: 'customer',     label: 'Customer',      render: v => v.customer?.name || '—' },
     { key: 'paymentTerms', label: 'Payment Terms', render: v => v.paymentTerms || '—' },
+    { key: 'items',        label: 'Products',      render: v => { const items = v.items || []; if (!items.length) return '—'; const first = items[0].product?.name || items[0].productName || '—'; return items.length > 1 ? `${first} +${items.length - 1}` : first; } },
+    { key: '_qty',         label: 'Qty',           render: v => { const items = v.items || []; const t = items.reduce((s, i) => s + (parseFloat(i.qty) || 0), 0); return t || '—'; } },
+    { key: '_rate',        label: 'Rate',          render: v => { const i = (v.items || [])[0]; return i?.rate != null ? Number(i.rate).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—'; } },
     { key: 'totalAmount',  label: 'Amount',        render: v => `₹${Number(v.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-    { key: 'items',        label: 'Items',         render: v => v.items?.length ?? '—' },
     { key: 'narration',    label: 'Narration',     render: v => v.narration || '—' },
+    { key: 'branch',       label: 'Branch',        render: v => v.branch?.name || '—',    detailOnly: true },
+    { key: 'createdBy',    label: 'Created By',    render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
     { key: 'date',      label: 'Date',      type: 'date' },

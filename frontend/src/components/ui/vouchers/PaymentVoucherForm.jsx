@@ -36,7 +36,9 @@ const PaymentVoucherForm = () => {
     { key: 'supplier',      label: 'Supplier', render: v => v.supplier?.name || '—' },
     { key: 'paymentMethod', label: 'Method',   render: v => v.paymentMethod?.name || '—' },
     { key: 'amount',        label: 'Amount',   render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-    { key: 'narration',     label: 'Narration', render: v => v.narration || '—' },
+    { key: 'narration',  label: 'Narration',  render: v => v.narration || '—' },
+    { key: 'branch',     label: 'Branch',     render: v => v.branch?.name || '—',    detailOnly: true },
+    { key: 'createdBy',  label: 'Created By', render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
     { key: 'date',      label: 'Date',      type: 'date' },

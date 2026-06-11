@@ -32,7 +32,9 @@ const ExpenseVoucherForm = () => {
     { key: 'date',        label: 'Date',         render: v => fmtDate(v.date) },
     { key: 'expenseName', label: 'Expense Type',  render: v => v.expense?.name || v.expenseName || '—' },
     { key: 'amount',      label: 'Amount',        render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-    { key: 'narration',   label: 'Narration',     render: v => v.narration || '—' },
+    { key: 'narration',  label: 'Narration',  render: v => v.narration || '—' },
+    { key: 'branch',     label: 'Branch',     render: v => v.branch?.name || '—',    detailOnly: true },
+    { key: 'createdBy',  label: 'Created By', render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
     { key: 'date',      label: 'Date',      type: 'date' },

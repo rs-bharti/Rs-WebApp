@@ -6,9 +6,11 @@ export const fmtDate = (d) =>
 
 export const toDateInput = (d) => (d ? new Date(d).toISOString().split('T')[0] : '');
 
+const fmt = (n) => n != null ? Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : null;
+
 const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUpdate, loading }) => {
   const [search,    setSearch]    = useState('');
-  const [selected,  setSelected]  = useState(null);  // voucher being viewed
+  const [selected,  setSelected]  = useState(null);
   const [editing,   setEditing]   = useState(false);
   const [editData,  setEditData]  = useState({});
   const [confirm,   setConfirm]   = useState(false);
@@ -21,15 +23,11 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
     ? vouchers.filter(v => JSON.stringify(v).toLowerCase().includes(q))
     : vouchers;
 
-  /* ── open view popup ── */
-  const handleView = (v) => {
-    setSelected(v);
-    setEditing(false);
-    setConfirm(false);
-    setErr('');
-  };
+  // columns without detailOnly show in the list table; all columns show in the popup
+  const listCols = columns.filter(c => !c.detailOnly);
 
-  /* ── open edit form inside the popup ── */
+  const handleView = (v) => { setSelected(v); setEditing(false); setConfirm(false); setErr(''); };
+
   const startEdit = () => {
     const data = {};
     (editFields || []).forEach(f => {
@@ -40,7 +38,6 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
     setErr('');
   };
 
-  /* ── save edit ── */
   const handleSave = async () => {
     setSaving(true); setErr('');
     try {
@@ -50,7 +47,6 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
     finally { setSaving(false); }
   };
 
-  /* ── delete ── */
   const handleDelete = async () => {
     setDeleting(true); setErr('');
     try {
@@ -61,6 +57,13 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
   };
 
   const close = () => { setSelected(null); setErr(''); setEditing(false); setConfirm(false); };
+
+  // derived flags for the items table columns
+  const hasRate     = (items) => items.some(i => i.rate     != null);
+  const hasTax      = (items) => items.some(i => i.taxAmount     > 0);
+  const hasDiscount = (items) => items.some(i => i.discountAmount > 0);
+  const hasAmount   = (items) => items.some(i => i.amount   != null);
+  const hasRemark   = (items) => items.some(i => i.remark);
 
   return (
     <>
@@ -91,7 +94,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted w-10">#</th>
-                  {columns.map(c => (
+                  {listCols.map(c => (
                     <th key={c.key} className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">{c.label}</th>
                   ))}
                   <th className="px-4 py-3 w-20"></th>
@@ -101,7 +104,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                 {filtered.map((v, i) => (
                   <tr key={v.id} className="border-b border-stone-50 hover:bg-rs-cream/10 transition-colors">
                     <td className="px-4 py-3 text-xs font-bold text-stone-400">{i + 1}</td>
-                    {columns.map(c => (
+                    {listCols.map(c => (
                       <td key={c.key} className="px-4 py-3 text-sm text-rs-text-primary/80">
                         {c.render ? c.render(v) : (v[c.key] ?? '—')}
                       </td>
@@ -126,13 +129,13 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
       {/* ── Popup ── */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
           onClick={e => e.target === e.currentTarget && close()}
         >
-          <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-2xl mx-4 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
 
             {/* popup header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-rs-cream/40 border-b border-stone-100">
+            <div className="flex items-center justify-between px-6 py-4 bg-rs-cream/40 border-b border-stone-100 flex-shrink-0">
               <div>
                 <p className="text-xs font-bold text-rs-text-muted uppercase tracking-widest">Voucher Details</p>
                 <p className="text-base font-bold text-rs-text-primary font-user-serif mt-0.5">{selected.voucherNo}</p>
@@ -144,19 +147,125 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
 
             {!editing && !confirm && (
               <>
-                {/* data grid */}
-                <div className="px-6 py-5 grid grid-cols-2 gap-4">
-                  {columns.map(c => (
-                    <div key={c.key}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1">{c.label}</p>
-                      <p className="text-sm font-semibold text-rs-text-primary">
-                        {c.render ? c.render(selected) : (selected[c.key] ?? '—')}
-                      </p>
+                {/* scrollable body */}
+                <div className="overflow-y-auto flex-1">
+
+                  {/* details grid — all columns including detailOnly */}
+                  <div className="px-6 py-5 grid grid-cols-2 gap-x-6 gap-y-4">
+                    {columns.map(c => (
+                      <div key={c.key}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1">{c.label}</p>
+                        <p className="text-sm font-semibold text-rs-text-primary">
+                          {c.render ? c.render(selected) : (selected[c.key] ?? '—')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* totals row — show sub/tax/discount/grand if present */}
+                  {(selected.subTotal != null || selected.taxAmount != null || selected.discountAmount != null) && (
+                    <div className="mx-6 mb-5 rounded-xl bg-rs-cream/30 border border-stone-100 px-5 py-3 flex flex-wrap gap-x-8 gap-y-2">
+                      {selected.subTotal != null && (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Sub Total</p>
+                          <p className="text-sm font-semibold text-rs-text-primary">₹{fmt(selected.subTotal)}</p>
+                        </div>
+                      )}
+                      {selected.taxAmount != null && Number(selected.taxAmount) > 0 && (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Tax</p>
+                          <p className="text-sm font-semibold text-rs-text-primary">₹{fmt(selected.taxAmount)}</p>
+                        </div>
+                      )}
+                      {selected.discountAmount != null && Number(selected.discountAmount) > 0 && (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Discount</p>
+                          <p className="text-sm font-semibold text-emerald-600">−₹{fmt(selected.discountAmount)}</p>
+                        </div>
+                      )}
+                      {selected.totalAmount != null && (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Grand Total</p>
+                          <p className="text-base font-bold text-rs-text-primary">₹{fmt(selected.totalAmount)}</p>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )}
+
+                  {/* products / items table */}
+                  {selected.items && selected.items.length > 0 && (() => {
+                    const items = selected.items;
+                    const showRate     = hasRate(items);
+                    const showTax      = hasTax(items);
+                    const showDiscount = hasDiscount(items);
+                    const showAmount   = hasAmount(items);
+                    const showRemark   = hasRemark(items);
+                    return (
+                      <div className="px-6 pb-5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-3">
+                          Products ({items.length})
+                        </p>
+                        <div className="rounded-xl border border-stone-100 overflow-hidden overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-rs-cream/40 border-b border-stone-100">
+                                <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted w-8">#</th>
+                                <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Product Name</th>
+                                <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted text-right">Qty</th>
+                                {showRate     && <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted text-right">Rate</th>}
+                                {showTax      && <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted text-right">Tax</th>}
+                                {showDiscount && <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted text-right">Discount</th>}
+                                {showAmount   && <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted text-right">Total</th>}
+                                {showRemark   && <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Remark</th>}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((item, idx) => (
+                                <tr key={item.id ?? idx} className="border-b border-stone-50 last:border-0">
+                                  <td className="px-3 py-2.5 text-xs font-bold text-stone-400">{idx + 1}</td>
+                                  <td className="px-3 py-2.5 text-sm font-semibold text-rs-text-primary whitespace-nowrap">
+                                    {item.product?.name || item.productName || '—'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-sm text-rs-text-primary/80 text-right font-medium">
+                                    {item.qty ?? '—'}
+                                  </td>
+                                  {showRate && (
+                                    <td className="px-3 py-2.5 text-sm text-rs-text-primary/80 text-right">
+                                      {item.rate != null ? fmt(item.rate) : '—'}
+                                    </td>
+                                  )}
+                                  {showTax && (
+                                    <td className="px-3 py-2.5 text-sm text-rs-text-primary/80 text-right">
+                                      {item.taxAmount > 0 ? `₹${fmt(item.taxAmount)}` : '—'}
+                                    </td>
+                                  )}
+                                  {showDiscount && (
+                                    <td className="px-3 py-2.5 text-sm text-emerald-600 text-right">
+                                      {item.discountAmount > 0 ? `−₹${fmt(item.discountAmount)}` : '—'}
+                                    </td>
+                                  )}
+                                  {showAmount && (
+                                    <td className="px-3 py-2.5 text-sm font-bold text-rs-text-primary text-right">
+                                      {item.amount != null ? `₹${fmt(item.amount)}` : '—'}
+                                    </td>
+                                  )}
+                                  {showRemark && (
+                                    <td className="px-3 py-2.5 text-sm text-rs-text-primary/70">
+                                      {item.remark || '—'}
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
-                {/* actions */}
-                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3">
+
+                {/* actions — fixed at bottom */}
+                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setConfirm(true)}
@@ -180,7 +289,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
             {/* ── Edit form ── */}
             {editing && (
               <>
-                <div className="px-6 py-5 space-y-4">
+                <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                   {err && <p className="text-xs text-red-500">{err}</p>}
                   {editFields.map(f => (
                     <div key={f.key}>
@@ -218,7 +327,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                     </div>
                   ))}
                 </div>
-                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3">
+                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3 flex-shrink-0">
                   <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-xs font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer">
                     Cancel
                   </button>
@@ -232,7 +341,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
             {/* ── Delete confirm ── */}
             {confirm && (
               <>
-                <div className="px-6 py-6 text-center space-y-2">
+                <div className="px-6 py-6 text-center space-y-2 flex-1">
                   <div className="w-12 h-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-3">
                     <Trash2 className="w-5 h-5 text-red-500" />
                   </div>
@@ -242,7 +351,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                   </p>
                   {err && <p className="text-xs text-red-500 pt-1">{err}</p>}
                 </div>
-                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3">
+                <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3 flex-shrink-0">
                   <button type="button" onClick={() => setConfirm(false)} className="px-4 py-2 rounded-lg text-xs font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer">
                     Cancel
                   </button>
