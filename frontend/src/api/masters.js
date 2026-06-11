@@ -58,21 +58,10 @@ export const getSupplierTransactions   = (id)       => apiFetch(`/api/masters/su
 export const createSupplierTransaction = (id, body) => apiFetch(`/api/masters/suppliers/${id}/transactions`, { method: 'POST', body: JSON.stringify(body) });
 
 // ── Supplier Ledger ────────────────────────────────────────────────────────────
-export const getSupplierLedger = async (supplierId) => {
-  const [supplier, transactions] = await Promise.all([
-    apiFetch(`/api/masters/suppliers`).then(list => list.find(s => String(s.id) === String(supplierId))),
-    apiFetch(`/api/masters/suppliers/${supplierId}/transactions`),
-  ]);
-  // Sort oldest first and compute running balance (CR = credit/reduce payable, DR = debit/increase payable)
-  const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-  let running = 0;
-  const ledger = sorted.map(tx => {
-    const isCredit = tx.type === 'CR';
-    running += isCredit ? tx.amount : -tx.amount;
-    return { ...tx, balance: running };
-  });
-  return { supplier, ledger };
-};
+// Calls the backend aggregation endpoint that merges:
+//   Purchase Vouchers (CR), Payment Vouchers (DR), Purchase Return Vouchers (DR), manual transactions
+export const getSupplierLedger = (supplierId) =>
+  apiFetch(`/api/vouchers/supplier-ledger/${supplierId}`);
 
 // ── Customers ──────────────────────────────────────────────────────────────────
 export const getCustomers   = ()          => apiFetch('/api/masters/customers');
