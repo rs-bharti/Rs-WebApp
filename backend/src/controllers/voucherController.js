@@ -18,6 +18,23 @@ async function nextNo(model, prefix) {
   return `${fullPrefix}${String(seq).padStart(3, '0')}`;
 }
 
+// If two users submit the same voucher type at the same instant, both may get
+// the same sequence number. The DB unique constraint will reject one of them.
+// This wrapper retries up to 3 times, each time fetching a fresh number.
+async function withVoucherRetry(fn) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isDuplicateVoucherNo =
+        err.code === 'P2002' &&
+        (err.meta?.target || []).some(f => f === 'voucherNo');
+      if (isDuplicateVoucherNo && attempt < 2) continue;
+      throw err;
+    }
+  }
+}
+
 // Extract active branch from request (header takes priority over JWT)
 const getBranchId = (req) => {
   const headerBranch = req.headers['x-branch-id'];
@@ -64,7 +81,7 @@ const createContra = async (req, res) => {
       prisma.paymentMethodMaster.findUnique({ where: { id: Number(toPaymentMethodId) },   select: { name: true } }),
     ]);
 
-    const voucher = await prisma.contraVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.contraVoucher.create({
       data: {
         voucherNo:              await nextNo('contraVoucher', 'CV'),
         fromPaymentMethodId:    Number(fromPaymentMethodId),
@@ -77,7 +94,7 @@ const createContra = async (req, res) => {
         createdById:            req.user.id,
         branchId:               branchId || null,
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -113,7 +130,7 @@ const createReceipt = async (req, res) => {
       return res.status(400).json({ message: 'customerId, paymentMethodId, and amount are required' });
 
     const branchId = getBranchId(req);
-    const voucher = await prisma.receiptVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.receiptVoucher.create({
       data: {
         voucherNo:       await nextNo('receiptVoucher', 'RV'),
         customerId:      Number(customerId),
@@ -124,7 +141,7 @@ const createReceipt = async (req, res) => {
         createdById:     req.user.id,
         branchId:        branchId || null,
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -160,7 +177,7 @@ const createPayment = async (req, res) => {
       return res.status(400).json({ message: 'supplierId, paymentMethodId, and amount are required' });
 
     const branchId = getBranchId(req);
-    const voucher = await prisma.paymentVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.paymentVoucher.create({
       data: {
         voucherNo:       await nextNo('paymentVoucher', 'PV'),
         supplierId:      Number(supplierId),
@@ -171,7 +188,7 @@ const createPayment = async (req, res) => {
         createdById:     req.user.id,
         branchId:        branchId || null,
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -225,7 +242,7 @@ const createPurchase = async (req, res) => {
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
     const totalAmount    = subTotal + taxAmount - discountAmount;
 
-    const voucher = await prisma.purchaseVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.purchaseVoucher.create({
       data: {
         voucherNo:    await nextNo('purchaseVoucher', 'PUR'),
         supplierId:   Number(supplierId),
@@ -258,7 +275,7 @@ const createPurchase = async (req, res) => {
         branch:   { select: { name: true } },
         warehouse: { select: { name: true } },
       },
-    });
+    }));
 
     // Auto-create CR entry: purchase means we owe money to the supplier
     await prisma.supplierTransaction.create({
@@ -336,7 +353,7 @@ const createSales = async (req, res) => {
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
     const totalAmount    = subTotal + taxAmount - discountAmount;
 
-    const voucher = await prisma.salesVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.salesVoucher.create({
       data: {
         voucherNo:         await nextNo('salesVoucher', 'SV'),
         customerId:        Number(customerId),
@@ -370,7 +387,7 @@ const createSales = async (req, res) => {
         branch:   { select: { name: true } },
         warehouse: { select: { name: true } },
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -425,7 +442,7 @@ const createPurchaseReturn = async (req, res) => {
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
     const totalAmount    = subTotal + taxAmount - discountAmount;
 
-    const voucher = await prisma.purchaseReturnVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.purchaseReturnVoucher.create({
       data: {
         voucherNo:         await nextNo('purchaseReturnVoucher', 'PRV'),
         supplierId:        Number(supplierId),
@@ -459,7 +476,7 @@ const createPurchaseReturn = async (req, res) => {
         branch:   { select: { name: true } },
         warehouse: { select: { name: true } },
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -518,7 +535,7 @@ const createSalesReturn = async (req, res) => {
     const discountAmount = items.reduce((s, i) => s + Number(i.discountAmount || 0), 0);
     const totalAmount    = subTotal + taxAmount - discountAmount;
 
-    const voucher = await prisma.salesReturnVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.salesReturnVoucher.create({
       data: {
         voucherNo:         await nextNo('salesReturnVoucher', 'SRV'),
         customerId:        Number(customerId),
@@ -549,7 +566,7 @@ const createSalesReturn = async (req, res) => {
         customer: { select: { name: true } },
         branch:   { select: { name: true } },
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -629,7 +646,7 @@ const createStockData = async (req, res) => {
     ]);
     const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
 
-    const voucher = await prisma.stockDataVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.stockDataVoucher.create({
       data: {
         voucherNo:     await nextNo('stockDataVoucher', 'SDV'),
         date:          date ? new Date(date) : new Date(),
@@ -651,7 +668,7 @@ const createStockData = async (req, res) => {
         warehouse: { select: { id: true, name: true } },
         items:     { include: { product: { select: { id: true, name: true } } } },
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -704,7 +721,7 @@ const createStockTransfer = async (req, res) => {
     ]);
     const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
 
-    const voucher = await prisma.stockTransferVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.stockTransferVoucher.create({
       data: {
         voucherNo:         await nextNo('stockTransferVoucher', 'STV'),
         date:              date ? new Date(date) : new Date(),
@@ -728,7 +745,7 @@ const createStockTransfer = async (req, res) => {
         toWarehouse:   { select: { id: true, name: true } },
         items:         { include: { product: { select: { id: true, name: true } } } },
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -945,7 +962,7 @@ const createExpenseVoucher = async (req, res) => {
       paymentMethodId ? prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }) : null,
     ]);
 
-    const voucher = await prisma.expenseVoucher.create({
+    const voucher = await withVoucherRetry(async () => prisma.expenseVoucher.create({
       data: {
         voucherNo:         await nextNo('expenseVoucher', 'EXP'),
         expenseId:         Number(expenseId),
@@ -958,7 +975,7 @@ const createExpenseVoucher = async (req, res) => {
         createdById:       req.user.id,
         branchId:          branchId || null,
       },
-    });
+    }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };

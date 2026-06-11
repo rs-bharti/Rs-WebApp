@@ -8,10 +8,32 @@ export const AuthProvider = ({ children }) => {
   const [activeBranch, setActiveBranch] = useState(null);
   const [loading, setLoading]         = useState(true);
 
+  // Mark every beforeunload so we can tell refresh apart from tab-close/restore
+  useEffect(() => {
+    const mark = () => sessionStorage.setItem('_willReload', '1');
+    window.addEventListener('beforeunload', mark);
+    return () => window.removeEventListener('beforeunload', mark);
+  }, []);
+
   useEffect(() => {
     // Clear any stale localStorage auth data from the old storage strategy
     ['token', 'user', 'userRole', 'userName', 'activeBranch'].forEach(k => localStorage.removeItem(k));
 
+    // _willReload is set by beforeunload and survives a page refresh (sessionStorage
+    // persists through F5). When the tab is truly closed, sessionStorage is wiped by
+    // the browser, so _willReload won't be there on the next load.
+    const justReloaded = sessionStorage.getItem('_willReload') === '1';
+    sessionStorage.removeItem('_willReload');
+
+    if (!justReloaded) {
+      // Fresh session (new tab, browser restarted, or restored closed tab).
+      // Force login — do not restore any saved credentials.
+      sessionStorage.clear();
+      setLoading(false);
+      return;
+    }
+
+    // Page was refreshed — safely restore the existing session.
     const storedToken  = sessionStorage.getItem('token');
     const storedUser   = sessionStorage.getItem('user');
     const storedBranch = sessionStorage.getItem('activeBranch');
