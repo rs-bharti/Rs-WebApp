@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import {
   UserPlus, FileText, CreditCard, Menu, RotateCcw, ShoppingCart,
-  Repeat, Undo2, LogOut, Users, Building,
+  Repeat, Undo2, LogOut, Users,
   Database, Truck, Package, Warehouse,
-  ClipboardList, ArrowLeftRight, X, Receipt
+  ClipboardList, ArrowLeftRight, X, Receipt,
+  ChevronDown, BookOpen, LayoutGrid, BookMarked,
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
@@ -20,7 +21,7 @@ const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
         : (isActive ? 'bg-rs-accent-bg text-rs-text-primary font-semibold' : 'text-rs-text-muted hover:bg-rs-accent-bg hover:text-rs-text-primary')
     )}
   >
-    {Icon && <Icon className={cn('w-4 h-4 mr-3 transition-opacity', role === 'admin' ? 'opacity-60' : 'opacity-100')} />}
+    {Icon && <Icon className={cn('w-4 h-4 mr-3 flex-shrink-0 transition-opacity', role === 'admin' ? 'opacity-60' : 'opacity-100')} />}
     {children}
   </NavLink>
 );
@@ -51,10 +52,56 @@ const OTHER_ROUTES = {
   'Stock Ledger':      { slug: 'other/stock-quantity',    icon: Package },
 };
 
+const SidebarGroup = ({ label, icon: GroupIcon, items, role, onClose, isItemActive, renderItem }) => {
+  const hasActive = items.some(([, { slug }]) => isItemActive(slug));
+  const [open, setOpen] = useState(hasActive);
+
+  // Open automatically when navigating to a route inside this group
+  useEffect(() => {
+    if (hasActive) setOpen(true);
+  }, [hasActive]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="space-y-0.5">
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        className={cn(
+          'w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer',
+          role === 'admin'
+            ? (open || hasActive ? 'text-brand-primary bg-brand-primary/8' : 'text-brand-primary/70 hover:bg-brand-primary/5')
+            : (open || hasActive ? 'text-rs-text-primary bg-rs-accent-bg' : 'text-rs-text-muted hover:bg-rs-accent-bg hover:text-rs-text-primary')
+        )}
+      >
+        <span className="flex items-center gap-3">
+          <GroupIcon className="w-4 h-4 flex-shrink-0" />
+          {label}
+        </span>
+        <ChevronDown className={cn('w-4 h-4 flex-shrink-0 transition-transform duration-200', open ? 'rotate-180' : '')} />
+      </button>
+
+      {open && (
+        <ul className="space-y-0.5 pt-0.5 pb-1 ml-2 pl-3 border-l border-stone-200/70">
+          {items.map(([name, { slug, icon }]) => (
+            <li key={slug}>
+              {renderItem(name, slug, icon)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, canAccessVoucher, canAccessMaster, canAccessOther, isAdmin } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const isItemActive = (slug) => location.pathname.includes(`/dashboard/${slug}`);
 
   const handleLogout = () => {
     onClose();
@@ -65,6 +112,10 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
     logout();
     navigate('/login');
   };
+
+  const allowedVouchers = Object.entries(VOUCHER_ROUTES).filter(([name]) => canAccessVoucher(name));
+  const allowedMasters  = Object.entries(MASTER_ROUTES).filter(([name]) => canAccessMaster(name));
+  const allowedOther    = Object.entries(OTHER_ROUTES).filter(([name]) => canAccessOther(name));
 
   return (
     <>
@@ -84,130 +135,115 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
         'border-r border-stone-200/50',
         role === 'admin' ? 'bg-brand-sidebar' : 'bg-rs-sidebar'
       )}>
-      <div className="p-8 pb-4 flex-shrink-0 flex items-center justify-between">
-        <div>
-          <h1 className={cn('text-2xl tracking-tight transition-all', role === 'admin' ? 'font-serif text-brand-primary' : 'font-user-serif font-bold text-rs-text-primary')}>
-            RS Bharti
-          </h1>
-          <p className={cn('text-[10px] uppercase tracking-[0.2em] font-semibold mt-1', role === 'admin' ? 'text-brand-primary/60' : 'text-rs-text-muted')}>
-            {role === 'admin' ? 'Admin Dashboard' : 'Institutional Portal'}
-          </p>
-        </div>
-        {/* Mobile close button */}
-        <button
-          onClick={onClose}
-          className={cn('md:hidden p-1 rounded-md transition-colors', role === 'admin' ? 'text-brand-primary/60 hover:text-brand-primary hover:bg-brand-primary/5' : 'text-rs-text-muted hover:text-rs-text-primary hover:bg-rs-accent-bg')}
-          aria-label="Close sidebar"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      <nav className="flex-1 px-4 py-4 space-y-8 overflow-y-auto custom-scrollbar">
-
-        {isAdmin && (
-          <div className="space-y-1">
-            <NavLink to="/dashboard/registration"
-              onClick={onClose}
-              className={({ isActive }) => cn(
-                'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200',
-                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
-              )}>
-              <UserPlus className="w-5 h-5 mr-3" />
-              Add User
-            </NavLink>
-            <NavLink to="/dashboard/manage-users"
-              onClick={onClose}
-              className={({ isActive }) => cn(
-                'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
-                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
-              )}>
-              <Users className="w-5 h-5 mr-3" />
-              Manage Users
-            </NavLink>
-            <NavLink to="/dashboard/master/branches"
-              onClick={onClose}
-              className={({ isActive }) => cn(
-                'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
-                isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
-              )}>
-              <Database className="w-5 h-5 mr-3" />
-              Branch Master
-            </NavLink>
+        <div className="p-8 pb-4 flex-shrink-0 flex items-center justify-between">
+          <div>
+            <h1 className={cn('text-2xl tracking-tight transition-all', role === 'admin' ? 'font-serif text-brand-primary' : 'font-user-serif font-bold text-rs-text-primary')}>
+              RS Bharti
+            </h1>
+            <p className={cn('text-[10px] uppercase tracking-[0.2em] font-semibold mt-1', role === 'admin' ? 'text-brand-primary/60' : 'text-rs-text-muted')}>
+              {role === 'admin' ? 'Admin Dashboard' : 'Institutional Portal'}
+            </p>
           </div>
-        )}
+          <button
+            onClick={onClose}
+            className={cn('md:hidden p-1 rounded-md transition-colors', role === 'admin' ? 'text-brand-primary/60 hover:text-brand-primary hover:bg-brand-primary/5' : 'text-rs-text-muted hover:text-rs-text-primary hover:bg-rs-accent-bg')}
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        {/* Voucher Entry — permission filtered */}
-        {(() => {
-          const allowed = Object.entries(VOUCHER_ROUTES).filter(([name]) => canAccessVoucher(name));
-          if (allowed.length === 0) return null;
-          return (
-            <div className="space-y-1">
-              <h3 className={cn('px-4 text-[10px] font-bold uppercase tracking-widest mb-3', role === 'admin' ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                Voucher Entry
-              </h3>
-              <ul className="space-y-1">
-                {allowed.map(([name, { slug, icon }]) => (
-                  <SidebarItem key={slug} to={`/dashboard/${slug}`} icon={icon} role={role} onClose={onClose}>
-                    {name} Voucher
-                  </SidebarItem>
-                ))}
-              </ul>
+        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar">
+
+          {isAdmin && (
+            <div className="space-y-1 pb-3 mb-1 border-b border-stone-200/50">
+              <NavLink to="/dashboard/registration"
+                onClick={onClose}
+                className={({ isActive }) => cn(
+                  'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200',
+                  isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
+                )}>
+                <UserPlus className="w-5 h-5 mr-3" />
+                Add User
+              </NavLink>
+              <NavLink to="/dashboard/manage-users"
+                onClick={onClose}
+                className={({ isActive }) => cn(
+                  'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
+                  isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
+                )}>
+                <Users className="w-5 h-5 mr-3" />
+                Manage Users
+              </NavLink>
+              <NavLink to="/dashboard/master/branches"
+                onClick={onClose}
+                className={({ isActive }) => cn(
+                  'flex items-center px-4 py-3 rounded-lg font-semibold shadow-sm border transition-all duration-200 mt-2',
+                  isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
+                )}>
+                <Database className="w-5 h-5 mr-3" />
+                Branch Master
+              </NavLink>
             </div>
-          );
-        })()}
+          )}
 
-        {/* Master — permission filtered */}
-        {(() => {
-          const allowed = Object.entries(MASTER_ROUTES).filter(([name]) => canAccessMaster(name));
-          if (allowed.length === 0) return null;
-          return (
-            <div className="space-y-1">
-              <h3 className={cn('px-4 text-[10px] font-bold uppercase tracking-widest mb-3', role === 'admin' ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                Master
-              </h3>
-              <ul className="space-y-1">
-                {allowed.map(([name, { slug, icon }]) => (
-                  <SidebarItem key={slug} to={`/dashboard/master/${slug}`} icon={icon} role={role} onClose={onClose}>
-                    {name} Master
-                  </SidebarItem>
-                ))}
-              </ul>
-            </div>
-          );
-        })()}
+          {/* Vouchers */}
+          <SidebarGroup
+            label="Vouchers"
+            icon={BookOpen}
+            items={allowedVouchers}
+            role={role}
+            onClose={onClose}
+            isItemActive={isItemActive}
+            renderItem={(name, slug, icon) => (
+              <SidebarItem to={`/dashboard/${slug}`} icon={icon} role={role} onClose={onClose}>
+                {name} Voucher
+              </SidebarItem>
+            )}
+          />
 
-        {/* Other — permission filtered */}
-        {(() => {
-          const allowed = Object.entries(OTHER_ROUTES).filter(([name]) => canAccessOther(name));
-          if (allowed.length === 0) return null;
-          return (
-            <div className="space-y-1 pb-8">
-              <h3 className={cn('px-4 text-[10px] font-bold uppercase tracking-widest mb-3', role === 'admin' ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                Other
-              </h3>
-              <ul className="space-y-1">
-                {allowed.map(([name, { slug, icon }]) => (
-                  <SidebarItem key={slug} to={`/dashboard/${slug}`} icon={icon} role={role} onClose={onClose}>
-                    {name}
-                  </SidebarItem>
-                ))}
-              </ul>
-            </div>
-          );
-        })()}
-      </nav>
+          {/* Masters */}
+          <SidebarGroup
+            label="Masters"
+            icon={LayoutGrid}
+            items={allowedMasters}
+            role={role}
+            onClose={onClose}
+            isItemActive={isItemActive}
+            renderItem={(name, slug, icon) => (
+              <SidebarItem to={`/dashboard/master/${slug}`} icon={icon} role={role} onClose={onClose}>
+                {name} Master
+              </SidebarItem>
+            )}
+          />
 
-      <div className="p-4 border-t border-stone-200/50 flex-shrink-0">
-        <button onClick={handleLogout}
-          className={cn(
-            'w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all group cursor-pointer',
-            role === 'admin' ? 'text-brand-primary hover:bg-brand-primary/5' : 'text-rs-text-primary border border-dashed border-stone-300 hover:bg-rs-accent-bg'
-          )}>
-          <LogOut className="w-4 h-4 mr-3 transition-transform group-hover:-translate-x-1" />
-          Logout
-        </button>
-      </div>
+          {/* Ledger */}
+          <SidebarGroup
+            label="Ledger"
+            icon={BookMarked}
+            items={allowedOther}
+            role={role}
+            onClose={onClose}
+            isItemActive={isItemActive}
+            renderItem={(name, slug, icon) => (
+              <SidebarItem to={`/dashboard/${slug}`} icon={icon} role={role} onClose={onClose}>
+                {name}
+              </SidebarItem>
+            )}
+          />
+
+        </nav>
+
+        <div className="p-4 border-t border-stone-200/50 flex-shrink-0">
+          <button onClick={handleLogout}
+            className={cn(
+              'w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all group cursor-pointer',
+              role === 'admin' ? 'text-brand-primary hover:bg-brand-primary/5' : 'text-rs-text-primary border border-dashed border-stone-300 hover:bg-rs-accent-bg'
+            )}>
+            <LogOut className="w-4 h-4 mr-3 transition-transform group-hover:-translate-x-1" />
+            Logout
+          </button>
+        </div>
 
       </aside>
 
