@@ -258,6 +258,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [loadingList, setLoadingList] = useState(false);
   const [deletingId,  setDeletingId]  = useState(null);
   const [deleteModal, setDeleteModal] = useState(null); // { id, label }
+  const [deleteModalErr, setDeleteModalErr] = useState('');
 
   // Search state for lists
   const [listSearch, setListSearch] = useState('');
@@ -294,13 +295,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     const record = records.find(r => r.id === id);
     const label  = record?.name || record?.unitName || `this ${type.toLowerCase()}`;
     setDeleteModal({ id, label });
+    setDeleteModalErr('');
   };
 
   const confirmDelete = async () => {
     if (!deleteModal) return;
     const { id } = deleteModal;
-    setDeleteModal(null);
     setDeletingId(id);
+    setDeleteModalErr('');
     try {
       if (isWarehouse)          await deleteWarehouse(id);
       else if (isBranch)        await deleteBranch(id);
@@ -312,8 +314,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       else if (isCategory)      await deleteCategory(id);
       else if (isExpense)       await deleteExpense(id);
       setRecords(prev => prev.filter(r => r.id !== id));
+      setDeleteModal(null);
     } catch (err) {
-      setError(err.message || 'Failed to delete.');
+      setDeleteModalErr(err.message || 'Cannot delete this record.');
     } finally {
       setDeletingId(null);
     }
@@ -1406,31 +1409,42 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-sm mx-4 p-6 space-y-5 animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0">
-                <Trash2 className="w-5 h-5 text-red-500" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${deleteModalErr ? 'bg-amber-50 border border-amber-100' : 'bg-red-50 border border-red-100'}`}>
+                <Trash2 className={`w-5 h-5 ${deleteModalErr ? 'text-amber-500' : 'text-red-500'}`} />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-stone-800">Delete {type === 'Branches' ? 'Branch' : type}?</h3>
-                <p className="text-sm text-stone-500 mt-1">
-                  <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently deleted. This cannot be undone.
-                </p>
+                {deleteModalErr ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm font-semibold text-amber-700">Cannot delete "{deleteModal.label}"</p>
+                    <p className="text-sm text-stone-500 leading-relaxed">{deleteModalErr}</p>
+                    <p className="text-xs text-stone-400 mt-1">Remove or reassign the linked entries first, then try again.</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-stone-500 mt-1">
+                    <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently deleted. This cannot be undone.
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-1">
               <button
                 type="button"
-                onClick={() => setDeleteModal(null)}
+                onClick={() => { setDeleteModal(null); setDeleteModalErr(''); }}
                 className="px-5 py-2 rounded-xl text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all active:scale-95"
               >
-                Cancel
+                {deleteModalErr ? 'Close' : 'Cancel'}
               </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="px-5 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm"
-              >
-                Yes, Delete
-              </button>
+              {!deleteModalErr && (
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={!!deletingId}
+                  className="px-5 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {deletingId ? 'Deleting…' : 'Yes, Delete'}
+                </button>
+              )}
             </div>
           </div>
         </div>

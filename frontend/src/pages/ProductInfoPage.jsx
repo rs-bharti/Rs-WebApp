@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, ClipboardList, TrendingUp, TrendingDown, Package } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ClipboardList, TrendingUp, TrendingDown, Package, X } from 'lucide-react';
 import { getWarehouses, getProducts } from '../api/masters';
 import { getProductLedger } from '../api/vouchers';
 import SelectSearch from '../components/ui/SelectSearch';
@@ -19,6 +19,8 @@ const ProductInfoPage = () => {
   const [ledgerData,         setLedgerData]        = useState(null);
   const [loading,            setLoading]           = useState(false);
   const [error,              setError]             = useState('');
+  const [fromDate,           setFromDate]          = useState('');
+  const [toDate,             setToDate]            = useState('');
 
   useEffect(() => { setSelectedWarehouse(queryWarehouseId); }, [queryWarehouseId]);
   useEffect(() => { setSelectedProduct(queryProductId); },   [queryProductId]);
@@ -35,6 +37,8 @@ const ProductInfoPage = () => {
     if (!wId || !pId) { setLedgerData(null); return; }
     setLoading(true);
     setError('');
+    setFromDate('');
+    setToDate('');
     getProductLedger(pId, wId)
       .then(setLedgerData)
       .catch(err => { setError(err.message || 'Failed to load product ledger'); setLedgerData(null); })
@@ -50,9 +54,26 @@ const ProductInfoPage = () => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); id ? n.set('productId', id) : n.delete('productId'); return n; });
   };
 
-  const totalQtyIn  = ledgerData?.ledger?.reduce((a, r) => a + (r.qtyIn  || 0), 0) || 0;
-  const totalQtyOut = ledgerData?.ledger?.reduce((a, r) => a + (r.qtyOut || 0), 0) || 0;
-  const finalBalance = ledgerData?.ledger?.length > 0 ? ledgerData.ledger[ledgerData.ledger.length - 1].balance : 0;
+  const allLedgerRows = ledgerData?.ledger || [];
+  const periodRows = (fromDate || toDate)
+    ? allLedgerRows.filter(r => {
+        const d = new Date(r.date);
+        if (fromDate && d < new Date(fromDate + 'T00:00:00')) return false;
+        if (toDate   && d > new Date(toDate   + 'T23:59:59')) return false;
+        return true;
+      })
+    : allLedgerRows;
+
+  // Recompute running balance for the filtered period from zero
+  let runBal = 0;
+  const periodRowsWithBalance = periodRows.map(r => {
+    runBal += (r.qtyIn || 0) - (r.qtyOut || 0);
+    return { ...r, balance: runBal };
+  });
+
+  const totalQtyIn   = periodRowsWithBalance.reduce((a, r) => a + (r.qtyIn  || 0), 0);
+  const totalQtyOut  = periodRowsWithBalance.reduce((a, r) => a + (r.qtyOut || 0), 0);
+  const finalBalance = periodRowsWithBalance.length > 0 ? periodRowsWithBalance[periodRowsWithBalance.length - 1].balance : 0;
 
   const typeBadge = (type) => {
     const map = {
@@ -111,6 +132,44 @@ const ProductInfoPage = () => {
           <SelectSearch value={selectedProduct} onChange={handleProductChange} options={products} placeholder="Select Product…" />
         </div>
       </div>
+
+      {/* Date Filter */}
+      {selectedWarehouse && selectedProduct && (
+        <div className="bg-white border border-stone-200 rounded-xl px-5 py-3.5 mb-5 shadow-sm flex items-center gap-4 flex-wrap">
+          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Filter Period</span>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-stone-500 whitespace-nowrap">From</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 bg-stone-50 cursor-pointer"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-stone-500 whitespace-nowrap">To</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg outline-none focus:border-stone-400 bg-stone-50 cursor-pointer"
+            />
+          </div>
+          {(fromDate || toDate) && (
+            <>
+              <button
+                onClick={() => { setFromDate(''); setToDate(''); }}
+                className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+              <span className="text-xs text-stone-400 ml-auto">
+                {periodRowsWithBalance.length} of {allLedgerRows.length} entries in period
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -181,7 +240,9 @@ const ProductInfoPage = () => {
                   {ledgerData.product.name}
                 </span>
               </div>
-              <p className="text-xs text-rs-text-muted">{ledgerData.ledger.length} transactions</p>
+              <p className="text-xs text-rs-text-muted">
+                {(fromDate || toDate) ? `${periodRowsWithBalance.length} of ${allLedgerRows.length}` : allLedgerRows.length} transactions
+              </p>
             </div>
 
             <div className="border border-stone-100 rounded-2xl bg-white overflow-hidden shadow-sm">
@@ -200,14 +261,14 @@ const ProductInfoPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-50">
-                  {ledgerData.ledger.length === 0 ? (
+                  {periodRowsWithBalance.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="px-4 py-16 text-center text-stone-300 text-sm italic">
-                        No transactions found for this product in the selected warehouse.
+                        {(fromDate || toDate) ? 'No transactions found in the selected date range.' : 'No transactions found for this product in the selected warehouse.'}
                       </td>
                     </tr>
                   ) : (
-                    ledgerData.ledger.map((row) => (
+                    periodRowsWithBalance.map((row) => (
                       <tr key={row.id} className="hover:bg-rs-cream/10 transition-colors">
                         <td className="px-4 py-3 text-rs-text-muted tabular-nums text-xs">
                           {new Date(row.date).toLocaleDateString('en-GB')}
