@@ -86,6 +86,9 @@ export const getStockQty = (productId, warehouseId) =>
 export const getStockQtyByWarehouse = (warehouseId) =>
   apiFetch(`/api/vouchers/stock-qty-warehouse?warehouseId=${warehouseId}`);
 
+export const getProductLedger = (productId, warehouseId) =>
+  apiFetch(`/api/vouchers/product-ledger?productId=${productId}&warehouseId=${warehouseId}`);
+
 // ── Expense Voucher ────────────────────────────────────────────────────────────
 export const getExpenseVoucherNextNo = ()         => apiFetch('/api/vouchers/expense/next-number');
 export const getExpenseVouchers      = ()         => apiFetch('/api/vouchers/expense');

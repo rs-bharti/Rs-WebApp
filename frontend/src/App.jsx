@@ -18,6 +18,7 @@ import StockTransferVoucherForm from './components/ui/vouchers/StockTransferVouc
 import ExpenseVoucherForm from './components/ui/vouchers/ExpenseVoucherForm';
 import MasterForm from './components/ui/MasterForm';
 import StockQuantityPage from './pages/StockQuantityPage';
+import ProductStatementPage from './pages/ProductStatementPage';
 import { useAuth } from './context/AuthContext';
 
 const MasterRouteWrapper = ({ userRole }) => {
@@ -67,6 +68,7 @@ function App() {
 
 
           <Route path="other/stock-quantity" element={<StockQuantityPage />} />
+          <Route path="other/product-statement" element={<ProductStatementPage />} />
 
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />
 
