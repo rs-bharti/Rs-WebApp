@@ -116,6 +116,7 @@ const Login = () => {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 required
+                data-no-upper
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}

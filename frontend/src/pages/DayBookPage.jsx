@@ -3,8 +3,9 @@ import {
   CalendarDays, RefreshCw, TrendingUp, TrendingDown,
   ArrowRightLeft, FileText, CreditCard, Receipt,
   ShoppingCart, RotateCcw, Repeat, Package, ArrowLeftRight,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Download,
 } from 'lucide-react';
+import { exportDSR } from '../utils/exportLedger';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -201,14 +202,26 @@ const DayBookPage = () => {
           <h1 className="text-2xl font-bold text-rs-text-primary font-user-serif tracking-tight">DSR</h1>
           <p className="text-sm text-rs-text-muted mt-0.5">Daily Summary Report — all voucher entries for a selected date</p>
         </div>
-        <button
-          onClick={() => fetchData(date)}
-          disabled={loading}
-          title="Refresh"
-          className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          {data && (
+            <button
+              onClick={() => exportDSR({ date, data, totalIn, totalOut })}
+              title="Download Excel"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-sm font-medium cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Excel
+            </button>
+          )}
+          <button
+            onClick={() => fetchData(date)}
+            disabled={loading}
+            title="Refresh"
+            className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* Date picker */}

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, ClipboardList, TrendingUp, TrendingDown, Package, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ClipboardList, TrendingUp, TrendingDown, Package, X, Download } from 'lucide-react';
 import { getWarehouses, getProducts } from '../api/masters';
 import { getProductLedger } from '../api/vouchers';
 import SelectSearch from '../components/ui/SelectSearch';
+import { exportStockLedger } from '../utils/exportLedger';
 
 const ProductInfoPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -110,14 +111,35 @@ const ProductInfoPage = () => {
           </div>
         </div>
         {selectedWarehouse && selectedProduct && (
-          <button
-            onClick={() => fetchLedger(selectedWarehouse, selectedProduct)}
-            disabled={loading}
-            title="Refresh"
-            className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer ml-auto"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {periodRowsWithBalance.length > 0 && (
+              <button
+                onClick={() => exportStockLedger({
+                  product: ledgerData?.product,
+                  warehouse: ledgerData?.warehouse,
+                  periodRowsWithBalance,
+                  fromDate,
+                  toDate,
+                  totalQtyIn,
+                  totalQtyOut,
+                  finalBalance,
+                })}
+                title="Download Excel"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-sm font-medium cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                Excel
+              </button>
+            )}
+            <button
+              onClick={() => fetchLedger(selectedWarehouse, selectedProduct)}
+              disabled={loading}
+              title="Refresh"
+              className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         )}
       </div>
 

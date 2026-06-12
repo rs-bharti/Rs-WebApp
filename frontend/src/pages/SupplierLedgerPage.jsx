@@ -4,10 +4,11 @@ import {
   RefreshCw, Truck, Search, X, ArrowLeft,
   TrendingUp, TrendingDown, Wallet, ShoppingCart,
   RotateCcw, CreditCard, ChevronDown, ChevronRight,
-  Phone, Mail, MapPin, User, Package, FileText,
+  Phone, Mail, MapPin, User, Package, FileText, Download,
 } from 'lucide-react';
 import { getSuppliers } from '../api/masters';
 import SelectSearch from '../components/ui/SelectSearch';
+import { exportSupplierLedger } from '../utils/exportLedger';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -353,13 +354,25 @@ const SupplierLedgerPage = () => {
           <p className="text-sm text-stone-400 mt-0.5">Complete transaction history — Purchase · Payment · Purchase Return</p>
         </div>
         {selectedId && (
-          <button
-            onClick={() => fetchLedger(selectedId)}
-            disabled={loading}
-            className="ml-auto p-2.5 rounded-lg border border-stone-200 bg-white text-stone-500 hover:text-stone-800 transition-colors disabled:opacity-40 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {periodRows.length > 0 && (
+              <button
+                onClick={() => exportSupplierLedger({ supplier, periodRows, fromDate, toDate, summary, closing })}
+                title="Download Excel"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-sm font-medium cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                Excel
+              </button>
+            )}
+            <button
+              onClick={() => fetchLedger(selectedId)}
+              disabled={loading}
+              className="p-2.5 rounded-lg border border-stone-200 bg-white text-stone-500 hover:text-stone-800 transition-colors disabled:opacity-40 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         )}
       </div>
 

@@ -324,6 +324,7 @@ const Registration = () => {
                   <input className="w-full border border-stone-200 rounded-md py-2 px-3 pr-10 text-sm focus:ring-1 focus:ring-brand-primary focus:border-brand-primary bg-white outline-none"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Set a strong password"
+                    data-no-upper
                     autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="new-password"
                     value={form.password} onChange={handleChange('password')} required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
