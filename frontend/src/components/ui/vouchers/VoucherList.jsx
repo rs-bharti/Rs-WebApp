@@ -317,7 +317,7 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                         <input
                           type={f.type}
                           placeholder={f.placeholder || ''}
-                          step={f.type === 'number' ? '0.01' : undefined}
+                          step={f.type === 'number' ? 'any' : undefined}
                           min={f.type === 'number' ? '0' : undefined}
                           value={editData[f.key] ?? ''}
                           onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}

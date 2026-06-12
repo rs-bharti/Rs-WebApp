@@ -235,7 +235,9 @@ const StockTransferVoucherForm = () => {
                             <>
                               <input
                                 className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold ${exceedsStock ? 'text-red-500' : 'text-rs-text-primary'}`}
-                                type="number" min="0" step="any" value={row.qty}
+                                type="number" min="0" step="any"
+                                value={row.qty === '0' || row.qty === 0 ? '' : row.qty}
+                                onFocus={e => e.target.select()}
                                 onChange={e => updateRow(row.id, 'qty', e.target.value)} />
                               {exceedsStock && (
                                 <div className="text-[10px] text-right text-red-500 font-semibold mt-0.5">Max: {row.stockQty}</div>

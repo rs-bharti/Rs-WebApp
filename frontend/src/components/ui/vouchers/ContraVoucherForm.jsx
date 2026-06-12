@@ -159,7 +159,7 @@ const ContraVoucherForm = () => {
                 <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Amount</label>
                 <div className="flex items-center gap-1 border-b border-stone-200 pb-1 focus-within:border-rs-text-primary transition-colors">
                   <span className="text-stone-400 text-sm font-semibold flex-shrink-0">{currencySymbol}</span>
-                  <input className="flex-1 bg-transparent text-sm font-bold text-rs-text-primary outline-none" placeholder="0.00" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+                  <input className="flex-1 bg-transparent text-sm font-bold text-rs-text-primary outline-none" placeholder="0" type="number" min="0" step="any" value={amount} onFocus={e => e.target.select()} onChange={e => setAmount(e.target.value)} required />
                 </div>
               </div>
             </div>

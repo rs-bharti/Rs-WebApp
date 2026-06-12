@@ -72,7 +72,7 @@ const SalesVoucherForm = () => {
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, [field]: value };
-      updated.amount = parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0);
+      updated.amount = Math.round(parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0) * 100) / 100;
       if (field === 'productId') {
         const prod = products.find(p => String(p.id) === String(value));
         updated.lowerLimit = prod?.lowerLimit ?? null;
@@ -274,8 +274,10 @@ const SalesVoucherForm = () => {
                           return (
                             <>
                               <input className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none ${exceedsStock ? 'text-red-500 font-bold' : ''}`}
-                                type="number" min="0" step="any" value={row.qty}
-                                onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
+                                type="number" min="0" step="any"
+                                value={row.qty === 0 ? '' : row.qty}
+                                onFocus={e => e.target.select()}
+                                onChange={e => updateRow(row.id, 'qty', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
                               {exceedsStock && (
                                 <div className="text-[10px] text-right text-red-500 font-semibold mt-0.5">Max: {row.stockQty}</div>
                               )}
@@ -286,8 +288,10 @@ const SalesVoucherForm = () => {
 
                       <td className="px-4 py-3 text-right">
                         <input className={`w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none ${belowMin || aboveMax ? 'text-amber-600 font-bold' : ''}`}
-                          type="number" min="0" value={row.rate}
-                          onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
+                          type="number" min="0"
+                          value={row.rate === 0 ? '' : row.rate}
+                          onFocus={e => e.target.select()}
+                          onChange={e => updateRow(row.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
                         {belowMin && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Below min {currencySymbol}{row.lowerLimit}</div>}
                         {aboveMax && <div className="text-[10px] text-right text-amber-500 font-semibold mt-0.5">Above max {currencySymbol}{row.upperLimit}</div>}
                         {!belowMin && !aboveMax && row.lowerLimit !== null && row.upperLimit !== null && (

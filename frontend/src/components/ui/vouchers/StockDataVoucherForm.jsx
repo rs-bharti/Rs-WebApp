@@ -203,7 +203,9 @@ const StockDataVoucherForm = () => {
                       <td className="px-4 py-3 text-right">
                         <input
                           className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
-                          type="number" min="0" value={row.qty}
+                          type="number" min="0"
+                          value={row.qty === '0' || row.qty === 0 ? '' : row.qty}
+                          onFocus={e => e.target.select()}
                           onChange={e => updateRow(row.id, 'qty', e.target.value)} />
                         {row.productId && row.warehouseId && (
                           <div className="text-[10px] mt-0.5 text-right">
@@ -221,7 +223,9 @@ const StockDataVoucherForm = () => {
                       <td className="px-4 py-3 text-right">
                         <input
                           className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none font-bold text-rs-text-primary"
-                          type="number" min="0" step="0.01" placeholder="0.00" value={row.rate}
+                          type="number" min="0" step="any"
+                          value={row.rate === '0' || row.rate === 0 || row.rate === '0.00' ? '' : row.rate}
+                          onFocus={e => e.target.select()}
                           onChange={e => updateRow(row.id, 'rate', e.target.value)} />
                       </td>
 

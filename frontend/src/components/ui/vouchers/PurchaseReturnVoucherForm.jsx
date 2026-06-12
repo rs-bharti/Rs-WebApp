@@ -68,7 +68,7 @@ const PurchaseReturnVoucherForm = () => {
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, [field]: value };
-      updated.amount = parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0);
+      updated.amount = Math.round(parseFloat(updated.qty || 0) * parseFloat(updated.rate || 0) * 100) / 100;
       return updated;
     }));
   };
@@ -232,14 +232,16 @@ const PurchaseReturnVoucherForm = () => {
                       <td className="px-4 py-3 text-right">
                         <input
                           className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
-                          type="number" min="0" step="any" value={row.qty}
-                          onChange={e => updateRow(row.id, 'qty', parseFloat(e.target.value) || 0)} />
+                          type="number" min="0" step="any" value={row.qty === 0 ? '' : row.qty}
+                          onFocus={e => e.target.select()}
+                          onChange={e => updateRow(row.id, 'qty', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
                       </td>
 
                       <td className="px-4 py-3 text-right">
                         <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
-                          type="number" min="0" value={row.rate}
-                          onChange={e => updateRow(row.id, 'rate', parseFloat(e.target.value) || 0)} />
+                          type="number" min="0" value={row.rate === 0 ? '' : row.rate}
+                          onFocus={e => e.target.select()}
+                          onChange={e => updateRow(row.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-rs-text-primary">
                         {currencySymbol} {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
