@@ -139,7 +139,7 @@ const StockTransferVoucherForm = () => {
         </div>
       )}
 
-      <form className="p-4 md:p-8 space-y-6 md:space-y-10" onSubmit={handleSubmit}>
+      <form className="p-4 md:p-8 space-y-6 md:space-y-10" onSubmit={handleSubmit} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSubmit(e); } }}>
 
         {activeBranch && (
           <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-stone-50 border border-stone-100 max-w-xs">

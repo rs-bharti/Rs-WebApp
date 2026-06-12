@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Building2, Search, Pencil, X, List } from 'lucide-react';
@@ -283,6 +283,38 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   // Prevents branch prefill from running more than once per form type
   const branchPrefillDone = useRef(false);
 
+  // Global keyboard shortcuts — register once, read latest state via ref
+  const kbRef = useRef({});
+  kbRef.current = { deleteModal, deleteModalErr, deletingId, viewRecord, contactsRecord, showListModal, quickCreate, saving };
+
+  const confirmDeleteRef = useRef(null);
+  const handleSubmitRef  = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const s = kbRef.current;
+      if (e.key === 'Escape') {
+        if (s.quickCreate)    { setQuickCreate(null); return; }
+        if (s.deleteModal)    { setDeleteModal(null); setDeleteModalErr(''); return; }
+        if (s.viewRecord)     { setViewRecord(null); setEditingId(null); setEditData({}); setEditError(''); return; }
+        if (s.contactsRecord) { setContactsRecord(null); setEditingContactId(null); setDeleteContactId(null); setContactErr(''); return; }
+        if (s.showListModal)  { setShowListModal(false); setListSearch(''); setEditingId(null); return; }
+      }
+      if (e.key === 'Enter' && s.deleteModal && !s.deleteModalErr && !s.deletingId) {
+        confirmDeleteRef.current?.();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (!s.deleteModal && !s.viewRecord && !s.contactsRecord && !s.showListModal && !s.quickCreate && !s.saving) {
+          handleSubmitRef.current?.({ preventDefault: () => {} });
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []); // register once
+
   const clearFields = () => {
     setFormData({});
     setSelCountry(''); setSelState(''); setCities([]); setSelCity('');
@@ -321,6 +353,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       setDeletingId(null);
     }
   };
+
+  confirmDeleteRef.current = confirmDelete;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { resetForm(); setListSearch(''); setEditingId(null); }, [type]);
@@ -532,6 +566,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       setSaving(false);
     }
   };
+
+  handleSubmitRef.current = handleSubmit;
 
   // ── Edit handlers ────────────────────────────────────────────────────────────
   const startEdit = (r) => {

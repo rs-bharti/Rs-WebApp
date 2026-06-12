@@ -315,6 +315,7 @@ const Registration = () => {
                   <label className="text-[10px] font-bold text-brand-accent uppercase mb-1 block">Email of User</label>
                   <input className="w-full border border-stone-200 rounded-md py-2 px-3 text-sm focus:ring-1 focus:ring-brand-primary focus:border-brand-primary bg-white outline-none"
                     placeholder="rahul.s@rsbharti.com" type="email"
+                    autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="email"
                     value={form.email} onChange={handleChange('email')} required />
                 </div>
 
@@ -323,6 +324,7 @@ const Registration = () => {
                   <input className="w-full border border-stone-200 rounded-md py-2 px-3 pr-10 text-sm focus:ring-1 focus:ring-brand-primary focus:border-brand-primary bg-white outline-none"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Set a strong password"
+                    autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="new-password"
                     value={form.password} onChange={handleChange('password')} required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-7 text-stone-400 hover:text-brand-primary">

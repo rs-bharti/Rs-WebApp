@@ -121,7 +121,7 @@ const StockDataVoucherForm = () => {
         </span>
       </div>
 
-      <form className="p-4 md:p-8 space-y-6 md:space-y-10" onSubmit={handleSubmit}>
+      <form className="p-4 md:p-8 space-y-6 md:space-y-10" onSubmit={handleSubmit} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSubmit(e); } }}>
         {error   && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
         {success && <p className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">{success}</p>}
 

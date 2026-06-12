@@ -1,9 +1,17 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import VoucherList from './VoucherList';
 
 export { fmtDate, toDateInput } from './VoucherList';
 
 const VoucherListModal = ({ isOpen, onClose, ...props }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
   return (
     <div

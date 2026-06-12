@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Trash2, Plus, Pencil, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -110,6 +110,19 @@ const QuickCreateModal = ({ type, onClose, onCreated }) => {
       .then(rows => { setItems(rows); setLoading(false); })
       .catch(err => { setError(err?.message || 'Failed to load'); setLoading(false); });
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Escape closes this modal (or the inner delete confirm first)
+  const deleteModalRef = useRef(deleteModal);
+  deleteModalRef.current = deleteModal;
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      if (deleteModalRef.current) { setDeleteModal(null); return; }
+      onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
 
   if (!config) return null;
 
