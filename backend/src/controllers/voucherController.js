@@ -113,6 +113,7 @@ const getReceipts = async (req, res) => {
       where,
       include: {
         customer:      { select: { id: true, name: true } },
+        supplier:      { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
         createdBy:     { select: { name: true } },
         branch:        { select: { id: true, name: true } },
@@ -125,23 +126,26 @@ const getReceipts = async (req, res) => {
 
 const createReceipt = async (req, res) => {
   try {
-    const { customerId, paymentMethodId, amount, narration, date } = req.body;
-    if (!customerId || !paymentMethodId || amount == null)
-      return res.status(400).json({ message: 'customerId, paymentMethodId, and amount are required' });
+    const { particularType, particularId, particularName, paymentMethodId, amount, narration, date } = req.body;
+    if (!particularType || !particularId || !paymentMethodId || amount == null)
+      return res.status(400).json({ message: 'particularType, particularId, paymentMethodId, and amount are required' });
 
     const branchId = getBranchId(req);
-    const voucher = await withVoucherRetry(async () => prisma.receiptVoucher.create({
-      data: {
-        voucherNo:       await nextNo('receiptVoucher', 'RV'),
-        customerId:      Number(customerId),
-        paymentMethodId: Number(paymentMethodId),
-        amount:          Number(amount),
-        narration:       narration || null,
-        date:            date ? new Date(date) : new Date(),
-        createdById:     req.user.id,
-        branchId:        branchId || null,
-      },
-    }));
+    const data = {
+      voucherNo:       await nextNo('receiptVoucher', 'RV'),
+      paymentMethodId: Number(paymentMethodId),
+      amount:          Number(amount),
+      narration:       narration || null,
+      date:            date ? new Date(date) : new Date(),
+      createdById:     req.user.id,
+      branchId:        branchId || null,
+      particularType,
+      particularName:  particularName || null,
+    };
+    if (particularType === 'customer') data.customerId = Number(particularId);
+    if (particularType === 'supplier') data.supplierId = Number(particularId);
+
+    const voucher = await withVoucherRetry(async () => prisma.receiptVoucher.create({ data }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -160,6 +164,7 @@ const getPayments = async (req, res) => {
       where,
       include: {
         supplier:      { select: { id: true, name: true } },
+        customer:      { select: { id: true, name: true } },
         paymentMethod: { select: { id: true, name: true } },
         createdBy:     { select: { name: true } },
         branch:        { select: { id: true, name: true } },
@@ -172,23 +177,26 @@ const getPayments = async (req, res) => {
 
 const createPayment = async (req, res) => {
   try {
-    const { supplierId, paymentMethodId, amount, narration, date } = req.body;
-    if (!supplierId || !paymentMethodId || amount == null)
-      return res.status(400).json({ message: 'supplierId, paymentMethodId, and amount are required' });
+    const { particularType, particularId, particularName, paymentMethodId, amount, narration, date } = req.body;
+    if (!particularType || !particularId || !paymentMethodId || amount == null)
+      return res.status(400).json({ message: 'particularType, particularId, paymentMethodId, and amount are required' });
 
     const branchId = getBranchId(req);
-    const voucher = await withVoucherRetry(async () => prisma.paymentVoucher.create({
-      data: {
-        voucherNo:       await nextNo('paymentVoucher', 'PV'),
-        supplierId:      Number(supplierId),
-        paymentMethodId: Number(paymentMethodId),
-        amount:          Number(amount),
-        narration:       narration || null,
-        date:            date ? new Date(date) : new Date(),
-        createdById:     req.user.id,
-        branchId:        branchId || null,
-      },
-    }));
+    const data = {
+      voucherNo:       await nextNo('paymentVoucher', 'PV'),
+      paymentMethodId: Number(paymentMethodId),
+      amount:          Number(amount),
+      narration:       narration || null,
+      date:            date ? new Date(date) : new Date(),
+      createdById:     req.user.id,
+      branchId:        branchId || null,
+      particularType,
+      particularName:  particularName || null,
+    };
+    if (particularType === 'supplier') data.supplierId = Number(particularId);
+    if (particularType === 'customer') data.customerId = Number(particularId);
+
+    const voucher = await withVoucherRetry(async () => prisma.paymentVoucher.create({ data }));
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
 };
@@ -1411,6 +1419,17 @@ const getSupplierLedger = async (req, res) => {
       orderBy: { date: 'asc' },
     });
 
+    // 5. Receipt Vouchers from this supplier (receipt = DR: reduces payable / supplier returns money)
+    const receiptFromSupplierRows = await prisma.receiptVoucher.findMany({
+      where: { supplierId, ...(branchId ? { branchId } : {}) },
+      include: {
+        paymentMethod: { select: { id: true, name: true } },
+        createdBy:     { select: { name: true } },
+        branch:        { select: { id: true, name: true } },
+      },
+      orderBy: { date: 'asc' },
+    });
+
     // Build unified ledger entries
     // voucherNo tracking set — skip supplierTransaction rows that came from purchase
     // (they are superseded by the richer purchaseVoucher data)
@@ -1491,6 +1510,25 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
+    // Add Receipt Vouchers from supplier (DR — reduces payable / supplier refund)
+    for (const rv of receiptFromSupplierRows) {
+      entries.push({
+        _date:      new Date(rv.date),
+        type:       'DR',
+        kind:       'receipt_from_supplier',
+        voucherNo:  rv.voucherNo,
+        narration:  rv.narration || null,
+        source:     'receipt_from_supplier',
+        amount:     rv.amount,
+        items:      [],
+        meta: {
+          paymentMethod: rv.paymentMethod?.name || null,
+          branch:        rv.branch?.name || null,
+          createdBy:     rv.createdBy?.name || null,
+        },
+      });
+    }
+
     // Add Purchase Return Vouchers (DR — reduces payable)
     for (const prv of purchaseReturnRows) {
       entries.push({
@@ -1542,20 +1580,22 @@ const getSupplierLedger = async (req, res) => {
     });
 
     // Summary stats
-    const totalPurchases       = purchaseRows.reduce((s, p) => s + p.totalAmount, 0);
-    const totalPurchaseReturns = purchaseReturnRows.reduce((s, p) => s + p.totalAmount, 0);
-    const totalPayments        = paymentRows.reduce((s, p) => s + p.amount, 0);
-    const closingBalance       = ledger.length ? ledger[ledger.length - 1].balance : 0;
+    const totalPurchases           = purchaseRows.reduce((s, p) => s + p.totalAmount, 0);
+    const totalPurchaseReturns     = purchaseReturnRows.reduce((s, p) => s + p.totalAmount, 0);
+    const totalPayments            = paymentRows.reduce((s, p) => s + p.amount, 0);
+    const totalReceiptsFromSupplier = receiptFromSupplierRows.reduce((s, r) => s + r.amount, 0);
+    const closingBalance           = ledger.length ? ledger[ledger.length - 1].balance : 0;
 
     res.json({
       supplier,
       ledger,
       summary: {
-        totalPurchases:       Math.round(totalPurchases       * 100) / 100,
-        totalPurchaseReturns: Math.round(totalPurchaseReturns * 100) / 100,
-        totalPayments:        Math.round(totalPayments        * 100) / 100,
-        closingBalance:       Math.round(closingBalance       * 100) / 100,
-        totalEntries:         ledger.length,
+        totalPurchases:            Math.round(totalPurchases            * 100) / 100,
+        totalPurchaseReturns:      Math.round(totalPurchaseReturns      * 100) / 100,
+        totalPayments:             Math.round(totalPayments             * 100) / 100,
+        totalReceiptsFromSupplier: Math.round(totalReceiptsFromSupplier * 100) / 100,
+        closingBalance:            Math.round(closingBalance            * 100) / 100,
+        totalEntries:              ledger.length,
       },
     });
   } catch (err) {
@@ -1619,6 +1659,16 @@ const getCustomerLedger = async (req, res) => {
       orderBy: { date: 'asc' },
     });
 
+    const paymentToCustomerRows = await prisma.paymentVoucher.findMany({
+      where: { customerId, ...(branchId ? { branchId } : {}) },
+      include: {
+        paymentMethod: { select: { id: true, name: true } },
+        createdBy:     { select: { name: true } },
+        branch:        { select: { id: true, name: true } },
+      },
+      orderBy: { date: 'asc' },
+    });
+
     const salesVoucherNos = new Set(salesRows.map(s => s.voucherNo));
     const entries = [];
 
@@ -1649,6 +1699,23 @@ const getCustomerLedger = async (req, res) => {
           paymentMethod: rv.paymentMethod?.name || null,
           branch:        rv.branch?.name || null,
           createdBy:     rv.createdBy?.name || null,
+        },
+      });
+    }
+
+    for (const pv of paymentToCustomerRows) {
+      entries.push({
+        _date:     new Date(pv.date),
+        type:      'DR',
+        amount:    pv.amount,
+        voucherNo: pv.voucherNo,
+        narration: pv.narration || null,
+        source:    'payment_to_customer',
+        items:     [],
+        meta: {
+          paymentMethod: pv.paymentMethod?.name || null,
+          branch:        pv.branch?.name || null,
+          createdBy:     pv.createdBy?.name || null,
         },
       });
     }
@@ -1726,11 +1793,12 @@ const getCustomerLedger = async (req, res) => {
       customer,
       ledger,
       summary: {
-        totalSales:        Math.round(salesRows.reduce((s, v) => s + v.totalAmount, 0)        * 100) / 100,
-        totalSalesReturns: Math.round(salesReturnRows.reduce((s, v) => s + v.totalAmount, 0) * 100) / 100,
-        totalReceipts:     Math.round(receiptRows.reduce((s, v) => s + v.amount, 0)           * 100) / 100,
-        closingBalance:    Math.round((ledger.length ? ledger[ledger.length - 1].balance : 0) * 100) / 100,
-        totalEntries:      ledger.length,
+        totalSales:              Math.round(salesRows.reduce((s, v) => s + v.totalAmount, 0)          * 100) / 100,
+        totalSalesReturns:       Math.round(salesReturnRows.reduce((s, v) => s + v.totalAmount, 0)    * 100) / 100,
+        totalReceipts:           Math.round(receiptRows.reduce((s, v) => s + v.amount, 0)             * 100) / 100,
+        totalPaymentsToCustomer: Math.round(paymentToCustomerRows.reduce((s, v) => s + v.amount, 0)  * 100) / 100,
+        closingBalance:          Math.round((ledger.length ? ledger[ledger.length - 1].balance : 0)   * 100) / 100,
+        totalEntries:            ledger.length,
       },
     });
   } catch (err) {
@@ -1759,7 +1827,9 @@ const getDayBook = async (req, res) => {
       prisma.receiptVoucher.findMany({
         where: bw,
         select: { id: true, voucherNo: true, amount: true, narration: true, date: true,
+          particularType: true, particularName: true,
           customer:      { select: { name: true } },
+          supplier:      { select: { name: true } },
           paymentMethod: { select: { name: true } },
         },
         orderBy: { date: 'asc' },
@@ -1767,7 +1837,9 @@ const getDayBook = async (req, res) => {
       prisma.paymentVoucher.findMany({
         where: bw,
         select: { id: true, voucherNo: true, amount: true, narration: true, date: true,
+          particularType: true, particularName: true,
           supplier:      { select: { name: true } },
+          customer:      { select: { name: true } },
           paymentMethod: { select: { name: true } },
         },
         orderBy: { date: 'asc' },
@@ -1831,13 +1903,13 @@ const getDayBook = async (req, res) => {
     res.json({
       date,
       in: {
-        receipts:        receipts.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Receipt', party: v.customer?.name, amount: v.amount, narration: v.narration, paymentMethod: v.paymentMethod?.name, date: v.date })),
+        receipts:        receipts.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Receipt', party: v.particularName || v.customer?.name || v.supplier?.name, amount: v.amount, narration: v.narration, paymentMethod: v.paymentMethod?.name, date: v.date })),
         sales:           sales.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Sales', party: v.customer?.name || v.customerName, amount: v.totalAmount, narration: v.narration, items: v.items, date: v.date })),
         purchaseReturns: purchaseReturns.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Purchase Return', party: v.supplier?.name || v.supplierName, amount: v.totalAmount, narration: v.narration, items: v.items, date: v.date })),
         contras:         contras.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Contra', party: `${v.fromPaymentMethodName} → ${v.toPaymentMethodName}`, amount: v.amount, narration: v.narration, date: v.date })),
       },
       out: {
-        payments:       payments.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Payment', party: v.supplier?.name, amount: v.amount, narration: v.narration, paymentMethod: v.paymentMethod?.name, date: v.date })),
+        payments:       payments.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Payment', party: v.particularName || v.supplier?.name || v.customer?.name, amount: v.amount, narration: v.narration, paymentMethod: v.paymentMethod?.name, date: v.date })),
         salesReturns:   salesReturns.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Sales Return', party: v.customer?.name || v.customerName, amount: v.totalAmount, narration: v.narration, items: v.items, date: v.date })),
         purchases:      purchases.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Purchase', party: v.supplier?.name || v.supplierName, amount: v.totalAmount, narration: v.narration, items: v.items, date: v.date })),
         stockData:      stockData.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Stock Data', party: v.warehouseName, amount: 0, narration: v.narration, items: v.items, date: v.date })),

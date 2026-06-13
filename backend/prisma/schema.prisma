@@ -143,6 +143,7 @@ model Supplier {
   countryName     String?
   contacts        ContactPerson[]
   paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]        @relation("SupplierReceipts")
   purchaseReturns PurchaseReturnVoucher[]
   purchases       PurchaseVoucher[]
   transactions    SupplierTransaction[]
@@ -212,6 +213,7 @@ model Customer {
   country         CountryMaster        @relation(fields: [countryId], references: [id])
   state           StateMaster          @relation(fields: [stateId], references: [id])
   receiptVouchers ReceiptVoucher[]
+  paymentVouchers PaymentVoucher[]     @relation("CustomerPayments")
   salesReturns    SalesReturnVoucher[]
   sales           SalesVoucher[]
 }
@@ -497,7 +499,8 @@ model ContraVoucher {
 model ReceiptVoucher {
   id              Int                 @id @default(autoincrement())
   voucherNo       String              @unique
-  customerId      Int
+  customerId      Int?
+  supplierId      Int?
   paymentMethodId Int
   amount          Float
   narration       String?
@@ -506,16 +509,20 @@ model ReceiptVoucher {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   branchId        Int?
+  particularType  String?
+  particularName  String?
   branch          Branch?             @relation(fields: [branchId], references: [id])
   createdBy       User                @relation(fields: [createdById], references: [id])
-  customer        Customer            @relation(fields: [customerId], references: [id])
+  customer        Customer?           @relation(fields: [customerId], references: [id])
+  supplier        Supplier?           @relation("SupplierReceipts", fields: [supplierId], references: [id])
   paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
 }
 
 model PaymentVoucher {
   id              Int                 @id @default(autoincrement())
   voucherNo       String              @unique
-  supplierId      Int
+  supplierId      Int?
+  customerId      Int?
   paymentMethodId Int
   amount          Float
   narration       String?
@@ -524,10 +531,13 @@ model PaymentVoucher {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   branchId        Int?
+  particularType  String?
+  particularName  String?
   branch          Branch?             @relation(fields: [branchId], references: [id])
   createdBy       User                @relation(fields: [createdById], references: [id])
   paymentMethod   PaymentMethodMaster @relation(fields: [paymentMethodId], references: [id])
-  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  supplier        Supplier?           @relation(fields: [supplierId], references: [id])
+  customer        Customer?           @relation("CustomerPayments", fields: [customerId], references: [id])
 }
 
 model PurchaseReturnVoucher {

@@ -38,17 +38,19 @@ const fmtDateDisplay = (dateStr) =>
     weekday: 'long', day: '2-digit', month: 'short', year: 'numeric',
   });
 
-// Sequential section configs (Receipt → Payment → Contra → Sales → Sales Return → Purchase → Purchase Return → Expense → Stock Data → Stock Transfer)
-const SECTIONS = [
-  { key: 'receipts',        from: 'in',  label: 'Receipt',         Icon: FileText,       border: 'border-l-emerald-400', headerBg: 'bg-emerald-50',   badge: 'bg-emerald-100 text-emerald-700', amtCls: 'text-emerald-600', inOut: 'IN' },
-  { key: 'payments',        from: 'out', label: 'Payment',         Icon: CreditCard,     border: 'border-l-red-400',     headerBg: 'bg-red-50',       badge: 'bg-red-100 text-red-700',       amtCls: 'text-red-600',     inOut: 'OUT' },
-  { key: 'contras',         from: 'in',  label: 'Contra',          Icon: ArrowRightLeft, border: 'border-l-cyan-400',    headerBg: 'bg-cyan-50',      badge: 'bg-cyan-100 text-cyan-700',     amtCls: 'text-cyan-600',    inOut: 'IN' },
-  { key: 'sales',           from: 'in',  label: 'Sales',           Icon: ShoppingCart,   border: 'border-l-green-400',   headerBg: 'bg-green-50',     badge: 'bg-green-100 text-green-700',   amtCls: 'text-green-600',   inOut: 'IN' },
-  { key: 'salesReturns',    from: 'out', label: 'Sales Return',    Icon: RotateCcw,      border: 'border-l-orange-400',  headerBg: 'bg-orange-50',    badge: 'bg-orange-100 text-orange-700', amtCls: 'text-orange-600',  inOut: 'OUT' },
-  { key: 'purchases',       from: 'out', label: 'Purchase',        Icon: ShoppingCart,   border: 'border-l-amber-400',   headerBg: 'bg-amber-50',     badge: 'bg-amber-100 text-amber-700',   amtCls: 'text-amber-600',   inOut: 'OUT' },
-  { key: 'purchaseReturns', from: 'in',  label: 'Purchase Return', Icon: Repeat,         border: 'border-l-teal-400',    headerBg: 'bg-teal-50',      badge: 'bg-teal-100 text-teal-700',     amtCls: 'text-teal-600',    inOut: 'IN' },
-  { key: 'stockData',       from: 'out', label: 'Stock Data',      Icon: Package,        border: 'border-l-purple-400',  headerBg: 'bg-purple-50',    badge: 'bg-purple-100 text-purple-700', amtCls: 'text-purple-600',  inOut: 'OUT' },
-  { key: 'stockTransfers',  from: 'out', label: 'Stock Transfer',  Icon: ArrowLeftRight, border: 'border-l-violet-400',  headerBg: 'bg-violet-50',    badge: 'bg-violet-100 text-violet-700', amtCls: 'text-violet-600',  inOut: 'OUT' },
+const IN_SECTIONS = [
+  { key: 'receipts',        from: 'in',  label: 'Receipt',         Icon: FileText,       border: 'border-l-emerald-400', headerBg: 'bg-emerald-50',   badge: 'bg-emerald-100 text-emerald-700', amtCls: 'text-emerald-600' },
+  { key: 'sales',           from: 'in',  label: 'Sales',           Icon: ShoppingCart,   border: 'border-l-green-400',   headerBg: 'bg-green-50',     badge: 'bg-green-100 text-green-700',   amtCls: 'text-green-600' },
+  { key: 'purchaseReturns', from: 'in',  label: 'Purchase Return', Icon: Repeat,         border: 'border-l-teal-400',    headerBg: 'bg-teal-50',      badge: 'bg-teal-100 text-teal-700',     amtCls: 'text-teal-600' },
+  { key: 'contras',         from: 'in',  label: 'Contra',          Icon: ArrowRightLeft, border: 'border-l-cyan-400',    headerBg: 'bg-cyan-50',      badge: 'bg-cyan-100 text-cyan-700',     amtCls: 'text-cyan-600' },
+];
+
+const OUT_SECTIONS = [
+  { key: 'payments',        from: 'out', label: 'Payment',         Icon: CreditCard,     border: 'border-l-red-400',     headerBg: 'bg-red-50',       badge: 'bg-red-100 text-red-700',       amtCls: 'text-red-600' },
+  { key: 'purchases',       from: 'out', label: 'Purchase',        Icon: ShoppingCart,   border: 'border-l-amber-400',   headerBg: 'bg-amber-50',     badge: 'bg-amber-100 text-amber-700',   amtCls: 'text-amber-600' },
+  { key: 'salesReturns',    from: 'out', label: 'Sales Return',    Icon: RotateCcw,      border: 'border-l-orange-400',  headerBg: 'bg-orange-50',    badge: 'bg-orange-100 text-orange-700', amtCls: 'text-orange-600' },
+  { key: 'stockData',       from: 'out', label: 'Stock Data',      Icon: Package,        border: 'border-l-purple-400',  headerBg: 'bg-purple-50',    badge: 'bg-purple-100 text-purple-700', amtCls: 'text-purple-600' },
+  { key: 'stockTransfers',  from: 'out', label: 'Stock Transfer',  Icon: ArrowLeftRight, border: 'border-l-violet-400',  headerBg: 'bg-violet-50',    badge: 'bg-violet-100 text-violet-700', amtCls: 'text-violet-600' },
 ];
 
 // ── Single voucher row ─────────────────────────────────────────────────────────
@@ -112,12 +114,11 @@ const SectionBlock = ({ section, rows }) => {
   const [collapsed, setCollapsed] = useState(false);
   if (!rows?.length) return null;
 
-  const { label, Icon, border, headerBg, badge, amtCls, inOut } = section;
+  const { label, Icon, border, headerBg, badge, amtCls } = section;
   const subtotal = rows.reduce((s, v) => s + (v.amount || 0), 0);
-  const isIn = inOut === 'IN';
 
   return (
-    <div className={`rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden border-l-4 ${border}`}>
+    <div className={`rounded-xl border border-stone-100 bg-white shadow-sm overflow-hidden border-l-4 ${border}`}>
       <button
         type="button"
         onClick={() => setCollapsed(p => !p)}
@@ -127,19 +128,10 @@ const SectionBlock = ({ section, rows }) => {
           <Icon className="w-3 h-3" />
           {label}
         </span>
-
         <span className="text-[10px] text-stone-400 font-semibold">
           {rows.length} entr{rows.length === 1 ? 'y' : 'ies'}
         </span>
-
-        <span className={`ml-auto text-sm font-bold tabular-nums ${amtCls}`}>
-          ₹{fmt(subtotal)}
-        </span>
-
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${isIn ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-          {inOut}
-        </span>
-
+        <span className={`ml-auto text-sm font-bold tabular-nums ${amtCls}`}>₹{fmt(subtotal)}</span>
         {collapsed
           ? <ChevronRight className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
           : <ChevronDown  className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
@@ -153,17 +145,43 @@ const SectionBlock = ({ section, rows }) => {
             <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400 flex-1">Party / Details</span>
             <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Amount</span>
           </div>
-
           {rows.map((v, i) => (
             <VoucherRow key={`${v.id}-${i}`} v={v} isLast={i === rows.length - 1} amtCls={amtCls} />
           ))}
-
           <div className={`flex items-center justify-between px-4 py-2 border-t border-stone-100 ${headerBg}`}>
             <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Subtotal</span>
             <span className={`text-sm font-bold tabular-nums ${amtCls}`}>₹{fmt(subtotal)}</span>
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+// ── Half panel (IN or OUT) ─────────────────────────────────────────────────────
+const HalfPanel = ({ title, total, count, colorClass, borderClass, bgClass, sections, data }) => {
+  const getRows = (section) => data ? (data[section.from][section.key] ?? []) : [];
+  const hasAny  = sections.some(s => getRows(s).length > 0);
+
+  return (
+    <div className={`rounded-2xl border-2 ${borderClass} ${bgClass} flex flex-col overflow-hidden`}>
+      {/* Half header */}
+      <div className={`px-6 py-4 flex items-center justify-between border-b-2 ${borderClass}`}>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">{title}</p>
+          <p className={`text-2xl font-bold tabular-nums ${colorClass} mt-0.5`}>₹{total}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-stone-400">{count} entr{count === 1 ? 'y' : 'ies'}</p>
+        </div>
+      </div>
+      {/* Sections */}
+      <div className="flex-1 p-4 space-y-3 overflow-auto">
+        {hasAny
+          ? sections.map(s => <SectionBlock key={s.key} section={s} rows={getRows(s)} />)
+          : <p className="text-sm text-stone-300 italic text-center py-8">No entries</p>
+        }
+      </div>
     </div>
   );
 };
@@ -202,19 +220,17 @@ const DayBookPage = () => {
   const hasAny   = inRows.length + outRows.length > 0;
   const isToday  = date === todayStr();
 
-  const getRows = (section) => data ? (data[section.from][section.key] ?? []) : [];
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 animate-in fade-in duration-300">
+    <div className="w-full px-4 py-6 animate-in fade-in duration-300 max-w-[1400px] mx-auto">
 
       {/* ── Page header ── */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <div className="p-2 bg-rs-text-primary/10 rounded-xl flex-shrink-0">
           <CalendarDays className="w-5 h-5 text-rs-text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-rs-text-primary font-user-serif tracking-tight">DSR</h1>
-          <p className="text-xs text-rs-text-muted mt-0.5 truncate">Daily Sales Report — voucher summary by date</p>
+          <p className="text-xs text-rs-text-muted mt-0.5">Daily Sales Report — voucher summary by date</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {data && hasAny && (
@@ -239,7 +255,7 @@ const DayBookPage = () => {
       </div>
 
       {/* ── Date navigator ── */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-5">
         <button
           onClick={() => setDate(d => shiftDate(d, -1))}
           className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all cursor-pointer flex-shrink-0"
@@ -294,31 +310,31 @@ const DayBookPage = () => {
 
       {/* ── Summary cards ── */}
       {!loading && data && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-white border border-emerald-100 rounded-2xl px-4 py-3.5 shadow-sm">
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <div className="bg-white border border-emerald-100 rounded-2xl px-5 py-4 shadow-sm">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/80">Total In</span>
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80">Money In</span>
             </div>
-            <p className="text-xl font-bold text-emerald-600 tabular-nums leading-none">₹{fmt(totalIn)}</p>
+            <p className="text-2xl font-bold text-emerald-600 tabular-nums leading-none">₹{fmt(totalIn)}</p>
             <p className="text-[10px] text-stone-400 mt-1.5">{inRows.length} entr{inRows.length === 1 ? 'y' : 'ies'}</p>
           </div>
 
-          <div className="bg-white border border-red-100 rounded-2xl px-4 py-3.5 shadow-sm">
+          <div className="bg-white border border-red-100 rounded-2xl px-5 py-4 shadow-sm">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <TrendingDown className="w-3.5 h-3.5 text-red-500" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-red-500/80">Total Out</span>
+              <TrendingDown className="w-4 h-4 text-red-500" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/80">Money Out</span>
             </div>
-            <p className="text-xl font-bold text-red-500 tabular-nums leading-none">₹{fmt(totalOut)}</p>
+            <p className="text-2xl font-bold text-red-500 tabular-nums leading-none">₹{fmt(totalOut)}</p>
             <p className="text-[10px] text-stone-400 mt-1.5">{outRows.length} entr{outRows.length === 1 ? 'y' : 'ies'}</p>
           </div>
 
-          <div className={`bg-white rounded-2xl px-4 py-3.5 shadow-sm border ${net >= 0 ? 'border-emerald-100' : 'border-red-100'}`}>
+          <div className={`bg-white rounded-2xl px-5 py-4 shadow-sm border ${net >= 0 ? 'border-emerald-100' : 'border-red-100'}`}>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <ArrowRightLeft className={`w-3.5 h-3.5 ${net >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />
-              <span className={`text-[9px] font-bold uppercase tracking-widest ${net >= 0 ? 'text-emerald-500/80' : 'text-red-500/80'}`}>Net</span>
+              <ArrowRightLeft className={`w-4 h-4 ${net >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${net >= 0 ? 'text-emerald-500/80' : 'text-red-500/80'}`}>Net</span>
             </div>
-            <p className={`text-xl font-bold tabular-nums leading-none ${net === 0 ? 'text-stone-300' : net > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            <p className={`text-2xl font-bold tabular-nums leading-none ${net === 0 ? 'text-stone-300' : net > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
               {net > 0 ? '+' : net < 0 ? '−' : ''}₹{fmt(Math.abs(net))}
             </p>
             <p className="text-[10px] text-stone-400 mt-1.5">{net > 0 ? 'surplus' : net < 0 ? 'deficit' : 'break even'}</p>
@@ -326,12 +342,48 @@ const DayBookPage = () => {
         </div>
       )}
 
-      {/* ── Sequential voucher sections ── */}
+      {/* ── Two-part layout: IN on top, OUT on bottom ── */}
       {!loading && data && hasAny && (
-        <div className="space-y-2.5">
-          {SECTIONS.map(section => (
-            <SectionBlock key={section.key} section={section} rows={getRows(section)} />
-          ))}
+        <div className="space-y-4">
+          {/* MONEY IN */}
+          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/30 overflow-hidden">
+            <div className="px-6 py-3 flex items-center justify-between bg-emerald-50 border-b-2 border-emerald-200">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm font-bold uppercase tracking-widest text-emerald-700">Money In</span>
+              </div>
+              <span className="text-lg font-bold tabular-nums text-emerald-600">₹{fmt(totalIn)}</span>
+            </div>
+            <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {IN_SECTIONS.map(s => {
+                const rows = data ? (data[s.from][s.key] ?? []) : [];
+                return <SectionBlock key={s.key} section={s} rows={rows} />;
+              })}
+              {IN_SECTIONS.every(s => !(data?.[s.from]?.[s.key]?.length)) && (
+                <p className="col-span-2 text-sm text-stone-300 italic text-center py-6">No money in entries</p>
+              )}
+            </div>
+          </div>
+
+          {/* MONEY OUT */}
+          <div className="rounded-2xl border-2 border-red-200 bg-red-50/30 overflow-hidden">
+            <div className="px-6 py-3 flex items-center justify-between bg-red-50 border-b-2 border-red-200">
+              <div className="flex items-center gap-3">
+                <TrendingDown className="w-5 h-5 text-red-500" />
+                <span className="text-sm font-bold uppercase tracking-widest text-red-600">Money Out</span>
+              </div>
+              <span className="text-lg font-bold tabular-nums text-red-500">₹{fmt(totalOut)}</span>
+            </div>
+            <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {OUT_SECTIONS.map(s => {
+                const rows = data ? (data[s.from][s.key] ?? []) : [];
+                return <SectionBlock key={s.key} section={s} rows={rows} />;
+              })}
+              {OUT_SECTIONS.every(s => !(data?.[s.from]?.[s.key]?.length)) && (
+                <p className="col-span-2 text-sm text-stone-300 italic text-center py-6">No money out entries</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

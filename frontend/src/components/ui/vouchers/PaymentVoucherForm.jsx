@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Plus, ExternalLink, List } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Plus, List, ChevronDown } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getPaymentMethods } from '../../../api/masters';
+import { getCustomers, getSuppliers, getExpenses, getMasterBranches, getPaymentMethods } from '../../../api/masters';
 import { getPaymentVoucherNextNo, savePaymentVoucher, getPayments, updatePaymentVoucher, deletePaymentVoucher } from '../../../api/vouchers';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
 
@@ -13,13 +12,26 @@ const PaymentVoucherForm = () => {
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo, setVoucherNo] = useState('');
-  const [supplierId, setSupplierId] = useState('');
+  const [particularKey, setParticularKey] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [amount, setAmount] = useState('');
   const [narration, setNarration] = useState('');
 
+  const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+
+  const [masterPopup, setMasterPopup] = useState(false);
+  const masterPopupRef = useRef(null);
+
+  useEffect(() => {
+    if (!masterPopup) return;
+    const handler = (e) => { if (masterPopupRef.current && !masterPopupRef.current.contains(e.target)) setMasterPopup(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [masterPopup]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -28,10 +40,27 @@ const PaymentVoucherForm = () => {
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
 
+  // Combined particulars options: "Name (Type)"
+  const particularsOptions = useMemo(() => {
+    const opts = [];
+    for (const s of suppliers) opts.push({ id: `supplier_${s.id}`, name: `${s.name} (Supplier)` });
+    for (const c of customers) opts.push({ id: `customer_${c.id}`, name: `${c.name} (Customer)` });
+    for (const e of expenses)  opts.push({ id: `expense_${e.id}`,  name: `${e.name} (Expense)` });
+    for (const b of branches)  opts.push({ id: `branch_${b.id}`,   name: `${b.name} (Branch)` });
+    return opts;
+  }, [suppliers, customers, expenses, branches]);
+
+  const parseParticular = (key) => {
+    if (!key) return null;
+    const idx = key.indexOf('_');
+    if (idx === -1) return null;
+    return { type: key.slice(0, idx), id: Number(key.slice(idx + 1)) };
+  };
+
   const COLUMNS = [
     { key: 'voucherNo',     label: 'Voucher No' },
     { key: 'date',          label: 'Date',     render: v => fmtDate(v.date) },
-    { key: 'supplier',      label: 'Supplier', render: v => v.supplier?.name || '—' },
+    { key: 'particular',    label: 'Particulars', render: v => v.particularName || v.supplier?.name || '—' },
     { key: 'paymentMethod', label: 'Method',   render: v => v.paymentMethod?.name || '—' },
     { key: 'amount',        label: 'Amount',   render: v => `₹${Number(v.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
     { key: 'narration',  label: 'Narration',  render: v => v.narration || '—' },
@@ -49,12 +78,18 @@ const PaymentVoucherForm = () => {
     setPaymentMethods([]);
     setLoadingVouchers(true);
     Promise.all([
+      getCustomers(),
       getSuppliers(),
+      getExpenses(),
+      getMasterBranches(),
       getPaymentMethods(),
       getPaymentVoucherNextNo(),
       getPayments(),
-    ]).then(([supp, pm, vn, vlist]) => {
+    ]).then(([cust, supp, exp, brnch, pm, vn, vlist]) => {
+      setCustomers(cust);
       setSuppliers(supp);
+      setExpenses(exp);
+      setBranches(brnch);
       setPaymentMethods(pm);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
@@ -66,21 +101,27 @@ const PaymentVoucherForm = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    if (!supplierId)                        return setError('Please select a supplier');
-    if (!paymentMethodId)                   return setError('Please select a payment method');
-    if (!amount || parseFloat(amount) <= 0) return setError('Please enter a valid amount');
+    if (!particularKey)                      return setError('Please select a particular');
+    if (!paymentMethodId)                    return setError('Please select a payment method');
+    if (!amount || parseFloat(amount) <= 0)  return setError('Please enter a valid amount');
+    const parsed = parseParticular(particularKey);
+    if (!parsed) return setError('Invalid particular selection');
+    const opt = particularsOptions.find(o => o.id === particularKey);
+    const name = opt?.name?.replace(/ \(\w+\)$/, '') || '';
     setSaving(true);
     try {
       const voucher = await savePaymentVoucher({
         date,
-        supplierId:      parseInt(supplierId),
+        particularType:  parsed.type,
+        particularId:    parsed.id,
+        particularName:  name,
         paymentMethodId: parseInt(paymentMethodId),
         amount:          parseFloat(amount),
         narration:       narration || undefined,
         branchId:        activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setSupplierId('');
+      setParticularKey('');
       setPaymentMethodId('');
       setAmount('');
       setNarration('');
@@ -95,12 +136,27 @@ const PaymentVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setSupplierId('');
+    setParticularKey('');
     setPaymentMethodId('');
     setAmount('');
     setNarration('');
     setError('');
     setSuccess('');
+  };
+
+  const typeBadgeClass = {
+    supplier: 'bg-purple-50 text-purple-700 border border-purple-100',
+    customer: 'bg-blue-50 text-blue-700 border border-blue-100',
+    expense:  'bg-orange-50 text-orange-700 border border-orange-100',
+    branch:   'bg-teal-50 text-teal-700 border border-teal-100',
+  };
+
+  const selectedTypeBadge = () => {
+    if (!particularKey) return null;
+    const parsed = parseParticular(particularKey);
+    if (!parsed) return null;
+    const label = parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1);
+    return <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${typeBadgeClass[parsed.type] || 'bg-stone-100 text-stone-600'}`}>{label}</span>;
   };
 
   return (
@@ -143,26 +199,30 @@ const PaymentVoucherForm = () => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Supplier Name</label>
-              <Link to="/dashboard/master/supplier" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Supplier Master"><ExternalLink className="w-4 h-4" /></Link>
+              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Particulars</label>
+              <div className="relative" ref={masterPopupRef}>
+                <button type="button" onClick={() => setMasterPopup(p => !p)} className="flex items-center gap-0.5 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded px-1.5 py-0.5 transition-all cursor-pointer text-[10px] font-bold uppercase tracking-widest">
+                  <Plus className="w-3 h-3" /> Add <ChevronDown className="w-3 h-3" />
+                </button>
+                {masterPopup && (
+                  <div className="absolute right-0 top-7 z-50 bg-white border border-stone-200 rounded-xl shadow-lg py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
+                    {[['supplier', 'Supplier', '/dashboard/master/supplier'], ['customer', 'Customer', '/dashboard/master/customer'], ['expense', 'Expense', '/dashboard/master/expense']].map(([type, label, path]) => (
+                      <button key={type} type="button" onClick={() => { window.open(path, '_blank'); setMasterPopup(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-rs-accent-bg transition-colors`}>
+                        + Open {label} Master
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <SelectSearch
-              value={supplierId}
-              onChange={setSupplierId}
-              options={suppliers.map(s => { const bal = s.balance ?? 0; return { ...s, label: `${s.name} — ${bal >= 0 ? 'CR' : 'DR'} ${currencySymbol}${Math.abs(bal).toLocaleString()}` }; })}
-              placeholder="Select Supplier"
+              value={particularKey}
+              onChange={setParticularKey}
+              options={particularsOptions}
+              placeholder="Select Supplier / Customer / Expense / Branch"
             />
-            {supplierId && (() => {
-              const s = suppliers.find(s => String(s.id) === String(supplierId));
-              if (!s) return null;
-              const bal = s.balance ?? 0;
-              const isCR = bal >= 0;
-              return (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
-                  {isCR ? 'CR' : 'DR'} {currencySymbol}{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              );
-            })()}
+            {selectedTypeBadge()}
           </div>
         </div>
 
