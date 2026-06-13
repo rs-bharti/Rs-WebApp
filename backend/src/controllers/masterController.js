@@ -206,12 +206,7 @@ const getBranches = async (req, res) => {
   try {
     const rows = await prisma.branch.findMany({
       orderBy: { name: 'asc' },
-      select: {
-        id: true, name: true, address: true,
-        city:    { select: { id: true, name: true } },
-        state:   { select: { id: true, name: true } },
-        country: { select: { id: true, name: true, phoneCode: true, currency: true } },
-      },
+      select: { id: true, name: true, createdAt: true },
     });
     res.json(rows);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
@@ -219,40 +214,29 @@ const getBranches = async (req, res) => {
 
 const createBranch = async (req, res) => {
   try {
-    const { name, address, area, cityId, stateId, countryId } = req.body;
-    if (!name || !cityId || !stateId || !countryId) {
-      return res.status(400).json({ message: 'name, cityId, stateId, and countryId are required' });
-    }
-    const data = { name: name.trim(), cityId: Number(cityId), stateId: Number(stateId), countryId: Number(countryId) };
-    if (address) data.address = address.trim();
-    if (area)    data.area    = area.trim();
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ message: 'Branch name is required' });
     const row = await prisma.branch.create({
-      data,
-      select: { id: true, name: true, address: true, area: true, city: { select: { id: true, name: true } }, state: { select: { id: true, name: true } }, country: { select: { id: true, name: true } } },
+      data:   { name: name.trim() },
+      select: { id: true, name: true, createdAt: true },
     });
     res.status(201).json(row);
   } catch (err) {
     console.error('createBranch error:', err);
-    if (err.code === 'P2003') return res.status(400).json({ message: 'Invalid city, state, or country — please re-select from the dropdowns.' });
-    if (err.code === 'P2002') return res.status(409).json({ message: 'Database sequence out of sync. Run: cd backend && node fix-sequences.js' });
+    if (err.code === 'P2002') return res.status(409).json({ message: 'A branch with that name already exists.' });
     res.status(500).json({ message: err.message || 'Server error' });
   }
 };
 
 const updateBranch = async (req, res) => {
   try {
-    const { name, address, area, cityId, stateId, countryId } = req.body;
+    const { name } = req.body;
     const data = {};
-    if (name)                  data.name      = name.trim();
-    if (address !== undefined) data.address   = address;
-    if (area !== undefined)    data.area      = area || null;
-    if (cityId)                data.cityId    = Number(cityId);
-    if (stateId)               data.stateId   = Number(stateId);
-    if (countryId)             data.countryId = Number(countryId);
+    if (name) data.name = name.trim();
     const row = await prisma.branch.update({
-      where: { id: Number(req.params.id) },
+      where:  { id: Number(req.params.id) },
       data,
-      select: { id: true, name: true, city: { select: { id: true, name: true } }, state: { select: { id: true, name: true } }, country: { select: { id: true, name: true } } },
+      select: { id: true, name: true, createdAt: true },
     });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }

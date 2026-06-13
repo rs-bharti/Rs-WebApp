@@ -43,6 +43,7 @@ const MASTER_ROUTES = {
   'Warehouse':      { slug: 'warehouse',      icon: Warehouse },
   'Supplier':       { slug: 'supplier',       icon: Truck },
   'Product':        { slug: 'product',        icon: Package },
+  'Branch':         { slug: 'branches',       icon: Database },
   'Expense':        { slug: 'expense',        icon: Receipt },
   'Payment Method': { slug: 'payment-method', icon: CreditCard },
 };
@@ -103,7 +104,10 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
   const { logout, canAccessVoucher, canAccessMaster, canAccessOther, isAdmin } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const isItemActive = (slug) => location.pathname.includes(`/dashboard/${slug}`);
+  const isItemActive = (slug) => {
+    const path = location.pathname;
+    return path.includes(`/${slug}`) && (path.endsWith(`/${slug}`) || path.includes(`/${slug}/`));
+  };
 
   const handleLogout = () => {
     onClose();

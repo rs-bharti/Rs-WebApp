@@ -79,12 +79,7 @@ const remove = async (req, res) => {
 const getBranches = async (req, res) => {
   try {
     const branches = await prisma.branch.findMany({
-      select: {
-        id: true, name: true,
-        country: { select: { id: true, name: true, phoneCode: true, currency: true } },
-        state:   { select: { id: true, name: true } },
-        city:    { select: { id: true, name: true } },
-      },
+      select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
     res.json(branches);

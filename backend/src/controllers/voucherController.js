@@ -229,15 +229,25 @@ const getPurchases = async (req, res) => {
 
 const createPurchase = async (req, res) => {
   try {
-    const { supplierId, paymentTerms, warehouseId, date, items, narration } = req.body;
-    if (!supplierId || !items?.length)
-      return res.status(400).json({ message: 'supplierId and items are required' });
+    const { particularType = 'supplier', particularId, particularName, paymentTerms, warehouseId, date, items, narration } = req.body;
+    if (!particularId || !items?.length)
+      return res.status(400).json({ message: 'Party and items are required' });
 
     const branchId = getBranchId(req);
 
+    let resolvedSupplierId = null;
+    let resolvedSupplierName = particularName || null;
+    if (particularType === 'supplier') {
+      resolvedSupplierId = Number(particularId);
+      if (!resolvedSupplierName) {
+        const rec = await prisma.supplier.findUnique({ where: { id: resolvedSupplierId }, select: { name: true } });
+        resolvedSupplierName = rec?.name || null;
+      }
+    }
+    // particularType === 'branch': supplierId stays null, supplierName = branch name
+
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [supplierRecord, warehouseRecord, productRecords] = await Promise.all([
-      prisma.supplier.findUnique({ where: { id: Number(supplierId) }, select: { name: true } }),
+    const [warehouseRecord, productRecords] = await Promise.all([
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
         : Promise.resolve(null),
@@ -252,17 +262,18 @@ const createPurchase = async (req, res) => {
 
     const voucher = await withVoucherRetry(async () => prisma.purchaseVoucher.create({
       data: {
-        voucherNo:    await nextNo('purchaseVoucher', 'PUR'),
-        supplierId:   Number(supplierId),
-        supplierName: supplierRecord?.name || null,
-        branchId:     branchId,
-        warehouseId:  warehouseId ? Number(warehouseId) : null,
+        voucherNo:     await nextNo('purchaseVoucher', 'PUR'),
+        supplierId:    resolvedSupplierId,
+        supplierName:  resolvedSupplierName,
+        particularType,
+        branchId,
+        warehouseId:   warehouseId ? Number(warehouseId) : null,
         warehouseName: warehouseRecord?.name || null,
-        paymentTerms: paymentTerms || null,
-        narration:    narration || null,
-        date:         date ? new Date(date) : new Date(),
+        paymentTerms:  paymentTerms || null,
+        narration:     narration || null,
+        date:          date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        createdById:  req.user.id,
+        createdById:   req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
@@ -285,18 +296,20 @@ const createPurchase = async (req, res) => {
       },
     }));
 
-    // Auto-create CR entry: purchase means we owe money to the supplier
-    await prisma.supplierTransaction.create({
-      data: {
-        supplierId:  Number(supplierId),
-        type:        'CR',
-        amount:      totalAmount,
-        note:        `Purchase voucher ${voucher.voucherNo}`,
-        source:      'purchase',
-        refVoucherNo: voucher.voucherNo,
-        date:        voucher.date,
-      },
-    });
+    // Only create supplier ledger entry for real supplier transactions
+    if (resolvedSupplierId) {
+      await prisma.supplierTransaction.create({
+        data: {
+          supplierId:   resolvedSupplierId,
+          type:         'CR',
+          amount:       totalAmount,
+          note:         `Purchase voucher ${voucher.voucherNo}`,
+          source:       'purchase',
+          refVoucherNo: voucher.voucherNo,
+          date:         voucher.date,
+        },
+      });
+    }
 
     res.status(201).json(voucher);
   } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
@@ -329,9 +342,9 @@ const getSales = async (req, res) => {
 
 const createSales = async (req, res) => {
   try {
-    const { customerId, paymentTerms, warehouseId, date, items, narration } = req.body;
-    if (!customerId || !paymentTerms || !items?.length)
-      return res.status(400).json({ message: 'customerId, paymentTerms, and items are required' });
+    const { particularType = 'customer', particularId, particularName, paymentTerms, warehouseId, date, items, narration } = req.body;
+    if (!particularId || !paymentTerms || !items?.length)
+      return res.status(400).json({ message: 'Party, paymentTerms, and items are required' });
 
     const validTerms = [
       '60 Days Consignment Basis',
@@ -340,16 +353,25 @@ const createSales = async (req, res) => {
       '15 Days Consignment Basis',
       'Cash',
     ];
-    if (!validTerms.includes(paymentTerms)) {
+    if (!validTerms.includes(paymentTerms))
       return res.status(400).json({ message: 'Invalid payment terms' });
-    }
 
     const branchId = getBranchId(req);
 
+    let resolvedCustomerId = null;
+    let resolvedCustomerName = particularName || null;
+    if (particularType === 'customer') {
+      resolvedCustomerId = Number(particularId);
+      if (!resolvedCustomerName) {
+        const rec = await prisma.customer.findUnique({ where: { id: resolvedCustomerId }, select: { name: true } });
+        resolvedCustomerName = rec?.name || null;
+      }
+    }
+    // particularType === 'branch': customerId stays null, customerName = branch name
+
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [productRecords, customerRecord, warehouseRecord] = await Promise.all([
+    const [productRecords, warehouseRecord] = await Promise.all([
       prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
-      prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
         : Promise.resolve(null),
@@ -363,17 +385,18 @@ const createSales = async (req, res) => {
 
     const voucher = await withVoucherRetry(async () => prisma.salesVoucher.create({
       data: {
-        voucherNo:         await nextNo('salesVoucher', 'SV'),
-        customerId:        Number(customerId),
-        customerName:      customerRecord?.name || null,
-        branchId:          branchId,
-        warehouseId:       warehouseId ? Number(warehouseId) : null,
-        warehouseName:     warehouseRecord?.name || null,
+        voucherNo:     await nextNo('salesVoucher', 'SV'),
+        customerId:    resolvedCustomerId,
+        customerName:  resolvedCustomerName,
+        particularType,
+        branchId,
+        warehouseId:   warehouseId ? Number(warehouseId) : null,
+        warehouseName: warehouseRecord?.name || null,
         paymentTerms,
-        date:              date ? new Date(date) : new Date(),
+        date:          date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        narration:         narration || null,
-        createdById:       req.user.id,
+        narration:     narration || null,
+        createdById:   req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
@@ -428,15 +451,24 @@ const getPurchaseReturns = async (req, res) => {
 
 const createPurchaseReturn = async (req, res) => {
   try {
-    const { supplierId, paymentMethodId, warehouseId, date, items, narration } = req.body;
-    if (!supplierId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'supplierId, paymentMethodId, and items are required' });
+    const { particularType = 'supplier', particularId, particularName, paymentMethodId, warehouseId, date, items, narration } = req.body;
+    if (!particularId || !paymentMethodId || !items?.length)
+      return res.status(400).json({ message: 'Party, paymentMethodId, and items are required' });
 
     const branchId = getBranchId(req);
 
+    let resolvedSupplierId = null;
+    let resolvedSupplierName = particularName || null;
+    if (particularType === 'supplier') {
+      resolvedSupplierId = Number(particularId);
+      if (!resolvedSupplierName) {
+        const rec = await prisma.supplier.findUnique({ where: { id: resolvedSupplierId }, select: { name: true } });
+        resolvedSupplierName = rec?.name || null;
+      }
+    }
+
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [supplierRecord, paymentMethodRecord, warehouseRecord, productRecords] = await Promise.all([
-      prisma.supplier.findUnique({ where: { id: Number(supplierId) }, select: { name: true } }),
+    const [paymentMethodRecord, warehouseRecord, productRecords] = await Promise.all([
       prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
@@ -453,9 +485,10 @@ const createPurchaseReturn = async (req, res) => {
     const voucher = await withVoucherRetry(async () => prisma.purchaseReturnVoucher.create({
       data: {
         voucherNo:         await nextNo('purchaseReturnVoucher', 'PRV'),
-        supplierId:        Number(supplierId),
-        supplierName:      supplierRecord?.name || null,
-        branchId:          branchId,
+        supplierId:        resolvedSupplierId,
+        supplierName:      resolvedSupplierName,
+        particularType,
+        branchId,
         warehouseId:       warehouseId ? Number(warehouseId) : null,
         warehouseName:     warehouseRecord?.name || null,
         paymentMethodId:   Number(paymentMethodId),
@@ -515,9 +548,9 @@ const getSalesReturns = async (req, res) => {
 
 const createSalesReturn = async (req, res) => {
   try {
-    const { customerId, paymentTerms, date, items, narration } = req.body;
-    if (!customerId || !paymentTerms || !items?.length)
-      return res.status(400).json({ message: 'customerId, paymentTerms, and items are required' });
+    const { particularType = 'customer', particularId, particularName, paymentTerms, date, items, narration } = req.body;
+    if (!particularId || !paymentTerms || !items?.length)
+      return res.status(400).json({ message: 'Party, paymentTerms, and items are required' });
 
     const validTerms = [
       '60 Days Consignment Basis',
@@ -531,11 +564,18 @@ const createSalesReturn = async (req, res) => {
 
     const branchId = getBranchId(req);
 
+    let resolvedCustomerId = null;
+    let resolvedCustomerName = particularName || null;
+    if (particularType === 'customer') {
+      resolvedCustomerId = Number(particularId);
+      if (!resolvedCustomerName) {
+        const rec = await prisma.customer.findUnique({ where: { id: resolvedCustomerId }, select: { name: true } });
+        resolvedCustomerName = rec?.name || null;
+      }
+    }
+
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [customerRecord, productRecords] = await Promise.all([
-      prisma.customer.findUnique({ where: { id: Number(customerId) }, select: { name: true } }),
-      prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } }),
-    ]);
+    const productRecords = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } });
     const productNameMap = Object.fromEntries(productRecords.map(p => [p.id, p.name]));
 
     const subTotal       = items.reduce((s, i) => s + Number(i.qty) * Number(i.rate), 0);
@@ -545,15 +585,16 @@ const createSalesReturn = async (req, res) => {
 
     const voucher = await withVoucherRetry(async () => prisma.salesReturnVoucher.create({
       data: {
-        voucherNo:         await nextNo('salesReturnVoucher', 'SRV'),
-        customerId:        Number(customerId),
-        customerName:      customerRecord?.name || null,
-        branchId:          branchId,
+        voucherNo:     await nextNo('salesReturnVoucher', 'SRV'),
+        customerId:    resolvedCustomerId,
+        customerName:  resolvedCustomerName,
+        particularType,
+        branchId,
         paymentTerms,
-        date:              date ? new Date(date) : new Date(),
+        date:          date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        narration:         narration || null,
-        createdById:       req.user.id,
+        narration:     narration || null,
+        createdById:   req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
