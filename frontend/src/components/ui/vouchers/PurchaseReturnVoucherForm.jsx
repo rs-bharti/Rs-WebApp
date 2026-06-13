@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getProducts, getWarehouses, getPaymentMethods, getMasterBranches } from '../../../api/masters';
+import { getSuppliers, getProducts, getWarehouses, getPaymentMethods, getMasterBranchMasters } from '../../../api/masters';
 import { openInTab } from '../../../utils/openInTab';
 import { getPurchaseReturnNextNo, savePurchaseReturnVoucher, getPurchaseReturns, updatePurchaseReturnVoucher, deletePurchaseReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -59,7 +59,7 @@ const PurchaseReturnVoucherForm = () => {
   useEffect(() => {
     setPaymentMethodId(''); setPaymentMethods([]);
     setLoadingVouchers(true);
-    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getMasterBranches(), getPurchaseReturnNextNo(), getPurchaseReturns()])
+    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getMasterBranchMasters(), getPurchaseReturnNextNo(), getPurchaseReturns()])
       .then(([supp, prod, wh, pm, br, vn, vlist]) => {
         setSuppliers(supp); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setBranches(br); setVoucherNo(vn.voucherNo); setVouchers(vlist);
       }).catch(err => setError(err?.message || 'Failed to load form data'))

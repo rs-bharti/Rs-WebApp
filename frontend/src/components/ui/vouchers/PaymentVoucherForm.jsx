@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, List, ChevronDown } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
-import { getCustomers, getSuppliers, getExpenses, getMasterBranches, getPaymentMethods } from '../../../api/masters';
+import { getCustomers, getSuppliers, getExpenses, getMasterBranchMasters, getPaymentMethods } from '../../../api/masters';
 import { openInTab } from '../../../utils/openInTab';
 import { getPaymentVoucherNextNo, savePaymentVoucher, getPayments, updatePaymentVoucher, deletePaymentVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -79,7 +79,7 @@ const PaymentVoucherForm = () => {
     setPaymentMethods([]);
     setLoadingVouchers(true);
     // For admin: fetch all branches from master; for regular users: use their allowed branches
-    const branchPromise = isAdmin ? getMasterBranches() : Promise.resolve(allowedBranches);
+    const branchPromise = getMasterBranchMasters();
     Promise.all([
       getCustomers(),
       getSuppliers(),

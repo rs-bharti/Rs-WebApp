@@ -202,23 +202,34 @@ const deleteCity = async (req, res) => {
 };
 
 // ── Branches ───────────────────────────────────────────────────────────────────
+const branchSelect = {
+  id: true, name: true, address: true, area: true, createdAt: true,
+  city:    { select: { id: true, name: true } },
+  state:   { select: { id: true, name: true } },
+  country: { select: { id: true, name: true, currency: true, phoneCode: true } },
+};
+
 const getBranches = async (req, res) => {
   try {
-    const rows = await prisma.branch.findMany({
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, createdAt: true },
-    });
+    const rows = await prisma.branch.findMany({ orderBy: { name: 'asc' }, select: branchSelect });
     res.json(rows);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
 
 const createBranch = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, address, area, cityId, stateId, countryId } = req.body;
     if (!name) return res.status(400).json({ message: 'Branch name is required' });
     const row = await prisma.branch.create({
-      data:   { name: name.trim() },
-      select: { id: true, name: true, createdAt: true },
+      data: {
+        name: name.trim(),
+        ...(address   && { address }),
+        ...(area      && { area }),
+        ...(cityId    && { cityId:    parseInt(cityId) }),
+        ...(stateId   && { stateId:   parseInt(stateId) }),
+        ...(countryId && { countryId: parseInt(countryId) }),
+      },
+      select: branchSelect,
     });
     res.status(201).json(row);
   } catch (err) {
@@ -230,14 +241,15 @@ const createBranch = async (req, res) => {
 
 const updateBranch = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, address, area, cityId, stateId, countryId } = req.body;
     const data = {};
-    if (name) data.name = name.trim();
-    const row = await prisma.branch.update({
-      where:  { id: Number(req.params.id) },
-      data,
-      select: { id: true, name: true, createdAt: true },
-    });
+    if (name)      data.name      = name.trim();
+    if (address !== undefined) data.address = address || null;
+    if (area    !== undefined) data.area    = area    || null;
+    if (cityId    !== undefined) data.cityId    = cityId    ? parseInt(cityId)    : null;
+    if (stateId   !== undefined) data.stateId   = stateId   ? parseInt(stateId)   : null;
+    if (countryId !== undefined) data.countryId = countryId ? parseInt(countryId) : null;
+    const row = await prisma.branch.update({ where: { id: Number(req.params.id) }, data, select: branchSelect });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
 };
@@ -247,6 +259,41 @@ const deleteBranch = async (req, res) => {
     await prisma.branch.delete({ where: { id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
+};
+
+// ── Branch Master (voucher dropdowns — name only) ──────────────────────────────
+const getBranchMasters = async (_req, res) => {
+  try {
+    const rows = await prisma.branchMaster.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } });
+    res.json(rows);
+  } catch (err) { res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const createBranchMaster = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: 'Name is required' });
+    const row = await prisma.branchMaster.create({ data: { name: name.trim() } });
+    res.status(201).json(row);
+  } catch (err) {
+    if (err.code === 'P2002') return res.status(400).json({ message: 'A branch master with that name already exists.' });
+    res.status(500).json({ message: prismaErr(err) });
+  }
+};
+
+const updateBranchMaster = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const row = await prisma.branchMaster.update({ where: { id: Number(req.params.id) }, data: { name: name.trim() } });
+    res.json(row);
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
+};
+
+const deleteBranchMaster = async (req, res) => {
+  try {
+    await prisma.branchMaster.delete({ where: { id: Number(req.params.id) } });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
 // ── Categories ─────────────────────────────────────────────────────────────────
@@ -903,6 +950,7 @@ module.exports = {
   getStates,    createState,   updateState,   deleteState,
   getCities,    createCity,    updateCity,    deleteCity,
   getBranches,  createBranch,  updateBranch,  deleteBranch,
+  getBranchMasters, createBranchMaster, updateBranchMaster, deleteBranchMaster,
   getCategories, createCategory, updateCategory, deleteCategory,
   getUnits,     createUnit,    updateUnit,    deleteUnit,
   getSuppliers, createSupplier, updateSupplier, deleteSupplier,

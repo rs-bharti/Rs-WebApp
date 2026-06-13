@@ -15,6 +15,7 @@ model CountryMaster {
   name      String        @unique
   currency  String?
   phoneCode String?
+  branches  Branch[]
   customers Customer[]
   states    StateMaster[]
   suppliers Supplier[]
@@ -26,6 +27,7 @@ model StateMaster {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   name      String
+  branches  Branch[]
   cities    CityMaster[]
   customers Customer[]
   country   CountryMaster @relation(fields: [countryId], references: [id])
@@ -41,6 +43,7 @@ model CityMaster {
   updatedAt  DateTime          @updatedAt
   name       String
   state      StateMaster       @relation(fields: [stateId], references: [id])
+  branches   Branch[]
   customers  Customer[]
   suppliers  Supplier[]
   warehouses WarehouseMaster[]
@@ -71,8 +74,16 @@ model WarehouseMaster {
 model Branch {
   id                Int                     @id @default(autoincrement())
   name              String                  @unique
+  address           String?
+  area              String?
+  cityId            Int?
+  stateId           Int?
+  countryId         Int?
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
+  city              CityMaster?             @relation(fields: [cityId], references: [id])
+  state             StateMaster?            @relation(fields: [stateId], references: [id])
+  country           CountryMaster?          @relation(fields: [countryId], references: [id])
   categories        CategoryMaster[]
   contraVouchers    ContraVoucher[]
   customers         Customer[]
@@ -90,6 +101,13 @@ model Branch {
   suppliers         Supplier[]
   users             User[]
   warehouses        WarehouseMaster[]
+}
+
+model BranchMaster {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CategoryMaster {

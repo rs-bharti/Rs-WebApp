@@ -5,6 +5,7 @@ const {
   getStates,
   getCities,
   getBranches,   createBranch,   updateBranch,   deleteBranch,
+  getBranchMasters, createBranchMaster, updateBranchMaster, deleteBranchMaster,
   getCategories, createCategory, updateCategory, deleteCategory,
   getUnits,      createUnit,     updateUnit,     deleteUnit,
   getSuppliers,  createSupplier, updateSupplier, deleteSupplier,
@@ -30,6 +31,11 @@ router.get('/branches',        getBranches);
 router.post('/branches',       requireAdmin, createBranch);
 router.put('/branches/:id',    requireAdmin, updateBranch);
 router.delete('/branches/:id', requireAdmin, deleteBranch);
+
+router.get('/branch-master',        getBranchMasters);
+router.post('/branch-master',       requireAdmin, createBranchMaster);
+router.put('/branch-master/:id',    requireAdmin, updateBranchMaster);
+router.delete('/branch-master/:id', requireAdmin, deleteBranchMaster);
 
 router.get('/categories',        getCategories);
 router.post('/categories',       requirePermission('masters', 'Category'), createCategory);

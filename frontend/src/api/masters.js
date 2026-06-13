@@ -31,11 +31,17 @@ export const getCities = ({ stateId, search } = {}) => {
   return apiFetch(`/api/masters/cities${qs ? `?${qs}` : ''}`);
 };
 
-// ── Branches ───────────────────────────────────────────────────────────────────
+// ── Create Branch (login page branches) ────────────────────────────────────────
 export const getMasterBranches = ()          => apiFetch('/api/masters/branches');
 export const createBranch      = (body)      => apiFetch('/api/masters/branches', { method: 'POST',   body: JSON.stringify(body) });
 export const updateBranch      = (id, body)  => apiFetch(`/api/masters/branches/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
 export const deleteBranch      = (id)        => apiFetch(`/api/masters/branches/${id}`, { method: 'DELETE' });
+
+// ── Branch Master (voucher party dropdowns) ────────────────────────────────────
+export const getMasterBranchMasters = ()          => apiFetch('/api/masters/branch-master');
+export const createBranchMaster     = (body)      => apiFetch('/api/masters/branch-master', { method: 'POST',   body: JSON.stringify(body) });
+export const updateBranchMaster     = (id, body)  => apiFetch(`/api/masters/branch-master/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
+export const deleteBranchMaster     = (id)        => apiFetch(`/api/masters/branch-master/${id}`, { method: 'DELETE' });
 
 // ── Categories ─────────────────────────────────────────────────────────────────
 export const getCategories    = ()          => apiFetch('/api/masters/categories');

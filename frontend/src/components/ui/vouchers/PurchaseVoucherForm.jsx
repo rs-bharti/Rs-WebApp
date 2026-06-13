@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getProducts, getWarehouses, getMasterBranches } from '../../../api/masters';
+import { getSuppliers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
 import { openInTab } from '../../../utils/openInTab';
 import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty, getPurchases, updatePurchaseVoucher, deletePurchaseVoucher } from '../../../api/vouchers';
 import { Link } from 'react-router-dom';
@@ -70,7 +70,7 @@ const PurchaseVoucherForm = () => {
     setLoadingVouchers(true);
     Promise.all([
       getSuppliers(),
-      getMasterBranches(),
+      getMasterBranchMasters(),
       getProducts(),
       getWarehouses(),
       getPurchaseVoucherNextNo(),

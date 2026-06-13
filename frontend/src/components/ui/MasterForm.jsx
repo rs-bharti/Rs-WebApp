@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getCountries, getStates, getCities,
   getMasterBranches, createBranch, updateBranch, deleteBranch,
+  getMasterBranchMasters, createBranchMaster, updateBranchMaster, deleteBranchMaster,
   getCategories,    createCategory,    updateCategory,    deleteCategory,
   getUnits,         createUnit,        updateUnit,        deleteUnit,
   getSuppliers,     createSupplier,    updateSupplier,    deleteSupplier,
@@ -215,13 +216,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const isCustomer       = type === 'Customer';
   const isProduct        = type === 'Product';
   const isBranch         = type === 'Branch' || type === 'Branches';
+  const isBranchMaster   = type === 'Branch Master';
   const isUnit           = type === 'Unit';
   const isCategory       = type === 'Category';
   const isPaymentMethod  = type === 'Payment Method';
   const isExpense        = type === 'Expense';
   const isWarehouse      = type === 'Warehouse';
   const isAdmin          = userRole === 'admin';
-  const showList         = isCustomer || isDetailed || isProduct || isBranch || isPaymentMethod || isWarehouse || isCategory || isUnit || isExpense;
+  const showList         = isCustomer || isDetailed || isProduct || isBranch || isBranchMaster || isPaymentMethod || isWarehouse || isCategory || isUnit || isExpense;
 
   const [formData, setFormData] = useState({});
   const [saving,   setSaving]   = useState(false);
@@ -338,6 +340,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     try {
       if (isWarehouse)          await deleteWarehouse(id);
       else if (isBranch)        await deleteBranch(id);
+      else if (isBranchMaster)  await deleteBranchMaster(id);
       else if (isDetailed)      await deleteSupplier(id);
       else if (isCustomer)      await deleteCustomer(id);
       else if (isProduct)       await deleteProduct(id);
@@ -363,7 +366,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        if (isCustomer || isDetailed || isWarehouse) setCountries(await getCountries());
+        if (isCustomer || isDetailed || isWarehouse || isBranch) setCountries(await getCountries());
         if (isProduct) {
           const [cats, us] = await Promise.all([getCategories(), getUnits()]);
           setCategories(cats); setUnits(us);
@@ -375,6 +378,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           else if (isDetailed)      rows = await getSuppliers();
           else if (isProduct)       rows = await getProducts();
           else if (isBranch)        rows = await getMasterBranches();
+          else if (isBranchMaster)  rows = await getMasterBranchMasters();
           else if (isPaymentMethod) rows = await getPaymentMethods();
           else if (isWarehouse)     rows = await getWarehouses();
           else if (isCategory)      rows = await getCategories();
@@ -393,7 +397,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
   // Auto-populate country/state/city from the active branch when the form first opens
   useEffect(() => {
-    if (!(isCustomer || isDetailed || isWarehouse)) return;
+    if (!(isCustomer || isDetailed || isWarehouse || isBranch)) return;
     if (!activeBranch?.country?.id) return;
     if (countries.length === 0) return;
     if (branchPrefillDone.current) return;
@@ -495,7 +499,17 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         newRow = await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
       } else if (isBranch) {
         if (!f('name')) return setError('Branch name is required');
-        newRow = await createBranch({ name: f('name') });
+        newRow = await createBranch({
+          name: f('name'),
+          ...(selCountry && { countryId: selCountry }),
+          ...(selState   && { stateId:   selState }),
+          ...(selCity    && { cityId:    selCity }),
+          ...(f('address') && { address: f('address') }),
+          ...(f('area')    && { area:    f('area') }),
+        });
+      } else if (isBranchMaster) {
+        if (!f('name')) return setError('Branch Master name is required');
+        newRow = await createBranchMaster({ name: f('name') });
       } else if (isDetailed) {
         const fullPhone = f('phone') ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${f('phone')}`.trim() : undefined;
         const obAmt = parseFloat(f('openingBalance'));
@@ -569,6 +583,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     if (isProduct)
       setEditData({ name: r.name, lowerLimit: r.lowerLimit, upperLimit: r.upperLimit, barcode: r.barcode || '' });
     else if (isBranch)
+      setEditData({ name: r.name || '', address: r.address || '', area: r.area || '' });
+    else if (isBranchMaster)
       setEditData({ name: r.name || '' });
     else if (isDetailed || isCustomer)
       setEditData({ name: r.name || '', phone: r.phone || '', email: r.email || '', gstNo: r.gstNo || '', address: r.address || '', area: r.area || '' });
@@ -594,7 +610,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       if (isProduct) {
         updated = await updateProduct(id, { name: editData.name.trim(), lowerLimit: Number(editData.lowerLimit), upperLimit: Number(editData.upperLimit), barcode: editData.barcode || undefined });
       } else if (isBranch) {
-        updated = await updateBranch(id, { name: editData.name.trim() });
+        updated = await updateBranch(id, { name: editData.name.trim(), address: editData.address || undefined, area: editData.area || undefined });
+      } else if (isBranchMaster) {
+        updated = await updateBranchMaster(id, { name: editData.name.trim() });
       } else if (isDetailed) {
         updated = await updateSupplier(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined });
       } else if (isCustomer) {
@@ -865,8 +883,18 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     );
 
     if (isBranch) return (
+      <div className="space-y-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+          <div className="space-y-2"><label className={labelCls}>Branch Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Head Office, Delhi Branch, Mumbai" value={f('name')} onChange={upd('name')} required /></div>
+          <div className="space-y-2"><label className={labelCls}>Address</label><textarea className={cn(inputCls, 'resize-none')} placeholder="Enter branch address" rows={3} value={f('address')} onChange={upd('address')} /></div>
+        </div>
+        {locationBlock()}
+      </div>
+    );
+
+    if (isBranchMaster) return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
-        <div className="space-y-2"><label className={labelCls}>Branch Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Head Office, Delhi Branch, Mumbai" value={f('name')} onChange={upd('name')} required /></div>
+        <div className="space-y-2"><label className={labelCls}>Branch Master Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Retail, Wholesale, Export" value={f('name')} onChange={upd('name')} required /></div>
       </div>
     );
 
@@ -1125,14 +1153,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       );
     }
 
-    // ── Branch list ──────────────────────────────────────────────────────────
+    // ── Create Branch list ───────────────────────────────────────────────────
     if (isBranch) {
-      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q)) : records;
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q) || r.city?.name?.toLowerCase().includes(q) || r.country?.name?.toLowerCase().includes(q)) : records;
       return (
         <div className={dividerCls}>
           <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
             <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-              Branch Master ({filteredRecords.length})
+              Create Branch ({filteredRecords.length})
             </h3>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search branches…" />
           </div>
@@ -1143,11 +1171,60 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
               <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No branches yet.'}</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse max-w-lg">
+                <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className={headCls}>
                       <th className={thCls}>#</th>
                       <th className={thCls}>Branch Name</th>
+                      <th className={thCls}>City</th>
+                      <th className={thCls}>Country</th>
+                      <th className={thCls}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRecords.map((r, i) => (
+                      <tr key={r.id} className={trHoverCls}>
+                        <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
+                        <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={tdCls}>{r.city?.name || '—'}</td>
+                        <td className={tdCls}>{r.country?.name || '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Branch Master list (voucher dropdowns) ───────────────────────────────
+    if (isBranchMaster) {
+      const filteredRecords = q ? records.filter(r => r.name?.toLowerCase().includes(q)) : records;
+      return (
+        <div className={dividerCls}>
+          <div className="px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-4 flex-wrap">
+            <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
+              Branch Master ({filteredRecords.length})
+            </h3>
+            <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search branch masters…" />
+          </div>
+          <div className="px-8 pb-8">
+            {loadingList ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>Loading…</p>
+            ) : filteredRecords.length === 0 ? (
+              <p className={cn('text-center py-8 text-sm', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>{q ? 'No results found.' : 'No branch masters yet.'}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse max-w-lg">
+                  <thead>
+                    <tr className={headCls}>
+                      <th className={thCls}>#</th>
+                      <th className={thCls}>Name</th>
                       <th className={thCls}></th>
                     </tr>
                   </thead>
@@ -1495,7 +1572,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                   {(isProduct
                     ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'lowerLimit', label: 'Lower Limit', type: 'number' }, { key: 'upperLimit', label: 'Upper Limit', type: 'number' }, { key: 'barcode', label: 'Barcode', type: 'text' }]
                     : isBranch
-                    ? [{ key: 'name', label: 'Branch Name', type: 'text' }]
+                    ? [{ key: 'name', label: 'Branch Name', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area / Locality', type: 'text' }]
+                    : isBranchMaster
+                    ? [{ key: 'name', label: 'Name', type: 'text' }]
                     : isWarehouse
                     ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
                     : isCustomer || isDetailed
@@ -1569,6 +1648,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     : isBranch
                     ? [
                         { label: 'Branch Name', value: viewRecord.name },
+                        { label: 'City',    value: viewRecord.city?.name },
+                        { label: 'State',   value: viewRecord.state?.name },
+                        { label: 'Country', value: viewRecord.country?.name },
+                        { label: 'Area',    value: viewRecord.area },
+                        { label: 'Address', value: viewRecord.address },
+                      ]
+                    : isBranchMaster
+                    ? [
+                        { label: 'Name', value: viewRecord.name },
                       ]
                     : isWarehouse
                     ? [

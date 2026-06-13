@@ -10,7 +10,7 @@ const PAYMENT_TERMS_OPTIONS = [
   { id: 'Cash', name: 'Cash' },
 ];
 import { Link } from 'react-router-dom';
-import { getCustomers, getProducts, getWarehouses, getMasterBranches } from '../../../api/masters';
+import { getCustomers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
 import { openInTab } from '../../../utils/openInTab';
 import { getSalesReturnNextNo, saveSalesReturnVoucher, getSalesReturns, updateSalesReturnVoucher, deleteSalesReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -64,7 +64,7 @@ const SalesReturnVoucherForm = () => {
 
   useEffect(() => {
     setLoadingVouchers(true);
-    Promise.all([getCustomers(), getMasterBranches(), getProducts(), getWarehouses(), getSalesReturnNextNo(), getSalesReturns()])
+    Promise.all([getCustomers(), getMasterBranchMasters(), getProducts(), getWarehouses(), getSalesReturnNextNo(), getSalesReturns()])
       .then(([cust, brs, prod, wh, vn, vlist]) => {
         setCustomers(cust); setBranches(brs); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); setVouchers(vlist);
       }).catch(err => setError(err?.message || 'Failed to load form data'))
