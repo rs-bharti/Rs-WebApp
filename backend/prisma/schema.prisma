@@ -105,9 +105,12 @@ model Branch {
 
 model BranchMaster {
   id        Int      @id @default(autoincrement())
-  name      String   @unique
+  name      String
+  branchId  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([name, branchId])
 }
 
 model CategoryMaster {

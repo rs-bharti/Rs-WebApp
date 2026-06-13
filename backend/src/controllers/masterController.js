@@ -261,10 +261,15 @@ const deleteBranch = async (req, res) => {
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
-// ── Branch Master (voucher dropdowns — name only) ──────────────────────────────
-const getBranchMasters = async (_req, res) => {
+// ── Branch Master (voucher dropdowns — branch-specific) ────────────────────────
+const getBranchMasters = async (req, res) => {
   try {
-    const rows = await prisma.branchMaster.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } });
+    const branchId = getBranchId(req);
+    const rows = await prisma.branchMaster.findMany({
+      where: branchId ? { branchId } : {},
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
     res.json(rows);
   } catch (err) { res.status(500).json({ message: prismaErr(err) }); }
 };
@@ -273,10 +278,13 @@ const createBranchMaster = async (req, res) => {
   try {
     const { name } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: 'Name is required' });
-    const row = await prisma.branchMaster.create({ data: { name: name.trim() } });
+    const branchId = getBranchId(req);
+    const row = await prisma.branchMaster.create({
+      data: { name: name.trim(), ...(branchId && { branchId }) },
+    });
     res.status(201).json(row);
   } catch (err) {
-    if (err.code === 'P2002') return res.status(400).json({ message: 'A branch master with that name already exists.' });
+    if (err.code === 'P2002') return res.status(400).json({ message: 'A branch master with that name already exists in this branch.' });
     res.status(500).json({ message: prismaErr(err) });
   }
 };
