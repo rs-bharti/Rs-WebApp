@@ -1486,13 +1486,12 @@ const getSupplierLedger = async (req, res) => {
       }
       entries.push({
         _date:      new Date(tx.date),
-        type:       tx.type,          // 'CR' or 'DR'
+        type:       tx.type,
         amount:     tx.amount,
         kind:       tx.source === 'opening_balance' ? 'opening_balance'
                   : tx.source === 'purchase'        ? 'purchase'
                   : 'manual',
         voucherNo:  tx.refVoucherNo || null,
-        narration:  tx.note || null,
         source:     tx.source || 'manual',
         items:      [],
         meta:       {},
@@ -1507,7 +1506,6 @@ const getSupplierLedger = async (req, res) => {
         amount:     pv.totalAmount,
         kind:       'purchase',
         voucherNo:  pv.voucherNo,
-        narration:  pv.narration || null,
         source:     'purchase',
         items:      pv.items.map(i => ({
           productId:   i.productId,
@@ -1535,14 +1533,15 @@ const getSupplierLedger = async (req, res) => {
     // Add Payment Vouchers (DR — reduces payable)
     for (const pv of paymentRows) {
       entries.push({
-        _date:      new Date(pv.date),
-        type:       'DR',
-        amount:     pv.amount,
-        kind:       'payment',
-        voucherNo:  pv.voucherNo,
-        narration:  pv.narration || null,
-        source:     'payment',
-        items:      [],
+        _date:          new Date(pv.date),
+        type:           'DR',
+        amount:         pv.amount,
+        kind:           'payment',
+        voucherNo:      pv.voucherNo,
+        source:         'payment',
+        particularName: pv.particularName || null,
+        particularType: pv.particularType || null,
+        items:          [],
         meta: {
           paymentMethod: pv.paymentMethod?.name || null,
           branch:        pv.branch?.name || null,
@@ -1554,14 +1553,15 @@ const getSupplierLedger = async (req, res) => {
     // Add Receipt Vouchers from supplier (DR — reduces payable / supplier refund)
     for (const rv of receiptFromSupplierRows) {
       entries.push({
-        _date:      new Date(rv.date),
-        type:       'DR',
-        kind:       'receipt_from_supplier',
-        voucherNo:  rv.voucherNo,
-        narration:  rv.narration || null,
-        source:     'receipt_from_supplier',
-        amount:     rv.amount,
-        items:      [],
+        _date:          new Date(rv.date),
+        type:           'DR',
+        kind:           'receipt_from_supplier',
+        voucherNo:      rv.voucherNo,
+        source:         'receipt_from_supplier',
+        amount:         rv.amount,
+        particularName: rv.particularName || null,
+        particularType: rv.particularType || null,
+        items:          [],
         meta: {
           paymentMethod: rv.paymentMethod?.name || null,
           branch:        rv.branch?.name || null,
@@ -1578,7 +1578,6 @@ const getSupplierLedger = async (req, res) => {
         amount:     prv.totalAmount,
         kind:       'purchase_return',
         voucherNo:  prv.voucherNo,
-        narration:  prv.narration || null,
         source:     'purchase_return',
         items:      prv.items.map(i => ({
           productId:   i.productId,
@@ -1729,13 +1728,14 @@ const getCustomerLedger = async (req, res) => {
 
     for (const rv of receiptRows) {
       entries.push({
-        _date:     new Date(rv.date),
-        type:      'DR',
-        amount:    rv.amount,
-        voucherNo: rv.voucherNo,
-        narration: rv.narration || null,
-        source:    'receipt',
-        items:     [],
+        _date:          new Date(rv.date),
+        type:           'DR',
+        amount:         rv.amount,
+        voucherNo:      rv.voucherNo,
+        source:         'receipt',
+        particularName: rv.particularName || null,
+        particularType: rv.particularType || null,
+        items:          [],
         meta: {
           paymentMethod: rv.paymentMethod?.name || null,
           branch:        rv.branch?.name || null,
@@ -1746,13 +1746,14 @@ const getCustomerLedger = async (req, res) => {
 
     for (const pv of paymentToCustomerRows) {
       entries.push({
-        _date:     new Date(pv.date),
-        type:      'DR',
-        amount:    pv.amount,
-        voucherNo: pv.voucherNo,
-        narration: pv.narration || null,
-        source:    'payment_to_customer',
-        items:     [],
+        _date:          new Date(pv.date),
+        type:           'DR',
+        amount:         pv.amount,
+        voucherNo:      pv.voucherNo,
+        source:         'payment_to_customer',
+        particularName: pv.particularName || null,
+        particularType: pv.particularType || null,
+        items:          [],
         meta: {
           paymentMethod: pv.paymentMethod?.name || null,
           branch:        pv.branch?.name || null,
@@ -1767,7 +1768,6 @@ const getCustomerLedger = async (req, res) => {
         type:      'CR',
         amount:    sv.totalAmount,
         voucherNo: sv.voucherNo,
-        narration: sv.narration || null,
         source:    'sales',
         items:     sv.items.map(i => ({
           productId:   i.productId,
@@ -1798,7 +1798,6 @@ const getCustomerLedger = async (req, res) => {
         type:      'DR',
         amount:    srv.totalAmount,
         voucherNo: srv.voucherNo,
-        narration: srv.narration || null,
         source:    'sales_return',
         items:     srv.items.map(i => ({
           productId:   i.productId,

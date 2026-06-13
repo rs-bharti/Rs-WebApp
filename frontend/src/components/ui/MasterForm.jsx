@@ -270,6 +270,9 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [editData,    setEditData]    = useState({});
   const [savingEdit,  setSavingEdit]  = useState(false);
   const [editError,   setEditError]   = useState('');
+  // Cascaded location dropdowns for edit form
+  const [editStates,  setEditStates]  = useState([]);
+  const [editCities,  setEditCities]  = useState([]);
   const [showListModal, setShowListModal] = useState(false);
   const [viewRecord,  setViewRecord]  = useState(null);
   const [contactsRecord, setContactsRecord] = useState(null);
@@ -578,23 +581,36 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   handleSubmitRef.current = handleSubmit;
 
   // ── Edit handlers ────────────────────────────────────────────────────────────
-  const startEdit = (r) => {
+  const startEdit = async (r) => {
     setEditingId(r.id);
-    if (isProduct)
-      setEditData({ name: r.name, lowerLimit: r.lowerLimit, upperLimit: r.upperLimit, barcode: r.barcode || '' });
-    else if (isBranch)
-      setEditData({ name: r.name || '', address: r.address || '', area: r.area || '' });
-    else if (isBranchMaster)
-      setEditData({ name: r.name || '' });
-    else if (isDetailed || isCustomer)
-      setEditData({ name: r.name || '', phone: r.phone || '', email: r.email || '', gstNo: r.gstNo || '', address: r.address || '', area: r.area || '' });
-    else if (isWarehouse)
-      setEditData({ name: r.name || '', address: r.address || '', area: r.area || '' });
-    else if (isUnit)
-      setEditData({ unitName: r.unitName || '', shortName: r.shortName || '' });
-    else
-      setEditData({ name: r.name || '' });
+    setEditStates([]);
+    setEditCities([]);
     setEditError('');
+    if (isProduct) {
+      setEditData({ name: r.name, lowerLimit: r.lowerLimit, upperLimit: r.upperLimit, barcode: r.barcode || '', categoryId: String(r.category?.id || ''), unitId: String(r.unit?.id || '') });
+    } else if (isBranch) {
+      const countryId = String(r.country?.id || '');
+      const stateId   = String(r.state?.id   || '');
+      const cityId    = String(r.city?.id    || '');
+      setEditData({ name: r.name || '', address: r.address || '', area: r.area || '', countryId, stateId, cityId });
+      if (countryId) { const st = await getStates(countryId); setEditStates(st); }
+      if (stateId)   { const ci = await getCities({ stateId }); setEditCities(ci); }
+    } else if (isBranchMaster) {
+      setEditData({ name: r.name || '' });
+    } else if (isDetailed || isCustomer) {
+      const countryId = String(r.countryId || '');
+      const stateId   = String(r.stateId   || '');
+      const cityId    = String(r.cityId    || '');
+      setEditData({ name: r.name || '', phone: r.phone || '', email: r.email || '', gstNo: r.gstNo || '', address: r.address || '', area: r.area || '', countryId, stateId, cityId });
+      if (countryId) { const st = await getStates(countryId); setEditStates(st); }
+      if (stateId)   { const ci = await getCities({ stateId }); setEditCities(ci); }
+    } else if (isWarehouse) {
+      setEditData({ name: r.name || '', address: r.address || '', area: r.area || '' });
+    } else if (isUnit) {
+      setEditData({ unitName: r.unitName || '', shortName: r.shortName || '' });
+    } else {
+      setEditData({ name: r.name || '' });
+    }
   };
   const cancelEdit = () => { setEditingId(null); setEditData({}); setEditError(''); };
   const openView   = (r) => { setViewRecord(r); setEditingId(null); setEditData({}); setEditError(''); };
@@ -608,15 +624,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     try {
       let updated;
       if (isProduct) {
-        updated = await updateProduct(id, { name: editData.name.trim(), lowerLimit: Number(editData.lowerLimit), upperLimit: Number(editData.upperLimit), barcode: editData.barcode || undefined });
+        updated = await updateProduct(id, { name: editData.name.trim(), categoryId: editData.categoryId || undefined, unitId: editData.unitId || undefined, lowerLimit: Number(editData.lowerLimit), upperLimit: Number(editData.upperLimit), barcode: editData.barcode || undefined });
       } else if (isBranch) {
-        updated = await updateBranch(id, { name: editData.name.trim(), address: editData.address || undefined, area: editData.area || undefined });
+        updated = await updateBranch(id, { name: editData.name.trim(), address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
       } else if (isBranchMaster) {
         updated = await updateBranchMaster(id, { name: editData.name.trim() });
       } else if (isDetailed) {
-        updated = await updateSupplier(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined });
+        updated = await updateSupplier(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
       } else if (isCustomer) {
-        updated = await updateCustomer(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined });
+        updated = await updateCustomer(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
       } else if (isWarehouse) {
         updated = await updateWarehouse(id, { name: editData.name.trim(), address: editData.address || undefined, area: editData.area || undefined });
       } else if (isUnit) {
@@ -1569,16 +1585,19 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
               <>
                 <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
                   {editError && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{editError}</p>}
+                  {/* ── Generic text/number/select fields ── */}
                   {(isProduct
-                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'lowerLimit', label: 'Lower Limit', type: 'number' }, { key: 'upperLimit', label: 'Upper Limit', type: 'number' }, { key: 'barcode', label: 'Barcode', type: 'text' }]
-                    : isBranch
-                    ? [{ key: 'name', label: 'Branch Name', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area / Locality', type: 'text' }]
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'lowerLimit', label: 'Lower Limit (Min Price)', type: 'number' }, { key: 'upperLimit', label: 'Upper Limit (Max Price)', type: 'number' }, { key: 'barcode', label: 'Barcode', type: 'text' }]
                     : isBranchMaster
                     ? [{ key: 'name', label: 'Name', type: 'text' }]
                     : isWarehouse
                     ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
-                    : isCustomer || isDetailed
-                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'email', label: 'Email', type: 'email' }, { key: 'gstNo', label: 'GST No', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
+                    : isCustomer || isDetailed || isBranch
+                    ? [
+                        ...(isBranch ? [{ key: 'name', label: 'Branch Name', type: 'text' }] : [{ key: 'name', label: 'Name', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'email', label: 'Email', type: 'email' }, { key: 'gstNo', label: 'GST No', type: 'text' }]),
+                        { key: 'address', label: 'Address', type: 'text' },
+                        { key: 'area', label: 'Area / Locality', type: 'text' },
+                      ]
                     : isUnit
                     ? [{ key: 'unitName', label: 'Unit Name', type: 'text' }, { key: 'shortName', label: 'Short Name', type: 'text' }]
                     : isPaymentMethod
@@ -1588,26 +1607,72 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     <div key={f.key}>
                       <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">{f.label}</label>
                       {f.type === 'select' ? (
-                        <select
-                          value={editData[f.key] ?? ''}
-                          onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
-                          className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50"
-                        >
+                        <select value={editData[f.key] ?? ''} onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50">
                           <option value="">Select…</option>
                           {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                       ) : (
-                        <input
-                          type={f.type}
-                          step={f.type === 'number' ? '0.01' : undefined}
-                          min={f.type === 'number' ? '0' : undefined}
-                          value={editData[f.key] ?? ''}
-                          onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
-                          className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50"
-                        />
+                        <input type={f.type} step={f.type === 'number' ? '0.01' : undefined} min={f.type === 'number' ? '0' : undefined} value={editData[f.key] ?? ''} onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50" />
                       )}
                     </div>
                   ))}
+
+                  {/* ── Product: category + unit dropdowns ── */}
+                  {isProduct && (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">Category</label>
+                        <select value={editData.categoryId ?? ''} onChange={e => setEditData(p => ({ ...p, categoryId: e.target.value }))} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50">
+                          <option value="">Select Category…</option>
+                          {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">Unit</label>
+                        <select value={editData.unitId ?? ''} onChange={e => setEditData(p => ({ ...p, unitId: e.target.value }))} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50">
+                          <option value="">Select Unit…</option>
+                          {units.map(u => <option key={u.id} value={String(u.id)}>{u.unitName}{u.shortName ? ` (${u.shortName})` : ''}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ── Location: country → state → city ── */}
+                  {(isCustomer || isDetailed || isBranch) && (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">Country</label>
+                        <select value={editData.countryId ?? ''} onChange={async e => {
+                          const v = e.target.value;
+                          setEditData(p => ({ ...p, countryId: v, stateId: '', cityId: '' }));
+                          setEditStates([]); setEditCities([]);
+                          if (v) { const st = await getStates(v); setEditStates(st); }
+                        }} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50">
+                          <option value="">Select Country…</option>
+                          {countries.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">State</label>
+                        <select value={editData.stateId ?? ''} onChange={async e => {
+                          const v = e.target.value;
+                          setEditData(p => ({ ...p, stateId: v, cityId: '' }));
+                          setEditCities([]);
+                          if (v) { const ci = await getCities({ stateId: v }); setEditCities(ci); }
+                        }} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50" disabled={!editData.countryId}>
+                          <option value="">Select State…</option>
+                          {editStates.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">City</label>
+                        <select value={editData.cityId ?? ''} onChange={e => setEditData(p => ({ ...p, cityId: e.target.value }))} className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50" disabled={!editData.stateId}>
+                          <option value="">Select City…</option>
+                          {editCities.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="px-6 py-4 border-t border-stone-100 flex justify-end gap-3">
                   <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-lg text-xs font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer">

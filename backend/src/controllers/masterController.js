@@ -360,9 +360,12 @@ const deleteCategory = async (req, res) => {
 };
 
 // ── Units ──────────────────────────────────────────────────────────────────────
-const getUnits = async (_req, res) => {
+const getUnits = async (req, res) => {
   try {
+    const branchId = getBranchId(req);
+    const where = branchId ? { branchId } : {};
     const rows = await prisma.unitMaster.findMany({
+      where,
       select: { id: true, unitName: true, shortName: true },
       orderBy: { unitName: 'asc' },
     });
@@ -374,12 +377,16 @@ const createUnit = async (req, res) => {
   try {
     const { unitName, shortName } = req.body;
     if (!unitName) return res.status(400).json({ message: 'unitName is required' });
+    const branchId = getBranchId(req);
     const row = await prisma.unitMaster.create({
-      data: { unitName: unitName.trim(), shortName: shortName?.trim() || null },
+      data: { unitName: unitName.trim(), shortName: shortName?.trim() || null, branchId: branchId || null },
       select: { id: true, unitName: true, shortName: true },
     });
     res.status(201).json(row);
-  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+  } catch (err) {
+    if (err.code === 'P2002') return res.status(409).json({ message: 'Unit already exists in this branch' });
+    res.status(500).json({ message: prismaErr(err) });
+  }
 };
 
 const updateUnit = async (req, res) => {
@@ -414,6 +421,7 @@ const getSuppliers = async (req, res) => {
       orderBy: { name: 'asc' },
       select: {
         id: true, name: true, phone: true, email: true, gstNo: true, address: true, area: true,
+        cityId: true, stateId: true, countryId: true,
         cityName: true, stateName: true, countryName: true,
         contacts:     { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
         transactions: { select: { type: true, amount: true } },
@@ -532,13 +540,18 @@ const updateSupplier = async (req, res) => {
     if (phone !== undefined)   data.phone     = phone;
     if (email !== undefined)   data.email     = email?.toLowerCase().trim();
     if (gstNo !== undefined)   data.gstNo     = gstNo;
-    if (cityId)                data.cityId    = Number(cityId);
-    if (stateId)               data.stateId   = Number(stateId);
-    if (countryId)             data.countryId = Number(countryId);
+    const [cityRec, stateRec, countryRec] = await Promise.all([
+      cityId    ? prisma.cityMaster.findUnique({ where: { id: Number(cityId) }, select: { name: true } })       : Promise.resolve(null),
+      stateId   ? prisma.stateMaster.findUnique({ where: { id: Number(stateId) }, select: { name: true } })     : Promise.resolve(null),
+      countryId ? prisma.countryMaster.findUnique({ where: { id: Number(countryId) }, select: { name: true } }) : Promise.resolve(null),
+    ]);
+    if (cityId)    { data.cityId    = Number(cityId);    data.cityName    = cityRec?.name    || null; }
+    if (stateId)   { data.stateId   = Number(stateId);   data.stateName   = stateRec?.name   || null; }
+    if (countryId) { data.countryId = Number(countryId); data.countryName = countryRec?.name || null; }
     const row = await prisma.supplier.update({
       where: { id: Number(req.params.id) },
       data,
-      select: { id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true },
+      select: { id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true, cityId: true, stateId: true, countryId: true, cityName: true, stateName: true, countryName: true },
     });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
@@ -562,6 +575,7 @@ const getCustomers = async (req, res) => {
         orderBy: { name: 'asc' },
         select: {
           id: true, name: true, phone: true, email: true, gstNo: true, address: true, area: true,
+          cityId: true, stateId: true, countryId: true,
           cityName: true, stateName: true, countryName: true,
           contacts: { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
         },
@@ -684,13 +698,18 @@ const updateCustomer = async (req, res) => {
     if (phone !== undefined)   data.phone     = phone;
     if (email !== undefined)   data.email     = email?.toLowerCase().trim();
     if (gstNo !== undefined)   data.gstNo     = gstNo;
-    if (cityId)                data.cityId    = Number(cityId);
-    if (stateId)               data.stateId   = Number(stateId);
-    if (countryId)             data.countryId = Number(countryId);
+    const [cityRec, stateRec, countryRec] = await Promise.all([
+      cityId    ? prisma.cityMaster.findUnique({ where: { id: Number(cityId) }, select: { name: true } })       : Promise.resolve(null),
+      stateId   ? prisma.stateMaster.findUnique({ where: { id: Number(stateId) }, select: { name: true } })     : Promise.resolve(null),
+      countryId ? prisma.countryMaster.findUnique({ where: { id: Number(countryId) }, select: { name: true } }) : Promise.resolve(null),
+    ]);
+    if (cityId)    { data.cityId    = Number(cityId);    data.cityName    = cityRec?.name    || null; }
+    if (stateId)   { data.stateId   = Number(stateId);   data.stateName   = stateRec?.name   || null; }
+    if (countryId) { data.countryId = Number(countryId); data.countryName = countryRec?.name || null; }
     const row = await prisma.customer.update({
       where: { id: Number(req.params.id) },
       data,
-      select: { id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true },
+      select: { id: true, name: true, phone: true, email: true, gstNo: true, area: true, address: true, cityId: true, stateId: true, countryId: true, cityName: true, stateName: true, countryName: true },
     });
     res.json(row);
   } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }

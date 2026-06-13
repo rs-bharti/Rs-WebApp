@@ -204,33 +204,37 @@ const LedgerRow = ({ row }) => {
           ) : <span className="text-stone-300">—</span>}
         </td>
         <td className="px-3 py-3 text-xs text-stone-500">
-          {row.meta?.paymentMethod
-            ? <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[11px] font-medium">{row.meta.paymentMethod}</span>
-            : <span className="text-stone-200">—</span>}
+          <span className="text-stone-200">—</span>
         </td>
-        <td className="px-3 py-3 max-w-[200px]">
-          <div className="flex items-center gap-2">
+        <td className="px-3 py-3 max-w-[220px]">
+          <div className="flex items-center gap-2 flex-wrap">
             <SourceBadge source={row.source} />
-            {row.narration && (
-              <span className="text-xs text-stone-500 truncate" title={row.narration}>
-                {row.narration}
+            {row.particularName && (
+              <span className="text-xs text-stone-600 font-medium">
+                {row.particularName}
+                {row.particularType && (
+                  <span className="ml-1 text-[10px] text-stone-400 uppercase font-semibold">({row.particularType})</span>
+                )}
               </span>
             )}
-            {hasItems && !row.narration && (
+            {row.meta?.paymentMethod && (
+              <span className="bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded text-[10px] font-medium">{row.meta.paymentMethod}</span>
+            )}
+            {hasItems && (
               <span className="text-xs text-stone-400 italic">{row.items.length} item{row.items.length !== 1 ? 's' : ''}</span>
             )}
           </div>
         </td>
-        {/* DR — receipt received / sales return */}
+        {/* DR — Sales / Opening Balance (customer owes us) */}
+        <td className="px-3 py-3 text-right font-semibold tabular-nums">
+          {row.type === 'CR' ? (
+            <span className="text-rose-700">₹{fmt(row.amount)}</span>
+          ) : <span className="text-stone-200">—</span>}
+        </td>
+        {/* CR — Receipt / Sales Return (customer paid / returned) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'DR' ? (
             <span className="text-emerald-700">₹{fmt(row.amount)}</span>
-          ) : <span className="text-stone-200">—</span>}
-        </td>
-        {/* CR — sales (customer owes us) */}
-        <td className="px-3 py-3 text-right font-semibold tabular-nums">
-          {row.type === 'CR' ? (
-            <span className="text-rose-600">₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
         <td className={`px-3 py-3 text-right font-bold tabular-nums ${
@@ -579,12 +583,8 @@ const CustomerLedgerPage = () => {
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Voucher No</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Payment Method</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Particulars</th>
-                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">
-                    DR
-                  </th>
-                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">
-                    CR
-                  </th>
+                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">DR</th>
+                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">CR</th>
                   <th className="px-3 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider w-32">Balance</th>
                 </tr>
               </thead>
@@ -609,11 +609,11 @@ const CustomerLedgerPage = () => {
                     <td colSpan={5} className="px-3 py-3 text-xs font-bold text-stone-600 uppercase tracking-wider">
                       Grand Total ({filtered.length} entries)
                     </td>
+                    <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
+                      ₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0))}
+                    </td>
                     <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">
                       ₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0))}
-                    </td>
-                    <td className="px-3 py-3 text-right font-bold text-rose-600 tabular-nums">
-                      ₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0))}
                     </td>
                     <td className={`px-3 py-3 text-right font-bold tabular-nums ${
                       closing > 0 ? 'text-rose-700' : closing < 0 ? 'text-emerald-700' : 'text-stone-400'
@@ -632,11 +632,11 @@ const CustomerLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-rose-600">CR (Sales)</span> = Amount owed by customer</span>
+            <span><span className="font-semibold text-rose-600">DR (Sales)</span> = Customer owes us</span>
             <span>·</span>
-            <span><span className="font-semibold text-emerald-600">DR (Receipt/Return)</span> = Amount received / returned</span>
+            <span><span className="font-semibold text-emerald-600">CR (Receipt/Return)</span> = Amount received / returned</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-700">Balance Dr</span> = Still receivable</span>
+            <span><span className="font-semibold text-rose-700">Balance Dr</span> = Still receivable from customer</span>
           </div>
         </div>
       )}

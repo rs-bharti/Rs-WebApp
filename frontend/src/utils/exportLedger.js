@@ -24,12 +24,15 @@ export function exportClientLedger({ customer, periodRows, fromDate, toDate, sum
     ['Date', 'Name', 'Voucher Type', 'Voucher No.', 'Payment Method', 'DR ₹', 'CR ₹', 'Balance ₹', 'Dr/Cr'],
   ];
 
-  // Tally convention: Sales/OB = type 'CR' in backend → DR column (customer owes)
-  //                   Receipt/SR = type 'DR' in backend → CR column (customer pays)
+  // Customer Ledger: Sales/OB = type 'CR' → DR column (customer owes us)
+  //                  Receipt/Return = type 'DR' → CR column (customer paid/returned)
   for (const r of periodRows) {
+    const particulars = r.particularName
+      ? `${r.particularName}${r.particularType ? ` (${r.particularType})` : ''}`
+      : srcLabel(r.source);
     aoa.push([
       fmtD(r.date),
-      r.narration || srcLabel(r.source),
+      particulars,
       srcLabel(r.source),
       r.voucherNo || '—',
       r.meta?.paymentMethod || '',
@@ -79,14 +82,17 @@ export function exportSupplierLedger({ supplier, periodRows, fromDate, toDate, s
   ];
 
   for (const r of periodRows) {
+    const particulars = r.particularName
+      ? `${r.particularName}${r.particularType ? ` (${r.particularType})` : ''}`
+      : srcLabel(r.source);
     aoa.push([
       fmtD(r.date),
-      r.narration || srcLabel(r.source),
+      particulars,
       srcLabel(r.source),
       r.voucherNo || '—',
       r.meta?.paymentMethod || '',
-      r.type === 'DR' ? n2(r.amount) : '',
-      r.type === 'CR' ? n2(r.amount) : '',
+      r.type === 'DR' ? n2(r.amount) : '',   // DR col = Payment / Purchase Return
+      r.type === 'CR' ? n2(r.amount) : '',   // CR col = Purchase (we owe them)
       n2(Math.abs(r.balance)),
       supDrCr(r.balance),
     ]);

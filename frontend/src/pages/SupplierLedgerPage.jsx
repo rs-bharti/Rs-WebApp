@@ -214,36 +214,40 @@ const LedgerRow = ({ row, index }) => {
           ) : <span className="text-stone-300">—</span>}
         </td>
 
-        {/* Payment Method */}
+        {/* Payment Method (hidden — shown inside Particulars) */}
         <td className="px-3 py-3 text-xs text-stone-500">
-          {row.meta?.paymentMethod
-            ? <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[11px] font-medium">{row.meta.paymentMethod}</span>
-            : <span className="text-stone-200">—</span>}
+          <span className="text-stone-200">—</span>
         </td>
 
         {/* Particulars */}
-        <td className="px-3 py-3 max-w-[200px]">
-          <div className="flex items-center gap-2">
+        <td className="px-3 py-3 max-w-[220px]">
+          <div className="flex items-center gap-2 flex-wrap">
             <SourceBadge source={row.source} />
-            {row.narration && (
-              <span className="text-xs text-stone-500 truncate" title={row.narration}>
-                {row.narration}
+            {row.particularName && (
+              <span className="text-xs text-stone-600 font-medium">
+                {row.particularName}
+                {row.particularType && (
+                  <span className="ml-1 text-[10px] text-stone-400 uppercase font-semibold">({row.particularType})</span>
+                )}
               </span>
             )}
-            {hasItems && !row.narration && (
+            {row.meta?.paymentMethod && (
+              <span className="bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded text-[10px] font-medium">{row.meta.paymentMethod}</span>
+            )}
+            {hasItems && (
               <span className="text-xs text-stone-400 italic">{row.items.length} item{row.items.length !== 1 ? 's' : ''}</span>
             )}
           </div>
         </td>
 
-        {/* Debit — payment out / purchase return */}
+        {/* DR — payment out / purchase return */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'DR' ? (
             <span className="text-emerald-700">₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
 
-        {/* Credit — purchase (we owe them) */}
+        {/* CR — purchase (we owe supplier) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'CR' ? (
             <span className="text-rose-600">₹{fmt(row.amount)}</span>
@@ -259,7 +263,7 @@ const LedgerRow = ({ row, index }) => {
           ₹{fmt(Math.abs(row.balance))}
           {row.balance !== 0 && (
             <span className="text-[10px] font-medium ml-1 opacity-70">
-              {row.balance > 0 ? 'Dr' : 'Cr'}
+              {row.balance > 0 ? 'Cr' : 'Dr'}
             </span>
           )}
         </td>
@@ -642,7 +646,7 @@ const SupplierLedgerPage = () => {
                     }`}>
                       ₹{fmt(Math.abs(closing))}
                       <span className="text-[10px] ml-1 font-medium">
-                        {closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : ''}
+                        {closing > 0 ? 'Cr' : closing < 0 ? 'Dr' : ''}
                       </span>
                     </td>
                   </tr>

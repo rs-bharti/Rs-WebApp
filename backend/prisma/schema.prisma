@@ -85,6 +85,7 @@ model Branch {
   state             StateMaster?            @relation(fields: [stateId], references: [id])
   country           CountryMaster?          @relation(fields: [countryId], references: [id])
   categories        CategoryMaster[]
+  units             UnitMaster[]
   contraVouchers    ContraVoucher[]
   customers         Customer[]
   expenseMasters    ExpenseMaster[]
@@ -134,7 +135,11 @@ model UnitMaster {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   shortName String?
+  branchId  Int?
+  branch    Branch?   @relation(fields: [branchId], references: [id])
   products  Product[]
+
+  @@unique([unitName, branchId])
 }
 
 model Supplier {
