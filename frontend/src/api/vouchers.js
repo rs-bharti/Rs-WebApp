@@ -89,12 +89,5 @@ export const getStockQtyByWarehouse = (warehouseId) =>
 export const getProductLedger = (productId, warehouseId) =>
   apiFetch(`/api/vouchers/product-ledger?productId=${productId}&warehouseId=${warehouseId}`);
 
-// ── Expense Voucher ────────────────────────────────────────────────────────────
-export const getExpenseVoucherNextNo = ()         => apiFetch('/api/vouchers/expense/next-number');
-export const getExpenseVouchers      = ()         => apiFetch('/api/vouchers/expense');
-export const saveExpenseVoucher      = (body)     => apiFetch('/api/vouchers/expense', { method: 'POST',   body: JSON.stringify(body) });
-export const updateExpenseVoucher    = (id, body) => apiFetch(`/api/vouchers/expense/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteExpenseVoucher    = (id)       => apiFetch(`/api/vouchers/expense/${id}`, { method: 'DELETE' });
-
 // ── Dashboard ──────────────────────────────────────────────────────────────────
 export const getDashboard = () => apiFetch('/api/vouchers/dashboard');

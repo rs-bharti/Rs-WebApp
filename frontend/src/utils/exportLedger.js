@@ -21,7 +21,7 @@ export function exportClientLedger({ customer, periodRows, fromDate, toDate, sum
     [`Customer: ${customer?.name || ''}`, '', customer?.gstNo ? `GST No: ${customer.gstNo}` : ''],
     [`Period: ${period}`, '', `Generated: ${nowStr()}`],
     [],
-    ['Date', 'Name', 'Voucher Type', 'Voucher No.', 'DR ₹', 'CR ₹', 'Balance ₹', 'Dr/Cr', 'Payment Method'],
+    ['Date', 'Name', 'Voucher Type', 'Voucher No.', 'Payment Method', 'DR ₹', 'CR ₹', 'Balance ₹', 'Dr/Cr'],
   ];
 
   // Tally convention: Sales/OB = type 'CR' in backend → DR column (customer owes)
@@ -32,11 +32,11 @@ export function exportClientLedger({ customer, periodRows, fromDate, toDate, sum
       r.narration || srcLabel(r.source),
       srcLabel(r.source),
       r.voucherNo || '—',
+      r.meta?.paymentMethod || '',
       r.type === 'CR' ? n2(r.amount) : '',   // DR col = Sales / Opening Balance
       r.type === 'DR' ? n2(r.amount) : '',   // CR col = Receipt / Sales Return
       n2(Math.abs(r.balance)),
       r.balance > 0 ? 'Dr' : r.balance < 0 ? 'Cr' : '',
-      r.meta?.paymentMethod || '',
     ]);
   }
 
@@ -44,16 +44,16 @@ export function exportClientLedger({ customer, periodRows, fromDate, toDate, sum
   const totalDR = n2(periodRows.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0));
   const totalCR = n2(periodRows.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0));
   aoa.push([]);
-  aoa.push([`Grand Total (${periodRows.length} entries)`, '', '', '', totalDR, totalCR, n2(Math.abs(closing)), closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : '']);
+  aoa.push([`Grand Total (${periodRows.length} entries)`, '', '', '', '', totalDR, totalCR, n2(Math.abs(closing)), closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : '']);
   aoa.push([]);
   aoa.push(['SUMMARY']);
-  aoa.push(['Total Sales',         '', '', '', n2(summary.totalSales),         '']);  // DR col
-  aoa.push(['Total Sales Returns', '', '', '', '', n2(summary.totalSalesReturns)]);   // CR col
-  aoa.push(['Total Receipts',      '', '', '', '', n2(summary.totalReceipts)]);        // CR col
-  aoa.push(['Closing Balance',     '', '', '', '', '', n2(Math.abs(closing)), closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : 'Nil']);
+  aoa.push(['Total Sales',         '', '', '', '', n2(summary.totalSales),         '']);
+  aoa.push(['Total Sales Returns', '', '', '', '', '', n2(summary.totalSalesReturns)]);
+  aoa.push(['Total Receipts',      '', '', '', '', '', n2(summary.totalReceipts)]);
+  aoa.push(['Closing Balance',     '', '', '', '', '', '', n2(Math.abs(closing)), closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : 'Nil']);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  setWidths(ws, [14, 36, 18, 16, 14, 14, 14, 6, 18]);
+  setWidths(ws, [14, 36, 18, 16, 18, 14, 14, 14, 6]);
   XLSX.utils.book_append_sheet(wb, ws, 'Client Ledger');
 
   const safe = (customer?.name || 'Unknown').replace(/[^a-zA-Z0-9_\- ]/g, '');
@@ -75,7 +75,7 @@ export function exportSupplierLedger({ supplier, periodRows, fromDate, toDate, s
     [`Supplier: ${supplier?.name || ''}`, '', supplier?.gstNo ? `GST No: ${supplier.gstNo}` : ''],
     [`Period: ${period}`, '', `Generated: ${nowStr()}`],
     [],
-    ['Date', 'Name', 'Voucher Type', 'Voucher No.', 'DR ₹', 'CR ₹', 'Balance ₹', 'Dr/Cr', 'Payment Method'],
+    ['Date', 'Name', 'Voucher Type', 'Voucher No.', 'Payment Method', 'DR ₹', 'CR ₹', 'Balance ₹', 'Dr/Cr'],
   ];
 
   for (const r of periodRows) {
@@ -84,27 +84,27 @@ export function exportSupplierLedger({ supplier, periodRows, fromDate, toDate, s
       r.narration || srcLabel(r.source),
       srcLabel(r.source),
       r.voucherNo || '—',
+      r.meta?.paymentMethod || '',
       r.type === 'DR' ? n2(r.amount) : '',
       r.type === 'CR' ? n2(r.amount) : '',
       n2(Math.abs(r.balance)),
       supDrCr(r.balance),
-      r.meta?.paymentMethod || '',
     ]);
   }
 
   const totalDR = n2(periodRows.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0));
   const totalCR = n2(periodRows.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0));
   aoa.push([]);
-  aoa.push([`Grand Total (${periodRows.length} entries)`, '', '', '', totalDR, totalCR, n2(Math.abs(closing)), supDrCr(closing)]);
+  aoa.push([`Grand Total (${periodRows.length} entries)`, '', '', '', '', totalDR, totalCR, n2(Math.abs(closing)), supDrCr(closing)]);
   aoa.push([]);
   aoa.push(['SUMMARY']);
-  aoa.push(['Total Purchases',        '', '', '', '', n2(summary.totalPurchases)]);
-  aoa.push(['Total Purchase Returns', '', '', '', n2(summary.totalPurchaseReturns)]);
-  aoa.push(['Total Payments',         '', '', '', n2(summary.totalPayments)]);
-  aoa.push(['Closing Balance',        '', '', '', '', '', n2(Math.abs(closing)), supDrCr(closing) || 'Nil']);
+  aoa.push(['Total Purchases',        '', '', '', '', '', n2(summary.totalPurchases)]);
+  aoa.push(['Total Purchase Returns', '', '', '', '', n2(summary.totalPurchaseReturns)]);
+  aoa.push(['Total Payments',         '', '', '', '', n2(summary.totalPayments)]);
+  aoa.push(['Closing Balance',        '', '', '', '', '', '', n2(Math.abs(closing)), supDrCr(closing) || 'Nil']);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  setWidths(ws, [14, 36, 18, 16, 14, 14, 14, 6, 18]);
+  setWidths(ws, [14, 36, 18, 16, 18, 14, 14, 14, 6]);
   XLSX.utils.book_append_sheet(wb, ws, 'Supplier Ledger');
 
   const safe = (supplier?.name || 'Unknown').replace(/[^a-zA-Z0-9_\- ]/g, '');
@@ -185,7 +185,6 @@ export function exportDSR({ date, data, totalIn, totalOut }) {
     addSection('SALES RETURN',     data.out.salesReturns);
     addSection('PURCHASE',         data.out.purchases);
     addSection('PURCHASE RETURN',  data.in.purchaseReturns);
-    addSection('EXPENSE',          data.out.expenses);
     addSection('STOCK DATA',       data.out.stockData);
     addSection('STOCK TRANSFER',   data.out.stockTransfers);
   }

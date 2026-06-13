@@ -80,7 +80,7 @@ const ItemsSubRow = ({ items, meta, source }) => {
     if (source === 'receipt' && meta?.paymentMethod) {
       return (
         <tr className="bg-stone-50/70">
-          <td colSpan={8} className="px-8 py-2">
+          <td colSpan={9} className="px-8 py-2">
             <span className="text-xs text-stone-500">
               <span className="font-medium text-stone-600">Payment Method:</span> {meta.paymentMethod}
               {meta.branch && <span className="ml-4 text-stone-400">Branch: {meta.branch}</span>}
@@ -95,7 +95,7 @@ const ItemsSubRow = ({ items, meta, source }) => {
   return (
     <>
       <tr className="bg-stone-50/70">
-        <td colSpan={8} className="px-0 pb-0 pt-0">
+        <td colSpan={9} className="px-0 pb-0 pt-0">
           <div className="mx-4 mb-3 border border-stone-200 rounded-lg overflow-hidden">
             <table className="w-full text-xs">
               <thead>
@@ -202,6 +202,11 @@ const LedgerRow = ({ row }) => {
               {row.voucherNo}
             </span>
           ) : <span className="text-stone-300">—</span>}
+        </td>
+        <td className="px-3 py-3 text-xs text-stone-500">
+          {row.meta?.paymentMethod
+            ? <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[11px] font-medium">{row.meta.paymentMethod}</span>
+            : <span className="text-stone-200">—</span>}
         </td>
         <td className="px-3 py-3 max-w-[200px]">
           <div className="flex items-center gap-2">
@@ -570,22 +575,23 @@ const CustomerLedgerPage = () => {
               <thead>
                 <tr className="bg-stone-50 border-b border-stone-200">
                   <th className="w-8 px-3 py-3"></th>
-                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Date</th>
-                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-32">Voucher No</th>
+                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-24">Date</th>
+                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Voucher No</th>
+                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Payment Method</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Particulars</th>
-                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-32">
-                    Receipt / Return (DR)
+                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">
+                    DR
                   </th>
-                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-32">
-                    Sales (CR)
+                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">
+                    CR
                   </th>
-                  <th className="px-3 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider w-36">Balance</th>
+                  <th className="px-3 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider w-32">Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-16 text-center text-stone-300 text-sm italic">
+                    <td colSpan={8} className="px-4 py-16 text-center text-stone-300 text-sm italic">
                       {allRows.length === 0
                         ? 'No transactions recorded for this customer yet.'
                         : `No entries match "${search}"`}
@@ -600,7 +606,7 @@ const CustomerLedgerPage = () => {
               {filtered.length > 0 && (
                 <tfoot>
                   <tr className="bg-stone-50 border-t-2 border-stone-200">
-                    <td colSpan={4} className="px-3 py-3 text-xs font-bold text-stone-600 uppercase tracking-wider">
+                    <td colSpan={5} className="px-3 py-3 text-xs font-bold text-stone-600 uppercase tracking-wider">
                       Grand Total ({filtered.length} entries)
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">

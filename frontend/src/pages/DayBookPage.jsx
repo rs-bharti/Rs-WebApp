@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   CalendarDays, RefreshCw, TrendingUp, TrendingDown,
-  ArrowRightLeft, FileText, CreditCard, Receipt,
+  ArrowRightLeft, FileText, CreditCard,
   ShoppingCart, RotateCcw, Repeat, Package, ArrowLeftRight,
-  ChevronDown, ChevronRight, Download,
+  ChevronDown, ChevronRight, ChevronLeft, Download,
 } from 'lucide-react';
 import { exportDSR } from '../utils/exportLedger';
 
@@ -20,139 +20,155 @@ const authHeaders = () => {
 
 const toLocalDateStr = (d) => {
   const dt = new Date(d);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, '0');
-  const day = String(dt.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 };
 
 const todayStr = () => toLocalDateStr(new Date());
 
-const fmt = (n) =>
-  Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-// ── config for each voucher type ───────────────────────────────────────────────
-const TYPE_CONFIG = {
-  Receipt:          { icon: FileText,      color: 'emerald', label: 'Receipt Voucher' },
-  Sales:            { icon: ShoppingCart,  color: 'green',   label: 'Sales Voucher' },
-  'Purchase Return':{ icon: Repeat,        color: 'teal',    label: 'Purchase Return' },
-  Contra:           { icon: ArrowRightLeft,color: 'cyan',    label: 'Contra Voucher' },
-  Payment:          { icon: CreditCard,    color: 'red',     label: 'Payment Voucher' },
-  Expense:          { icon: Receipt,       color: 'rose',    label: 'Expense Voucher' },
-  'Sales Return':   { icon: RotateCcw,     color: 'orange',  label: 'Sales Return' },
-  Purchase:         { icon: ShoppingCart,  color: 'amber',   label: 'Purchase Voucher' },
-  'Stock Data':     { icon: Package,       color: 'purple',  label: 'Stock Data' },
-  'Stock Transfer': { icon: ArrowLeftRight,color: 'violet',  label: 'Stock Transfer' },
+const shiftDate = (dateStr, days) => {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return toLocalDateStr(d);
 };
 
-const COLOR_CLASSES = {
-  emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  green:   'bg-green-50   text-green-700   border-green-200',
-  teal:    'bg-teal-50    text-teal-700    border-teal-200',
-  cyan:    'bg-cyan-50    text-cyan-700    border-cyan-200',
-  red:     'bg-red-50     text-red-700     border-red-200',
-  rose:    'bg-rose-50    text-rose-700    border-rose-200',
-  orange:  'bg-orange-50  text-orange-700  border-orange-200',
-  amber:   'bg-amber-50   text-amber-700   border-amber-200',
-  purple:  'bg-purple-50  text-purple-700  border-purple-200',
-  violet:  'bg-violet-50  text-violet-700  border-violet-200',
-};
+const fmt = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// ── single voucher card ────────────────────────────────────────────────────────
-const VoucherCard = ({ v, side }) => {
-  const cfg = TYPE_CONFIG[v.type] || { icon: FileText, color: 'stone', label: v.type };
-  const Icon = cfg.icon;
-  const colorCls = COLOR_CLASSES[cfg.color] || 'bg-stone-50 text-stone-600 border-stone-200';
+const fmtDateDisplay = (dateStr) =>
+  new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
+    weekday: 'long', day: '2-digit', month: 'short', year: 'numeric',
+  });
+
+// Sequential section configs (Receipt → Payment → Contra → Sales → Sales Return → Purchase → Purchase Return → Expense → Stock Data → Stock Transfer)
+const SECTIONS = [
+  { key: 'receipts',        from: 'in',  label: 'Receipt',         Icon: FileText,       border: 'border-l-emerald-400', headerBg: 'bg-emerald-50',   badge: 'bg-emerald-100 text-emerald-700', amtCls: 'text-emerald-600', inOut: 'IN' },
+  { key: 'payments',        from: 'out', label: 'Payment',         Icon: CreditCard,     border: 'border-l-red-400',     headerBg: 'bg-red-50',       badge: 'bg-red-100 text-red-700',       amtCls: 'text-red-600',     inOut: 'OUT' },
+  { key: 'contras',         from: 'in',  label: 'Contra',          Icon: ArrowRightLeft, border: 'border-l-cyan-400',    headerBg: 'bg-cyan-50',      badge: 'bg-cyan-100 text-cyan-700',     amtCls: 'text-cyan-600',    inOut: 'IN' },
+  { key: 'sales',           from: 'in',  label: 'Sales',           Icon: ShoppingCart,   border: 'border-l-green-400',   headerBg: 'bg-green-50',     badge: 'bg-green-100 text-green-700',   amtCls: 'text-green-600',   inOut: 'IN' },
+  { key: 'salesReturns',    from: 'out', label: 'Sales Return',    Icon: RotateCcw,      border: 'border-l-orange-400',  headerBg: 'bg-orange-50',    badge: 'bg-orange-100 text-orange-700', amtCls: 'text-orange-600',  inOut: 'OUT' },
+  { key: 'purchases',       from: 'out', label: 'Purchase',        Icon: ShoppingCart,   border: 'border-l-amber-400',   headerBg: 'bg-amber-50',     badge: 'bg-amber-100 text-amber-700',   amtCls: 'text-amber-600',   inOut: 'OUT' },
+  { key: 'purchaseReturns', from: 'in',  label: 'Purchase Return', Icon: Repeat,         border: 'border-l-teal-400',    headerBg: 'bg-teal-50',      badge: 'bg-teal-100 text-teal-700',     amtCls: 'text-teal-600',    inOut: 'IN' },
+  { key: 'stockData',       from: 'out', label: 'Stock Data',      Icon: Package,        border: 'border-l-purple-400',  headerBg: 'bg-purple-50',    badge: 'bg-purple-100 text-purple-700', amtCls: 'text-purple-600',  inOut: 'OUT' },
+  { key: 'stockTransfers',  from: 'out', label: 'Stock Transfer',  Icon: ArrowLeftRight, border: 'border-l-violet-400',  headerBg: 'bg-violet-50',    badge: 'bg-violet-100 text-violet-700', amtCls: 'text-violet-600',  inOut: 'OUT' },
+];
+
+// ── Single voucher row ─────────────────────────────────────────────────────────
+const VoucherRow = ({ v, isLast, amtCls }) => {
   const [expanded, setExpanded] = useState(false);
   const hasItems = v.items?.length > 0;
 
   return (
-    <div className={`rounded-xl border bg-white shadow-sm overflow-hidden ${side === 'in' ? 'border-emerald-100' : 'border-red-100'}`}>
-      <div className="flex items-start gap-3 px-4 py-3">
-        {/* type badge */}
-        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 mt-0.5 ${colorCls}`}>
-          <Icon className="w-3 h-3" />
-          {cfg.label}
-        </span>
+    <>
+      <div className={`flex items-center gap-3 px-4 py-2.5 hover:bg-black/[0.018] transition-colors group ${!isLast || expanded ? 'border-b border-stone-100' : ''}`}>
+        <span className="text-[11px] font-mono text-stone-400 w-[88px] flex-shrink-0 truncate">{v.voucherNo || '—'}</span>
 
-        {/* middle: voucher no + party */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-mono text-stone-500">{v.voucherNo}</p>
-          {v.party && (
-            <p className="text-sm font-semibold text-stone-700 truncate mt-0.5" title={v.party}>
-              {v.party}
-            </p>
-          )}
+          {v.party
+            ? <p className="text-sm font-semibold text-stone-700 truncate leading-tight">{v.party}</p>
+            : <p className="text-xs text-stone-300 italic">—</p>
+          }
           {v.paymentMethod && (
-            <p className="text-[11px] text-stone-400 mt-0.5">via {v.paymentMethod}</p>
-          )}
-          {v.narration && (
-            <p className="text-[11px] text-stone-400 italic mt-0.5 truncate" title={v.narration}>
-              {v.narration}
-            </p>
+            <p className="text-[10px] text-stone-400 leading-tight">via {v.paymentMethod}</p>
           )}
         </div>
 
-        {/* right: amount + expand */}
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {v.amount > 0 ? (
-            <span className={`text-base font-bold tabular-nums ${side === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
-              ₹{fmt(v.amount)}
-            </span>
-          ) : (
-            <span className="text-xs text-stone-300 font-medium">— qty only</span>
-          )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {v.amount > 0
+            ? <span className={`text-sm font-bold tabular-nums ${amtCls}`}>₹{fmt(v.amount)}</span>
+            : <span className="text-[11px] text-stone-300 italic">qty only</span>
+          }
           {hasItems && (
             <button
               onClick={() => setExpanded(p => !p)}
-              className="flex items-center gap-0.5 text-[10px] text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              className="w-5 h-5 flex items-center justify-center text-stone-300 hover:text-stone-500 transition-colors cursor-pointer"
             >
-              {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-              {v.items.length} item{v.items.length !== 1 ? 's' : ''}
+              {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
           )}
         </div>
       </div>
 
-      {/* items sub-row */}
       {expanded && hasItems && (
-        <div className="border-t border-stone-100 bg-stone-50/60 px-4 py-2 space-y-1">
+        <div className={`bg-stone-50/80 px-4 py-2 space-y-1 ${!isLast ? 'border-b border-stone-100' : ''}`}>
+          <div className="flex items-center gap-2 px-2 pb-1 border-b border-stone-100 mb-1">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400 flex-1">Product</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Qty × Rate = Amount</span>
+          </div>
           {v.items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-xs text-stone-500">
-              <span className="truncate max-w-[60%]">{item.productName || '—'}</span>
-              <span className="tabular-nums text-right">
-                {item.qty} {item.rate ? `× ₹${item.rate}` : ''}{item.amount ? ` = ₹${fmt(item.amount)}` : ''}
+            <div key={i} className="flex items-center justify-between text-xs text-stone-500 px-2 py-0.5">
+              <span className="truncate max-w-[55%] font-medium">{item.productName || '—'}</span>
+              <span className="tabular-nums text-stone-400">
+                {item.qty}{item.rate ? ` × ₹${item.rate}` : ''}{item.amount ? ` = ₹${fmt(item.amount)}` : ''}
               </span>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
-// ── section within a column ────────────────────────────────────────────────────
-const VoucherSection = ({ title, rows, side }) => {
-  if (rows.length === 0) return null;
-  const total = rows.reduce((s, v) => s + (v.amount || 0), 0);
+// ── Section block ──────────────────────────────────────────────────────────────
+const SectionBlock = ({ section, rows }) => {
+  const [collapsed, setCollapsed] = useState(false);
+  if (!rows?.length) return null;
+
+  const { label, Icon, border, headerBg, badge, amtCls, inOut } = section;
+  const subtotal = rows.reduce((s, v) => s + (v.amount || 0), 0);
+  const isIn = inOut === 'IN';
+
   return (
-    <div className="space-y-2">
-      <div className={`flex items-center justify-between px-1 py-0.5 border-b ${side === 'in' ? 'border-emerald-100' : 'border-red-100'}`}>
-        <span className={`text-[10px] font-bold uppercase tracking-widest ${side === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
-          {title} <span className="opacity-60">({rows.length})</span>
+    <div className={`rounded-2xl border border-stone-100 bg-white shadow-sm overflow-hidden border-l-4 ${border}`}>
+      <button
+        type="button"
+        onClick={() => setCollapsed(p => !p)}
+        className={`w-full flex items-center gap-3 px-4 py-3 ${headerBg} hover:brightness-[0.97] transition-all cursor-pointer`}
+      >
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex-shrink-0 ${badge}`}>
+          <Icon className="w-3 h-3" />
+          {label}
         </span>
-        {total > 0 && (
-          <span className={`text-xs font-bold tabular-nums ${side === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
-            ₹{fmt(total)}
-          </span>
-        )}
-      </div>
-      {rows.map(v => <VoucherCard key={v.id + v.type} v={v} side={side} />)}
+
+        <span className="text-[10px] text-stone-400 font-semibold">
+          {rows.length} entr{rows.length === 1 ? 'y' : 'ies'}
+        </span>
+
+        <span className={`ml-auto text-sm font-bold tabular-nums ${amtCls}`}>
+          ₹{fmt(subtotal)}
+        </span>
+
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${isIn ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+          {inOut}
+        </span>
+
+        {collapsed
+          ? <ChevronRight className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+          : <ChevronDown  className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+        }
+      </button>
+
+      {!collapsed && (
+        <>
+          <div className="flex items-center gap-3 px-4 py-1.5 bg-stone-50/70 border-b border-stone-100">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400 w-[88px] flex-shrink-0">Voucher No</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400 flex-1">Party / Details</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Amount</span>
+          </div>
+
+          {rows.map((v, i) => (
+            <VoucherRow key={`${v.id}-${i}`} v={v} isLast={i === rows.length - 1} amtCls={amtCls} />
+          ))}
+
+          <div className={`flex items-center justify-between px-4 py-2 border-t border-stone-100 ${headerBg}`}>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Subtotal</span>
+            <span className={`text-sm font-bold tabular-nums ${amtCls}`}>₹{fmt(subtotal)}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
-// ── main page ──────────────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────────
 const DayBookPage = () => {
   const [date,    setDate]    = useState(todayStr());
   const [data,    setData]    = useState(null);
@@ -164,9 +180,7 @@ const DayBookPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_URL}/api/vouchers/day-book?date=${d}`, {
-        headers: authHeaders(),
-      });
+      const res  = await fetch(`${API_URL}/api/vouchers/day-book?date=${d}`, { headers: authHeaders() });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to load');
       setData(json);
@@ -180,36 +194,36 @@ const DayBookPage = () => {
 
   useEffect(() => { fetchData(date); }, [date, fetchData]);
 
-  // Flatten all IN and OUT rows into lists
-  const inRows  = data ? [...(data.in.receipts), ...(data.in.sales), ...(data.in.purchaseReturns), ...(data.in.contras)] : [];
-  const outRows = data ? [...(data.out.payments), ...(data.out.expenses), ...(data.out.salesReturns), ...(data.out.purchases), ...(data.out.stockData), ...(data.out.stockTransfers)] : [];
-
-  const totalIn  = inRows.reduce((s, v) => s + (v.amount || 0), 0);
+  const inRows  = data ? [...data.in.receipts, ...data.in.sales, ...data.in.purchaseReturns, ...data.in.contras] : [];
+  const outRows = data ? [...data.out.payments, ...data.out.salesReturns, ...data.out.purchases, ...data.out.stockData, ...data.out.stockTransfers] : [];
+  const totalIn  = inRows.reduce((s, v)  => s + (v.amount || 0), 0);
   const totalOut = outRows.reduce((s, v) => s + (v.amount || 0), 0);
   const net      = totalIn - totalOut;
+  const hasAny   = inRows.length + outRows.length > 0;
+  const isToday  = date === todayStr();
 
-  const hasAny = inRows.length + outRows.length > 0;
+  const getRows = (section) => data ? (data[section.from][section.key] ?? []) : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-300">
+    <div className="max-w-2xl mx-auto px-4 py-8 animate-in fade-in duration-300">
 
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-6">
+      {/* ── Page header ── */}
+      <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-rs-text-primary/10 rounded-xl flex-shrink-0">
           <CalendarDays className="w-5 h-5 text-rs-text-primary" />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-rs-text-primary font-user-serif tracking-tight">DSR</h1>
-          <p className="text-sm text-rs-text-muted mt-0.5">Daily Summary Report — all voucher entries for a selected date</p>
+          <p className="text-xs text-rs-text-muted mt-0.5 truncate">Daily Sales Report — voucher summary by date</p>
         </div>
-        <div className="flex items-center gap-2">
-          {data && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {data && hasAny && (
             <button
               onClick={() => exportDSR({ date, data, totalIn, totalOut })}
               title="Download Excel"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-sm font-medium cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-[10px] font-bold uppercase tracking-wider cursor-pointer"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               Excel
             </button>
           )}
@@ -217,149 +231,116 @@ const DayBookPage = () => {
             onClick={() => fetchData(date)}
             disabled={loading}
             title="Refresh"
-            className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer"
+            className="p-2 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all disabled:opacity-40 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Date picker */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-4 py-2.5 shadow-sm">
+      {/* ── Date navigator ── */}
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => setDate(d => shiftDate(d, -1))}
+          className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all cursor-pointer flex-shrink-0"
+          title="Previous day"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <div className="flex-1 flex items-center gap-2.5 bg-white border border-stone-200 rounded-xl px-4 py-2.5 shadow-sm">
           <CalendarDays className="w-4 h-4 text-rs-text-muted flex-shrink-0" />
-          <label className="text-xs font-bold uppercase tracking-wider text-stone-400 whitespace-nowrap">Date</label>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="text-sm font-semibold text-rs-text-primary border-none outline-none bg-transparent cursor-pointer"
+            className="flex-1 text-sm font-semibold text-rs-text-primary border-none outline-none bg-transparent cursor-pointer min-w-0"
           />
+          <span className="text-xs text-stone-400 hidden sm:block whitespace-nowrap">{fmtDateDisplay(date)}</span>
         </div>
+
+        <button
+          onClick={() => setDate(d => shiftDate(d, 1))}
+          className="p-2.5 rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all cursor-pointer flex-shrink-0"
+          title="Next day"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
         <button
           onClick={() => setDate(todayStr())}
-          className="px-4 py-2.5 text-sm font-semibold rounded-xl border border-stone-200 bg-white text-rs-text-muted hover:text-rs-text-primary hover:border-rs-text-primary/30 transition-all cursor-pointer"
+          className={`px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex-shrink-0 ${
+            isToday
+              ? 'bg-rs-text-primary text-white border-rs-text-primary shadow-sm'
+              : 'bg-white border-stone-200 text-stone-500 hover:border-rs-text-primary/40 hover:text-rs-text-primary'
+          }`}
         >
           Today
         </button>
-        {data && (
-          <span className="text-xs text-stone-400">
-            {inRows.length + outRows.length} total entr{inRows.length + outRows.length === 1 ? 'y' : 'ies'}
-          </span>
-        )}
       </div>
 
-      {/* Error */}
+      {/* ── Error ── */}
       {error && (
-        <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>
+        <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>
       )}
 
-      {/* Loading */}
+      {/* ── Loading ── */}
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-24 text-rs-text-muted text-sm">
-          <RefreshCw className="w-4 h-4 animate-spin" /> Loading…
+        <div className="flex items-center justify-center gap-2 py-28 text-rs-text-muted text-sm">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          Loading…
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* ── Summary cards ── */}
       {!loading && data && (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border border-emerald-100 rounded-2xl p-4 shadow-sm flex items-center gap-4">
-            <div className="p-2.5 bg-emerald-50 rounded-xl flex-shrink-0">
-              <TrendingUp className="w-5 h-5 text-emerald-600" />
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-white border border-emerald-100 rounded-2xl px-4 py-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/80">Total In</span>
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Total In</p>
-              <p className="text-xl font-bold text-emerald-600 tabular-nums mt-0.5 truncate">₹{fmt(totalIn)}</p>
-            </div>
+            <p className="text-xl font-bold text-emerald-600 tabular-nums leading-none">₹{fmt(totalIn)}</p>
+            <p className="text-[10px] text-stone-400 mt-1.5">{inRows.length} entr{inRows.length === 1 ? 'y' : 'ies'}</p>
           </div>
-          <div className="bg-white border border-red-100 rounded-2xl p-4 shadow-sm flex items-center gap-4">
-            <div className="p-2.5 bg-red-50 rounded-xl flex-shrink-0">
-              <TrendingDown className="w-5 h-5 text-red-500" />
+
+          <div className="bg-white border border-red-100 rounded-2xl px-4 py-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-red-500/80">Total Out</span>
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Total Out</p>
-              <p className="text-xl font-bold text-red-500 tabular-nums mt-0.5 truncate">₹{fmt(totalOut)}</p>
-            </div>
+            <p className="text-xl font-bold text-red-500 tabular-nums leading-none">₹{fmt(totalOut)}</p>
+            <p className="text-[10px] text-stone-400 mt-1.5">{outRows.length} entr{outRows.length === 1 ? 'y' : 'ies'}</p>
           </div>
-          <div className={`bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4 ${net >= 0 ? 'border border-emerald-100' : 'border border-red-100'}`}>
-            <div className={`p-2.5 rounded-xl flex-shrink-0 ${net >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-              <ArrowRightLeft className={`w-5 h-5 ${net >= 0 ? 'text-emerald-600' : 'text-red-500'}`} />
+
+          <div className={`bg-white rounded-2xl px-4 py-3.5 shadow-sm border ${net >= 0 ? 'border-emerald-100' : 'border-red-100'}`}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <ArrowRightLeft className={`w-3.5 h-3.5 ${net >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />
+              <span className={`text-[9px] font-bold uppercase tracking-widest ${net >= 0 ? 'text-emerald-500/80' : 'text-red-500/80'}`}>Net</span>
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-rs-text-muted">Net</p>
-              <p className={`text-xl font-bold tabular-nums mt-0.5 truncate ${net === 0 ? 'text-stone-300' : net > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                {net >= 0 ? '+' : ''}₹{fmt(Math.abs(net))}
-              </p>
-            </div>
+            <p className={`text-xl font-bold tabular-nums leading-none ${net === 0 ? 'text-stone-300' : net > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+              {net > 0 ? '+' : net < 0 ? '−' : ''}₹{fmt(Math.abs(net))}
+            </p>
+            <p className="text-[10px] text-stone-400 mt-1.5">{net > 0 ? 'surplus' : net < 0 ? 'deficit' : 'break even'}</p>
           </div>
         </div>
       )}
 
-      {/* Two-column layout */}
+      {/* ── Sequential voucher sections ── */}
       {!loading && data && hasAny && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* ── LEFT: Money IN (Green) ── */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-emerald-100 rounded-lg">
-                <TrendingUp className="w-4 h-4 text-emerald-600" />
-              </div>
-              <h2 className="text-base font-bold text-emerald-700">Money In</h2>
-              <span className="text-xs text-stone-400 ml-1">— what we received</span>
-              {inRows.length > 0 && (
-                <span className="ml-auto text-sm font-bold text-emerald-600 tabular-nums">₹{fmt(totalIn)}</span>
-              )}
-            </div>
-            <div className="space-y-5">
-              <VoucherSection title="Receipt Voucher"   rows={data.in.receipts}        side="in" />
-              <VoucherSection title="Sales Voucher"     rows={data.in.sales}           side="in" />
-              <VoucherSection title="Purchase Return"   rows={data.in.purchaseReturns} side="in" />
-              <VoucherSection title="Contra Voucher"    rows={data.in.contras}         side="in" />
-              {inRows.length === 0 && (
-                <p className="text-sm text-stone-300 italic text-center py-12 border border-dashed border-stone-200 rounded-xl">
-                  No incoming entries for this date
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* ── RIGHT: Money OUT (Red) ── */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-red-100 rounded-lg">
-                <TrendingDown className="w-4 h-4 text-red-500" />
-              </div>
-              <h2 className="text-base font-bold text-red-600">Money Out</h2>
-              <span className="text-xs text-stone-400 ml-1">— what we paid / issued</span>
-              {outRows.length > 0 && (
-                <span className="ml-auto text-sm font-bold text-red-500 tabular-nums">₹{fmt(totalOut)}</span>
-              )}
-            </div>
-            <div className="space-y-5">
-              <VoucherSection title="Payment Voucher"   rows={data.out.payments}       side="out" />
-              <VoucherSection title="Expense Voucher"   rows={data.out.expenses}       side="out" />
-              <VoucherSection title="Sales Return"      rows={data.out.salesReturns}   side="out" />
-              <VoucherSection title="Purchase Voucher"  rows={data.out.purchases}      side="out" />
-              <VoucherSection title="Stock Data"        rows={data.out.stockData}      side="out" />
-              <VoucherSection title="Stock Transfer"    rows={data.out.stockTransfers} side="out" />
-              {outRows.length === 0 && (
-                <p className="text-sm text-stone-300 italic text-center py-12 border border-dashed border-stone-200 rounded-xl">
-                  No outgoing entries for this date
-                </p>
-              )}
-            </div>
-          </div>
+        <div className="space-y-2.5">
+          {SECTIONS.map(section => (
+            <SectionBlock key={section.key} section={section} rows={getRows(section)} />
+          ))}
         </div>
       )}
 
-      {/* Empty state */}
+      {/* ── Empty state ── */}
       {!loading && data && !hasAny && (
         <div className="text-center py-24 border border-dashed border-stone-200 rounded-2xl bg-white flex flex-col items-center gap-3">
           <CalendarDays className="w-10 h-10 text-stone-200" />
-          <p className="text-sm text-stone-400">No voucher entries found for this date.</p>
-          <p className="text-xs text-stone-300">Try selecting a different date.</p>
+          <p className="text-sm font-semibold text-stone-400">{fmtDateDisplay(date)}</p>
+          <p className="text-xs text-stone-300">No voucher entries for this date.</p>
         </div>
       )}
     </div>

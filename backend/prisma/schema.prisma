@@ -88,7 +88,6 @@ model Branch {
   contraVouchers    ContraVoucher[]
   customers         Customer[]
   expenseMasters    ExpenseMaster[]
-  expenseVouchers   ExpenseVoucher[]
   paymentMethods    PaymentMethodMaster[]
   paymentVouchers   PaymentVoucher[]
   products          Product[]
@@ -267,7 +266,6 @@ model User {
   permissions           String                  @default("{}")
   plainPassword         String?
   contraVouchers        ContraVoucher[]
-  expenseVouchers       ExpenseVoucher[]
   paymentVouchers       PaymentVoucher[]
   purchaseReturns       PurchaseReturnVoucher[]
   purchases             PurchaseVoucher[]
@@ -314,7 +312,6 @@ model PaymentMethodMaster {
   contraFrom      ContraVoucher[]         @relation("ContraFrom")
   contraTo        ContraVoucher[]         @relation("ContraTo")
   branch          Branch?                 @relation(fields: [branchId], references: [id])
-  expenseVouchers ExpenseVoucher[]
   paymentVouchers PaymentVoucher[]
   purchaseReturns PurchaseReturnVoucher[]
   purchases       PurchaseVoucher[]
@@ -330,29 +327,8 @@ model ExpenseMaster {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   branch          Branch?          @relation(fields: [branchId], references: [id])
-  expenseVouchers ExpenseVoucher[]
 
   @@unique([name, branchId])
-}
-
-model ExpenseVoucher {
-  id                Int                 @id @default(autoincrement())
-  voucherNo         String              @unique
-  expenseId         Int
-  paymentMethodId   Int?
-  amount            Float
-  narration         String?
-  date              DateTime
-  branchId          Int?
-  createdById       Int
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-  expenseName       String?
-  paymentMethodName String?
-  branch            Branch?              @relation(fields: [branchId], references: [id])
-  createdBy         User                 @relation(fields: [createdById], references: [id])
-  expense           ExpenseMaster        @relation(fields: [expenseId], references: [id])
-  paymentMethod     PaymentMethodMaster? @relation(fields: [paymentMethodId], references: [id])
 }
 
 model PurchaseVoucher {

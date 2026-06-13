@@ -16,7 +16,6 @@ const FK_MESSAGES = {
   receiptvoucher:       'Cannot delete — this record is used in Receipt vouchers.',
   paymentvoucher:       'Cannot delete — this record is used in Payment vouchers.',
   contravoucher:        'Cannot delete — this record is used in Contra vouchers.',
-  expensevoucher:       'Cannot delete — this record is used in Expense vouchers.',
   product:              'Cannot delete — Products are linked to this record. Remove them first.',
   customer:             'Cannot delete — Customers are linked to this record.',
   supplier:             'Cannot delete — Suppliers are linked to this record.',

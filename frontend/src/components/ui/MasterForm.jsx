@@ -1148,7 +1148,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <div className="flex items-center gap-2">
               <Building2 className={cn('w-4 h-4', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')} />
               <h3 className={cn('text-[10px] font-bold uppercase tracking-widest', isAdmin ? 'text-brand-primary/40' : 'text-rs-text-muted')}>
-                Branch Master ({filteredRecords.length})
+                Create Branch ({filteredRecords.length})
               </h3>
             </div>
             <ListSearch value={listSearch} onChange={setListSearch} placeholder="Search branches…" />

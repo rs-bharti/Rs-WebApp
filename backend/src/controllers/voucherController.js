@@ -925,61 +925,6 @@ const getStockQtyByWarehouse = async (req, res) => {
   }
 };
 
-// ── Expense Voucher ────────────────────────────────────────────────────────────
-const getExpenseNextNo = async (_req, res) => {
-  try { res.json({ voucherNo: await nextNo('expenseVoucher', 'EXP') }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
-};
-
-const getExpenseVouchers = async (req, res) => {
-  try {
-    const branchId = getBranchId(req);
-    const where = branchId ? { branchId } : {};
-    const rows = await prisma.expenseVoucher.findMany({
-      where,
-      include: {
-        expense:       { select: { id: true, name: true } },
-        paymentMethod: { select: { id: true, name: true } },
-        createdBy:     { select: { name: true } },
-        branch:        { select: { id: true, name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json(rows);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
-};
-
-const createExpenseVoucher = async (req, res) => {
-  try {
-    const { expenseId, paymentMethodId, amount, narration, date } = req.body;
-    if (!expenseId || amount == null)
-      return res.status(400).json({ message: 'expenseId and amount are required' });
-
-    const branchId = getBranchId(req);
-
-    const [expenseRec, pmRec] = await Promise.all([
-      prisma.expenseMaster.findUnique({ where: { id: Number(expenseId) }, select: { name: true } }),
-      paymentMethodId ? prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }) : null,
-    ]);
-
-    const voucher = await withVoucherRetry(async () => prisma.expenseVoucher.create({
-      data: {
-        voucherNo:         await nextNo('expenseVoucher', 'EXP'),
-        expenseId:         Number(expenseId),
-        expenseName:       expenseRec?.name || null,
-        paymentMethodId:   paymentMethodId ? Number(paymentMethodId) : null,
-        paymentMethodName: pmRec?.name || null,
-        amount:            Number(amount),
-        narration:         narration || null,
-        date:              date ? new Date(date) : new Date(),
-        createdById:       req.user.id,
-        branchId:          branchId || null,
-      },
-    }));
-    res.status(201).json(voucher);
-  } catch (err) { console.error(err); res.status(500).json({ message: 'Server error' }); }
-};
-
 // ── DELETE handlers ────────────────────────────────────────────────────────────
 
 const deleteContra = async (req, res) => {
@@ -1052,13 +997,6 @@ const deleteStockTransfer = async (req, res) => {
   } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
 };
 
-const deleteExpenseVoucher = async (req, res) => {
-  try {
-    await prisma.expenseVoucher.delete({ where: { id: parseInt(req.params.id) } });
-    res.json({ message: 'Deleted' });
-  } catch (err) { res.status(400).json({ message: prismaErr(err) }); }
-};
-
 // ── UPDATE handlers ────────────────────────────────────────────────────────────
 
 const updateReceipt = async (req, res) => {
@@ -1095,21 +1033,6 @@ const updateContra = async (req, res) => {
   try {
     const { date, amount, narration } = req.body;
     const updated = await prisma.contraVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(amount   != null       && { amount: Number(amount) }),
-        ...(narration !== undefined && { narration: narration || null }),
-      },
-    });
-    res.json(updated);
-  } catch (err) { res.status(500).json({ message: err.message }); }
-};
-
-const updateExpenseVoucher = async (req, res) => {
-  try {
-    const { date, amount, narration } = req.body;
-    const updated = await prisma.expenseVoucher.update({
       where: { id: parseInt(req.params.id) },
       data: {
         ...(date     !== undefined && { date: new Date(date) }),
@@ -1831,7 +1754,7 @@ const getDayBook = async (req, res) => {
     const [
       receipts, payments, sales, purchases,
       salesReturns, purchaseReturns, contras,
-      expenses, stockData, stockTransfers,
+      stockData, stockTransfers,
     ] = await Promise.all([
       prisma.receiptVoucher.findMany({
         where: bw,
@@ -1888,14 +1811,6 @@ const getDayBook = async (req, res) => {
         },
         orderBy: { date: 'asc' },
       }),
-      prisma.expenseVoucher.findMany({
-        where: bw,
-        select: { id: true, voucherNo: true, amount: true, narration: true, date: true,
-          expenseName: true, paymentMethodName: true,
-          expense: { select: { name: true } },
-        },
-        orderBy: { date: 'asc' },
-      }),
       prisma.stockDataVoucher.findMany({
         where: bw,
         select: { id: true, voucherNo: true, narration: true, date: true, warehouseName: true,
@@ -1923,7 +1838,6 @@ const getDayBook = async (req, res) => {
       },
       out: {
         payments:       payments.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Payment', party: v.supplier?.name, amount: v.amount, narration: v.narration, paymentMethod: v.paymentMethod?.name, date: v.date })),
-        expenses:       expenses.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Expense', party: v.expense?.name || v.expenseName, amount: v.amount, narration: v.narration, paymentMethod: v.paymentMethodName, date: v.date })),
         salesReturns:   salesReturns.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Sales Return', party: v.customer?.name || v.customerName, amount: v.totalAmount, narration: v.narration, items: v.items, date: v.date })),
         purchases:      purchases.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Purchase', party: v.supplier?.name || v.supplierName, amount: v.totalAmount, narration: v.narration, items: v.items, date: v.date })),
         stockData:      stockData.map(v => ({ id: v.id, voucherNo: v.voucherNo, type: 'Stock Data', party: v.warehouseName, amount: 0, narration: v.narration, items: v.items, date: v.date })),
@@ -1949,7 +1863,6 @@ module.exports = {
   getStockTransferNextNo, getStockTransfers, createStockTransfer, deleteStockTransfer, updateStockTransfer,
   getStockQty,
   getStockQtyByWarehouse,
-  getExpenseNextNo, getExpenseVouchers, createExpenseVoucher, deleteExpenseVoucher, updateExpenseVoucher,
   getProductLedger,
   getSupplierLedger,
   getCustomerLedger,

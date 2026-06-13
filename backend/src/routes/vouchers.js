@@ -13,7 +13,6 @@ const {
   getStockTransferNextNo, getStockTransfers, createStockTransfer, deleteStockTransfer, updateStockTransfer,
   getStockQty,
   getStockQtyByWarehouse,
-  getExpenseNextNo, getExpenseVouchers, createExpenseVoucher, deleteExpenseVoucher, updateExpenseVoucher,
   getProductLedger,
   getSupplierLedger,
   getCustomerLedger,
@@ -84,11 +83,5 @@ router.get('/transfer',                 getStockTransfers);
 router.post('/transfer',                createStockTransfer);
 router.put('/transfer/:id',             updateStockTransfer);
 router.delete('/transfer/:id',          deleteStockTransfer);
-
-router.get('/expense/next-number',      getExpenseNextNo);
-router.get('/expense',                  getExpenseVouchers);
-router.post('/expense',                 createExpenseVoucher);
-router.put('/expense/:id',              updateExpenseVoucher);
-router.delete('/expense/:id',           deleteExpenseVoucher);
 
 module.exports = router;
