@@ -101,14 +101,17 @@ model Branch {
   suppliers         Supplier[]
   users             User[]
   warehouses        WarehouseMaster[]
+  branchMasters     BranchMaster[]
 }
 
 model BranchMaster {
-  id        Int      @id @default(autoincrement())
-  name      String
-  branchId  Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  name       String
+  branchId   Int?
+  branchName String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  branch     Branch?  @relation(fields: [branchId], references: [id])
 
   @@unique([name, branchId])
 }

@@ -267,7 +267,7 @@ const getBranchMasters = async (req, res) => {
     const branchId = getBranchId(req);
     const rows = await prisma.branchMaster.findMany({
       where: branchId ? { branchId } : {},
-      select: { id: true, name: true },
+      select: { id: true, name: true, branchId: true, branchName: true },
       orderBy: { name: 'asc' },
     });
     res.json(rows);
@@ -279,8 +279,13 @@ const createBranchMaster = async (req, res) => {
     const { name } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: 'Name is required' });
     const branchId = getBranchId(req);
+    let branchName = null;
+    if (branchId) {
+      const branchRec = await prisma.branch.findUnique({ where: { id: branchId }, select: { name: true } });
+      branchName = branchRec?.name || null;
+    }
     const row = await prisma.branchMaster.create({
-      data: { name: name.trim(), ...(branchId && { branchId }) },
+      data: { name: name.trim(), ...(branchId && { branchId, branchName }) },
     });
     res.status(201).json(row);
   } catch (err) {
