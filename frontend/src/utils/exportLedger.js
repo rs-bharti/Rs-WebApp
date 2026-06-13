@@ -24,33 +24,31 @@ export function exportClientLedger({ customer, periodRows, fromDate, toDate, sum
     ['Date', 'Name', 'Voucher Type', 'Voucher No.', 'DR ₹', 'CR ₹', 'Balance ₹', 'Dr/Cr'],
   ];
 
+  // Tally convention: Sales/OB = type 'CR' in backend → DR column (customer owes)
+  //                   Receipt/SR = type 'DR' in backend → CR column (customer pays)
   for (const r of periodRows) {
     aoa.push([
       fmtD(r.date),
       r.narration || srcLabel(r.source),
       srcLabel(r.source),
       r.voucherNo || '—',
-      r.type === 'DR' ? n2(r.amount) : '',
-      r.type === 'CR' ? n2(r.amount) : '',
+      r.type === 'CR' ? n2(r.amount) : '',   // DR col = Sales / Opening Balance
+      r.type === 'DR' ? n2(r.amount) : '',   // CR col = Receipt / Sales Return
       n2(Math.abs(r.balance)),
       r.balance > 0 ? 'Dr' : r.balance < 0 ? 'Cr' : '',
     ]);
-    if (r.items?.length) {
-      for (const it of r.items) {
-        aoa.push(['', `  → ${it.productName}  Qty: ${it.qty} × ₹${n2(it.rate)}`, '', '', '', '', n2(it.amount), '']);
-      }
-    }
   }
 
-  const totalDR = n2(periodRows.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0));
-  const totalCR = n2(periodRows.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0));
+  // totalDR = Sales + Opening Balance (type 'CR'), totalCR = Receipt + Returns (type 'DR')
+  const totalDR = n2(periodRows.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0));
+  const totalCR = n2(periodRows.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0));
   aoa.push([]);
   aoa.push([`Grand Total (${periodRows.length} entries)`, '', '', '', totalDR, totalCR, n2(Math.abs(closing)), closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : '']);
   aoa.push([]);
   aoa.push(['SUMMARY']);
-  aoa.push(['Total Sales',         '', '', '', '', n2(summary.totalSales)]);
-  aoa.push(['Total Sales Returns', '', '', '', '', n2(summary.totalSalesReturns)]);
-  aoa.push(['Total Receipts',      '', '', '', n2(summary.totalReceipts)]);
+  aoa.push(['Total Sales',         '', '', '', n2(summary.totalSales),         '']);  // DR col
+  aoa.push(['Total Sales Returns', '', '', '', '', n2(summary.totalSalesReturns)]);   // CR col
+  aoa.push(['Total Receipts',      '', '', '', '', n2(summary.totalReceipts)]);        // CR col
   aoa.push(['Closing Balance',     '', '', '', '', '', n2(Math.abs(closing)), closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : 'Nil']);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -158,88 +156,51 @@ export function exportStockLedger({ product, warehouse, periodRowsWithBalance, f
 
 // ── 4. DSR ────────────────────────────────────────────────────────────────────
 export function exportDSR({ date, data, totalIn, totalOut }) {
-  const wb   = XLSX.utils.book_new();
-  const net  = n2(totalIn - totalOut);
+  const wb  = XLSX.utils.book_new();
+  const net = n2(totalIn - totalOut);
   const displayDate = date ? fmtD(date + 'T00:00:00') : '—';
-
-  const vRow = (v) => [
-    v.type,
-    v.voucherNo || '—',
-    v.party     || '—',
-    n2(v.amount),
-  ];
 
   const aoa = [
     ['RS BHARTI – DAILY SALES REPORT (DSR)'],
     [`Date: ${displayDate}`, '', `Generated: ${nowStr()}`],
     [],
-    // ── Money IN ──────────────────────────────────────────────────────────────
-    ['MONEY IN (Receipts / Sales / Purchase Returns / Contra)'],
     ['Voucher Type', 'Voucher No.', 'Party', 'Amount ₹'],
   ];
 
-  const inRows = data
-    ? [
-        ...data.in.receipts,
-        ...data.in.sales,
-        ...data.in.purchaseReturns,
-        ...data.in.contras,
-      ]
-    : [];
-
-  if (inRows.length === 0) {
-    aoa.push(['No entries', '', '', '']);
-  } else {
-    for (const v of inRows) {
-      aoa.push(vRow(v));
-      if (v.items?.length) {
-        for (const it of v.items) {
-          aoa.push(['', '', `  → ${it.productName}  Qty: ${it.qty}`, n2(it.amount)]);
-        }
-      }
+  // Add one section per voucher type; skip empty sections
+  const addSection = (label, rows) => {
+    if (!rows?.length) return;
+    aoa.push([label]);
+    for (const v of rows) {
+      aoa.push([v.type, v.voucherNo || '—', v.party || '—', n2(v.amount)]);
     }
+    const sub = n2(rows.reduce((s, v) => s + (v.amount || 0), 0));
+    aoa.push(['', '', 'Subtotal', sub]);
+    aoa.push([]);
+  };
+
+  if (data) {
+    // Sequence as requested: Receipt → Payment → Contra → Sales → Sales Return → Purchase → Purchase Return
+    addSection('RECEIPT',          data.in.receipts);
+    addSection('PAYMENT',          data.out.payments);
+    addSection('CONTRA',           data.in.contras);
+    addSection('SALES',            data.in.sales);
+    addSection('SALES RETURN',     data.out.salesReturns);
+    addSection('PURCHASE',         data.out.purchases);
+    addSection('PURCHASE RETURN',  data.in.purchaseReturns);
+    addSection('EXPENSE',          data.out.expenses);
+    addSection('STOCK DATA',       data.out.stockData);
+    addSection('STOCK TRANSFER',   data.out.stockTransfers);
   }
-  aoa.push(['Total In', '', '', n2(totalIn)]);
-  aoa.push([]);
-
-  // ── Money OUT ─────────────────────────────────────────────────────────────
-  aoa.push(['MONEY OUT (Payments / Expenses / Sales Returns / Purchases / Stock)']);
-  aoa.push(['Voucher Type', 'Voucher No.', 'Party', 'Amount ₹']);
-
-  const outRows = data
-    ? [
-        ...data.out.payments,
-        ...data.out.expenses,
-        ...data.out.salesReturns,
-        ...data.out.purchases,
-        ...data.out.stockData,
-        ...data.out.stockTransfers,
-      ]
-    : [];
-
-  if (outRows.length === 0) {
-    aoa.push(['No entries', '', '', '']);
-  } else {
-    for (const v of outRows) {
-      aoa.push(vRow(v));
-      if (v.items?.length) {
-        for (const it of v.items) {
-          aoa.push(['', '', `  → ${it.productName}  Qty: ${it.qty}`, n2(it.amount)]);
-        }
-      }
-    }
-  }
-  aoa.push(['Total Out', '', '', n2(totalOut)]);
-  aoa.push([]);
 
   // ── Summary ───────────────────────────────────────────────────────────────
   aoa.push(['SUMMARY']);
-  aoa.push(['Total Money In',  '', '', n2(totalIn)]);
-  aoa.push(['Total Money Out', '', '', n2(totalOut)]);
-  aoa.push(['Net (In − Out)',  '', '', net]);
+  aoa.push(['Total In  (Receipt + Sales + Purchase Return + Contra)', '', '', n2(totalIn)]);
+  aoa.push(['Total Out (Payment + Expense + Sales Return + Purchase)', '', '', n2(totalOut)]);
+  aoa.push(['Net (In − Out)', '', '', net]);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  setWidths(ws, [26, 16, 32, 16]);
+  setWidths(ws, [46, 16, 32, 16]);
   XLSX.utils.book_append_sheet(wb, ws, 'DSR');
 
   XLSX.writeFile(wb, `DSR_${date || 'unknown'}.xlsx`);
