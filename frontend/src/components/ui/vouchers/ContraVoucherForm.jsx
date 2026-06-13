@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getPaymentMethods } from '../../../api/masters';
+import { openInTab } from '../../../utils/openInTab';
 import { getContraVoucherNextNo, saveContraVoucher, getContras, updateContraVoucher, deleteContraVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
@@ -144,7 +145,7 @@ const ContraVoucherForm = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Account</label>
-                  <button type="button" onClick={() => window.open('/dashboard/master/payment-method', '_blank')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Payment Method Master"><Plus className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => openInTab('/dashboard/master/payment-method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Payment Method Master"><Plus className="w-4 h-4" /></button>
                 </div>
                 <SelectSearch
                   value={fromPaymentMethodId}
@@ -170,7 +171,7 @@ const ContraVoucherForm = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Account</label>
-                  <button type="button" onClick={() => window.open('/dashboard/master/payment-method', '_blank')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Payment Method Master"><Plus className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => openInTab('/dashboard/master/payment-method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Payment Method Master"><Plus className="w-4 h-4" /></button>
                 </div>
                 <SelectSearch
                   value={toPaymentMethodId}
