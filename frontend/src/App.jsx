@@ -15,7 +15,6 @@ import PurchaseVoucherForm from './components/ui/vouchers/PurchaseVoucherForm';
 import PurchaseReturnVoucherForm from './components/ui/vouchers/PurchaseReturnVoucherForm';
 import StockDataVoucherForm from './components/ui/vouchers/StockDataVoucherForm';
 import StockTransferVoucherForm from './components/ui/vouchers/StockTransferVoucherForm';
-import ExpenseVoucherForm from './components/ui/vouchers/ExpenseVoucherForm';
 import MasterForm from './components/ui/MasterForm';
 import StockQuantityPage from './pages/StockQuantityPage';
 import ProductInfoPage from './pages/ProductInfoPage';
@@ -67,7 +66,6 @@ function App() {
           <Route path="contra" element={<ContraVoucherForm />} />
           <Route path="stock-data" element={<StockDataVoucherForm />} />
           <Route path="stock-transfer" element={<StockTransferVoucherForm />} />
-          <Route path="expense" element={<ExpenseVoucherForm />} />
 
 
           <Route path="other/stock-quantity" element={<StockQuantityPage />} />

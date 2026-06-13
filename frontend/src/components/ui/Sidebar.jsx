@@ -29,7 +29,6 @@ const SidebarItem = ({ to, icon: Icon, children, role, onClose }) => (
 const VOUCHER_ROUTES = {
   'Receipt':         { slug: 'receipt',        icon: FileText },
   'Payment':         { slug: 'payment',         icon: CreditCard },
-  'Expense':         { slug: 'expense',         icon: Receipt },
   'Sales':           { slug: 'sales',           icon: Menu },
   'Sales Return':    { slug: 'sales-return',    icon: RotateCcw },
   'Purchase':        { slug: 'purchase',        icon: ShoppingCart },
@@ -40,10 +39,12 @@ const VOUCHER_ROUTES = {
 };
 
 const MASTER_ROUTES = {
-  'Customer':  { slug: 'customer',  icon: Users },
-  'Warehouse': { slug: 'warehouse', icon: Warehouse },
-  'Supplier':  { slug: 'supplier',  icon: Truck },
-  'Product':   { slug: 'product',   icon: Package },
+  'Customer':       { slug: 'customer',       icon: Users },
+  'Warehouse':      { slug: 'warehouse',      icon: Warehouse },
+  'Supplier':       { slug: 'supplier',       icon: Truck },
+  'Product':        { slug: 'product',        icon: Package },
+  'Expense':        { slug: 'expense',        icon: Receipt },
+  'Payment Method': { slug: 'payment-method', icon: CreditCard },
 };
 
 const OTHER_ROUTES = {

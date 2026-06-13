@@ -8,8 +8,8 @@ import { cn } from '../lib/utils';
 import { getUsers, deleteUser, updateUserPermissions, getBranches } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 
-const VOUCHER_MODULES = ['Receipt', 'Payment', 'Expense', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
-const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse'];
+const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
+const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse', 'Expense', 'Payment Method'];
 const OTHER_MODULES   = ['DSR', 'Client Ledger', 'Supplier Ledger', 'Stock Ledger'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});

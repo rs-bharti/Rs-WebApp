@@ -746,7 +746,7 @@ const getPaymentMethods = async (req, res) => {
     const where = branchId ? { branchId } : {};
     const rows = await prisma.paymentMethodMaster.findMany({
       where,
-      select: { id: true, name: true },
+      select: { id: true, name: true, category: true },
       orderBy: { name: 'asc' },
     });
     res.json(rows);
@@ -755,12 +755,12 @@ const getPaymentMethods = async (req, res) => {
 
 const createPaymentMethod = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, category } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
     const branchId = getBranchId(req);
     const row = await prisma.paymentMethodMaster.create({
-      data: { name: name.trim(), branchId: branchId || null },
-      select: { id: true, name: true },
+      data: { name: name.trim(), category: category || null, branchId: branchId || null },
+      select: { id: true, name: true, category: true },
     });
     res.status(201).json(row);
   } catch (err) {
@@ -772,11 +772,11 @@ const createPaymentMethod = async (req, res) => {
 
 const updatePaymentMethod = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, category } = req.body;
     const row = await prisma.paymentMethodMaster.update({
       where: { id: Number(req.params.id) },
-      data: { name: name.trim() },
-      select: { id: true, name: true },
+      data: { name: name.trim(), ...(category !== undefined && { category: category || null }) },
+      select: { id: true, name: true, category: true },
     });
     res.json(row);
   } catch (err) {

@@ -484,7 +484,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       let newRow;
       if (isPaymentMethod) {
         if (!f('name')) return setError('Payment method name is required');
-        newRow = await createPaymentMethod({ name: f('name') });
+        if (!f('category')) return setError('Please select a category (CASH or BANK)');
+        newRow = await createPaymentMethod({ name: f('name'), category: f('category') });
       } else if (isExpense) {
         if (!f('name')) return setError('Expense name is required');
         newRow = await createExpense({ name: f('name') });
@@ -612,7 +613,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       } else if (isCategory) {
         updated = await updateCategory(id, { name: editData.name.trim() });
       } else if (isPaymentMethod) {
-        updated = await updatePaymentMethod(id, { name: editData.name.trim() });
+        updated = await updatePaymentMethod(id, { name: editData.name.trim(), category: editData.category || null });
       } else if (isExpense) {
         updated = await updateExpense(id, { name: editData.name.trim() });
       }
@@ -893,6 +894,14 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     if (isPaymentMethod) return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
         <div className="space-y-2"><label className={labelCls}>Payment Method Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Cash, Bank Transfer, UPI" value={f('name')} onChange={upd('name')} required /></div>
+        <div className="space-y-2">
+          <label className={labelCls}>Category <span className="text-red-400">*</span></label>
+          <select className={inputCls} value={f('category') || ''} onChange={upd('category')} required>
+            <option value="">Select category…</option>
+            <option value="CASH">CASH</option>
+            <option value="BANK">BANK</option>
+          </select>
+        </div>
       </div>
     );
 
@@ -1106,6 +1115,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     <tr className={headCls}>
                       <th className={thCls}>#</th>
                       <th className={thCls}>Name</th>
+                      <th className={thCls}>Category</th>
                       <th className={thCls}></th>
                     </tr>
                   </thead>
@@ -1114,6 +1124,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                       <tr key={r.id} className={trHoverCls}>
                         <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                         <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
+                        <td className={cn(tdCls, 'text-xs font-bold uppercase tracking-widest', r.category === 'CASH' ? 'text-green-600' : r.category === 'BANK' ? 'text-blue-600' : 'text-stone-400')}>{r.category || '—'}</td>
                         <td className="px-4 py-3 text-right">
                           <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
                         </td>
@@ -1516,18 +1527,31 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'email', label: 'Email', type: 'email' }, { key: 'gstNo', label: 'GST No', type: 'text' }, { key: 'address', label: 'Address', type: 'text' }, { key: 'area', label: 'Area', type: 'text' }]
                     : isUnit
                     ? [{ key: 'unitName', label: 'Unit Name', type: 'text' }, { key: 'shortName', label: 'Short Name', type: 'text' }]
+                    : isPaymentMethod
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'category', label: 'Category', type: 'select', options: ['CASH', 'BANK'] }]
                     : [{ key: 'name', label: 'Name', type: 'text' }]
                   ).map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-bold uppercase tracking-widest text-rs-text-muted mb-1.5">{f.label}</label>
-                      <input
-                        type={f.type}
-                        step={f.type === 'number' ? '0.01' : undefined}
-                        min={f.type === 'number' ? '0' : undefined}
-                        value={editData[f.key] ?? ''}
-                        onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
-                        className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50"
-                      />
+                      {f.type === 'select' ? (
+                        <select
+                          value={editData[f.key] ?? ''}
+                          onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
+                          className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50"
+                        >
+                          <option value="">Select…</option>
+                          {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type={f.type}
+                          step={f.type === 'number' ? '0.01' : undefined}
+                          min={f.type === 'number' ? '0' : undefined}
+                          value={editData[f.key] ?? ''}
+                          onChange={e => setEditData(p => ({ ...p, [f.key]: e.target.value }))}
+                          className="w-full rounded-xl border border-stone-200 px-4 py-3 text-sm outline-none focus:border-rs-text-primary bg-stone-50"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1581,6 +1605,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         { label: 'Name', value: viewRecord.name },
                         { label: 'Area', value: viewRecord.area },
                         { label: 'Address', value: viewRecord.address },
+                      ]
+                    : isPaymentMethod
+                    ? [
+                        { label: 'Name', value: viewRecord.name },
+                        { label: 'Category', value: viewRecord.category },
                       ]
                     : isUnit
                     ? [

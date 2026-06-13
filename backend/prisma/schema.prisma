@@ -309,6 +309,7 @@ model PaymentMethodMaster {
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
   name            String
+  category        String?
   branchId        Int?
   contraFrom      ContraVoucher[]         @relation("ContraFrom")
   contraTo        ContraVoucher[]         @relation("ContraTo")
