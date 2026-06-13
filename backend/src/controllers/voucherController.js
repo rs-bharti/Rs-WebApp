@@ -1501,12 +1501,14 @@ const getSupplierLedger = async (req, res) => {
     // Add Purchase Vouchers (CR — increases payable)
     for (const pv of purchaseRows) {
       entries.push({
-        _date:      new Date(pv.date),
-        type:       'CR',
-        amount:     pv.totalAmount,
-        kind:       'purchase',
-        voucherNo:  pv.voucherNo,
-        source:     'purchase',
+        _date:          new Date(pv.date),
+        type:           'CR',
+        amount:         pv.totalAmount,
+        kind:           'purchase',
+        voucherNo:      pv.voucherNo,
+        source:         'purchase',
+        particularName: pv.supplierName || supplier.name,
+        particularType: 'supplier',
         items:      pv.items.map(i => ({
           productId:   i.productId,
           productName: i.productName || i.product?.name,
@@ -1539,8 +1541,8 @@ const getSupplierLedger = async (req, res) => {
         kind:           'payment',
         voucherNo:      pv.voucherNo,
         source:         'payment',
-        particularName: pv.particularName || null,
-        particularType: pv.particularType || null,
+        particularName: pv.particularName || supplier.name,
+        particularType: pv.particularType || 'supplier',
         items:          [],
         meta: {
           paymentMethod: pv.paymentMethod?.name || null,
@@ -1559,8 +1561,8 @@ const getSupplierLedger = async (req, res) => {
         voucherNo:      rv.voucherNo,
         source:         'receipt_from_supplier',
         amount:         rv.amount,
-        particularName: rv.particularName || null,
-        particularType: rv.particularType || null,
+        particularName: rv.particularName || supplier.name,
+        particularType: rv.particularType || 'supplier',
         items:          [],
         meta: {
           paymentMethod: rv.paymentMethod?.name || null,
@@ -1573,12 +1575,14 @@ const getSupplierLedger = async (req, res) => {
     // Add Purchase Return Vouchers (DR — reduces payable)
     for (const prv of purchaseReturnRows) {
       entries.push({
-        _date:      new Date(prv.date),
-        type:       'DR',
-        amount:     prv.totalAmount,
-        kind:       'purchase_return',
-        voucherNo:  prv.voucherNo,
-        source:     'purchase_return',
+        _date:          new Date(prv.date),
+        type:           'DR',
+        amount:         prv.totalAmount,
+        kind:           'purchase_return',
+        voucherNo:      prv.voucherNo,
+        source:         'purchase_return',
+        particularName: prv.supplierName || supplier.name,
+        particularType: 'supplier',
         items:      prv.items.map(i => ({
           productId:   i.productId,
           productName: i.productName || i.product?.name,
@@ -1733,8 +1737,8 @@ const getCustomerLedger = async (req, res) => {
         amount:         rv.amount,
         voucherNo:      rv.voucherNo,
         source:         'receipt',
-        particularName: rv.particularName || null,
-        particularType: rv.particularType || null,
+        particularName: rv.particularName || customer.name,
+        particularType: rv.particularType || 'customer',
         items:          [],
         meta: {
           paymentMethod: rv.paymentMethod?.name || null,
@@ -1751,8 +1755,8 @@ const getCustomerLedger = async (req, res) => {
         amount:         pv.amount,
         voucherNo:      pv.voucherNo,
         source:         'payment_to_customer',
-        particularName: pv.particularName || null,
-        particularType: pv.particularType || null,
+        particularName: pv.particularName || customer.name,
+        particularType: pv.particularType || 'customer',
         items:          [],
         meta: {
           paymentMethod: pv.paymentMethod?.name || null,
@@ -1764,11 +1768,13 @@ const getCustomerLedger = async (req, res) => {
 
     for (const sv of salesRows) {
       entries.push({
-        _date:     new Date(sv.date),
-        type:      'CR',
-        amount:    sv.totalAmount,
-        voucherNo: sv.voucherNo,
-        source:    'sales',
+        _date:          new Date(sv.date),
+        type:           'CR',
+        amount:         sv.totalAmount,
+        voucherNo:      sv.voucherNo,
+        source:         'sales',
+        particularName: sv.customerName || customer.name,
+        particularType: 'customer',
         items:     sv.items.map(i => ({
           productId:   i.productId,
           productName: i.productName || i.product?.name,
@@ -1794,11 +1800,13 @@ const getCustomerLedger = async (req, res) => {
 
     for (const srv of salesReturnRows) {
       entries.push({
-        _date:     new Date(srv.date),
-        type:      'DR',
-        amount:    srv.totalAmount,
-        voucherNo: srv.voucherNo,
-        source:    'sales_return',
+        _date:          new Date(srv.date),
+        type:           'DR',
+        amount:         srv.totalAmount,
+        voucherNo:      srv.voucherNo,
+        source:         'sales_return',
+        particularName: srv.customerName || customer.name,
+        particularType: 'customer',
         items:     srv.items.map(i => ({
           productId:   i.productId,
           productName: i.productName || i.product?.name,
