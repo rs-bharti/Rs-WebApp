@@ -104,3 +104,7 @@ export const deleteExpense  = (id)        => apiFetch(`/api/masters/expenses/${i
 // ── Contact Persons ────────────────────────────────────────────────────────────
 export const updateContact = (id, body) => apiFetch(`/api/masters/contacts/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
 export const deleteContact = (id)       => apiFetch(`/api/masters/contacts/${id}`, { method: 'DELETE' });
+
+// ── Dashboard Balance ─────────────────────────────────────────────────────────
+export const getDashboardBalance    = ()     => apiFetch('/api/masters/dashboard/balance');
+export const updateDashboardBalance = (body) => apiFetch('/api/masters/dashboard/balance', { method: 'PUT', body: JSON.stringify(body) });

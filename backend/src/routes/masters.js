@@ -17,6 +17,7 @@ const {
   getExpenses,   createExpense,  updateExpense,  deleteExpense,
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
   updateContact, deleteContact,
+  getDashboardBalance, updateDashboardBalance,
 } = require('../controllers/masterController');
 
 const router = express.Router();
@@ -83,5 +84,8 @@ router.delete('/warehouses/:id', requirePermission('masters', 'Warehouse'), dele
 
 router.put('/contacts/:id',    updateContact);
 router.delete('/contacts/:id', deleteContact);
+
+router.get('/dashboard/balance',  getDashboardBalance);
+router.put('/dashboard/balance',  requireAdmin, updateDashboardBalance);
 
 module.exports = router;

@@ -103,6 +103,15 @@ model Branch {
   users             User[]
   warehouses        WarehouseMaster[]
   branchMasters     BranchMaster[]
+  dashboardBalance  DashboardBalance?
+}
+
+model DashboardBalance {
+  id          Int    @id @default(autoincrement())
+  branchId    Int    @unique
+  openingCash Float  @default(0)
+  openingBank Float  @default(0)
+  branch      Branch @relation(fields: [branchId], references: [id])
 }
 
 model BranchMaster {

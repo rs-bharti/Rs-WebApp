@@ -969,6 +969,91 @@ const deleteContact = async (req, res) => {
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
 
+// ── Dashboard Balance ──────────────────────────────────────────────────────────
+const getDashboardBalance = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    if (!branchId) return res.status(400).json({ message: 'Branch required' });
+
+    // Get or create opening balance for this branch
+    let opening = await prisma.dashboardBalance.findUnique({ where: { branchId } });
+    if (!opening) {
+      opening = await prisma.dashboardBalance.create({ data: { branchId, openingCash: 0, openingBank: 0 } });
+    }
+
+    // Resolve payment method IDs by category for this branch
+    const paymentMethods = await prisma.paymentMethodMaster.findMany({
+      where: { branchId },
+      select: { id: true, category: true },
+    });
+    const cashIds = paymentMethods.filter(p => p.category === 'CASH').map(p => p.id);
+    const bankIds = paymentMethods.filter(p => p.category === 'BANK').map(p => p.id);
+
+    // Receipt Vouchers = money IN (add to cash/bank)
+    const [cashIn, bankIn, cashOut, bankOut] = await Promise.all([
+      prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethodId: { in: cashIds } }, _sum: { amount: true } }),
+      prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethodId: { in: bankIds } }, _sum: { amount: true } }),
+      // Payment Vouchers = money OUT (subtract from cash/bank)
+      prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethodId: { in: cashIds } }, _sum: { amount: true } }),
+      prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethodId: { in: bankIds } }, _sum: { amount: true } }),
+    ]);
+
+    const currentCash = opening.openingCash + (cashIn._sum.amount || 0) - (cashOut._sum.amount || 0);
+    const currentBank = opening.openingBank + (bankIn._sum.amount || 0) - (bankOut._sum.amount || 0);
+
+    // Total Receivables = Total Sales - Receipts from customers - Sales Returns + Payments to customers
+    const [salesAgg, custReceiptsAgg, salesReturnAgg, payToCustomerAgg] = await Promise.all([
+      prisma.salesVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
+      prisma.receiptVoucher.aggregate({ where: { branchId, customerId: { not: null } }, _sum: { amount: true } }),
+      prisma.salesReturnVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
+      prisma.paymentVoucher.aggregate({ where: { branchId, customerId: { not: null } }, _sum: { amount: true } }),
+    ]);
+    const totalReceivables =
+      (salesAgg._sum.totalAmount || 0)
+      - (custReceiptsAgg._sum.amount || 0)
+      - (salesReturnAgg._sum.totalAmount || 0)
+      + (payToCustomerAgg._sum.amount || 0);
+
+    res.json({
+      openingCash:      Math.round(opening.openingCash * 100) / 100,
+      openingBank:      Math.round(opening.openingBank * 100) / 100,
+      currentCash:      Math.round(currentCash * 100) / 100,
+      currentBank:      Math.round(currentBank * 100) / 100,
+      totalReceivables: Math.round(totalReceivables * 100) / 100,
+    });
+  } catch (err) {
+    console.error('getDashboardBalance error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const updateDashboardBalance = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    if (!branchId) return res.status(400).json({ message: 'Branch required' });
+
+    const { openingCash, openingBank } = req.body;
+
+    const balance = await prisma.dashboardBalance.upsert({
+      where:  { branchId },
+      update: {
+        ...(openingCash !== undefined ? { openingCash: Number(openingCash) } : {}),
+        ...(openingBank !== undefined ? { openingBank: Number(openingBank) } : {}),
+      },
+      create: {
+        branchId,
+        openingCash: Number(openingCash ?? 0),
+        openingBank: Number(openingBank ?? 0),
+      },
+    });
+
+    res.json(balance);
+  } catch (err) {
+    console.error('updateDashboardBalance error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getCountries, createCountry, updateCountry, deleteCountry,
   getStates,    createState,   updateState,   deleteState,
@@ -986,4 +1071,5 @@ module.exports = {
   getExpenses,  createExpense,  updateExpense,  deleteExpense,
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
   updateContact, deleteContact,
+  getDashboardBalance, updateDashboardBalance,
 };

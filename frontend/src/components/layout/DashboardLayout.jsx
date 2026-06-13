@@ -1,51 +1,122 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../ui/Sidebar';
-import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, CreditCard, Landmark, Menu, ChevronDown, Sun, Moon } from 'lucide-react';
+import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, Landmark, Menu, ChevronDown, Sun, Moon, Pencil, X, Check, Loader2 } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getDashboardBalance, updateDashboardBalance } from '../../api/masters';
 
-const StatCard = ({ title, amount, trend, trendType, role }) => (
+const fmt = (n, symbol) => {
+  if (n === null || n === undefined) return `${symbol}—`;
+  const abs = Math.abs(n);
+  if (abs >= 10000000) return `${symbol}${(abs / 10000000).toFixed(2)}Cr`;
+  if (abs >= 100000)   return `${symbol}${(abs / 100000).toFixed(2)}L`;
+  return `${symbol}${abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const StatCard = ({ title, amount, sub, trendType, role, onEdit, loading }) => (
   <article className={cn(
-    "p-6 shadow-sm border transition-all duration-300",
+    "p-6 shadow-sm border transition-all duration-300 relative",
     role === 'admin'
       ? "bg-white dark:bg-brand-card border-brand-primary/10 border-b-4 rounded-sm"
       : "bg-rs-cream border-stone-100 rounded-2xl hover:shadow-md"
   )}>
+    {onEdit && (
+      <button
+        onClick={onEdit}
+        className="absolute top-3 right-3 p-1.5 rounded-lg text-brand-primary/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-all cursor-pointer"
+        title="Edit opening balance"
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
+    )}
     <div className="flex justify-between items-start mb-4">
-      <div>
+      <div className="flex-1 pr-6">
         <h4 className={cn(
           "text-[10px] font-bold uppercase tracking-[0.2em]",
           role === 'admin' ? "text-brand-primary/50" : "text-rs-text-muted"
         )}>{title}</h4>
-        <h3 className={cn(
-          "text-3xl mt-1 tracking-brand-tight",
-          role === 'admin' ? "font-serif text-brand-primary" : "font-user-serif font-bold text-rs-text-primary"
-        )}>{amount}</h3>
+        {loading ? (
+          <div className="flex items-center gap-2 mt-1">
+            <Loader2 className="w-5 h-5 animate-spin text-brand-primary/40" />
+          </div>
+        ) : (
+          <h3 className={cn(
+            "text-3xl mt-1 tracking-brand-tight",
+            role === 'admin' ? "font-serif text-brand-primary" : "font-user-serif font-bold text-rs-text-primary"
+          )}>{amount}</h3>
+        )}
       </div>
-      {role === 'user' && (
-        <div className="bg-white dark:bg-brand-card p-2 rounded-lg shadow-sm">
-          {title.includes('Cash') && <Wallet className="w-6 h-6 text-rs-text-primary" />}
-          {title.includes('Bank') && <Landmark className="w-6 h-6 text-rs-text-primary" />}
-          {title.includes('Wallet') && <CreditCard className="w-6 h-6 text-rs-text-primary" />}
-        </div>
-      )}
     </div>
     <div className={cn(
       "flex items-center text-[10px] font-semibold",
-      trendType === 'up' ? "text-emerald-600" : 
+      trendType === 'up' ? "text-emerald-600" :
       trendType === 'down' ? "text-rose-600" : "text-stone-400"
     )}>
-      {trendType === 'up' && <TrendingUp className="w-3 h-3 mr-1" />}
-      {trendType === 'down' && <TrendingDown className="w-3 h-3 mr-1" />}
-      <span className="uppercase">{trend}</span>
-      {role === 'user' && trendType === 'neutral' && (
-        <span className="text-rs-text-muted">Main Operating Wallet</span>
-      )}
+      {trendType === 'up'   && <TrendingUp   className="w-3 h-3 mr-1" />}
+      {trendType === 'down' && <TrendingDown  className="w-3 h-3 mr-1" />}
+      <span className="uppercase">{sub}</span>
     </div>
   </article>
 );
+
+const EditModal = ({ title, field, currentOpening, onSave, onClose }) => {
+  const [value, setValue] = useState(String(currentOpening ?? 0));
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const handleSave = async () => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return setErr('Enter a valid number');
+    setSaving(true);
+    try {
+      await onSave({ [field]: num });
+      onClose();
+    } catch (e) {
+      setErr(e.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white dark:bg-brand-card rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-serif font-bold text-brand-primary">Edit {title}</h3>
+          <button onClick={onClose} className="p-1 text-stone-400 hover:text-stone-700 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-xs text-stone-400 mb-4 uppercase tracking-widest">Opening / Starting Balance</p>
+        <input
+          type="number"
+          step="0.01"
+          value={value}
+          onChange={e => { setValue(e.target.value); setErr(''); }}
+          className="w-full border border-stone-200 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-brand-primary"
+          autoFocus
+          onKeyDown={e => e.key === 'Enter' && handleSave()}
+        />
+        {err && <p className="text-xs text-rose-500 mt-2">{err}</p>}
+        <div className="flex justify-end gap-3 mt-6">
+          <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-brand-primary hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const DashboardLayout = ({ userRole = 'admin' }) => {
   const location = useLocation();
@@ -55,8 +126,40 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const { isDark, toggle: toggleTheme } = useTheme();
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Collapsed by default on mobile, open on desktop
   const [statsOpen, setStatsOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+
+  // Dashboard balance state
+  const [balance, setBalance] = useState(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+  const [editModal, setEditModal] = useState(null); // { title, field, currentOpening }
+
+  const fetchBalance = useCallback(async () => {
+    if (!activeBranch) return;
+    setLoadingBalance(true);
+    try {
+      const data = await getDashboardBalance();
+      setBalance(data);
+    } catch {
+      setBalance(null);
+    } finally {
+      setLoadingBalance(false);
+    }
+  }, [activeBranch]);
+
+  useEffect(() => { fetchBalance(); }, [fetchBalance]);
+
+  const handleSaveOpening = async (body) => {
+    await updateDashboardBalance(body);
+    await fetchBalance();
+  };
+
+  const cashAmount  = balance ? fmt(balance.currentCash,      currencySymbol) : '—';
+  const bankAmount  = balance ? fmt(balance.currentBank,      currencySymbol) : '—';
+  const recvAmount  = balance ? fmt(balance.totalReceivables, currencySymbol) : '—';
+
+  const cashTrend  = balance ? (balance.currentCash  >= 0 ? 'up' : 'down') : 'neutral';
+  const bankTrend  = balance ? (balance.currentBank  >= 0 ? 'up' : 'down') : 'neutral';
+  const recvTrend  = balance ? (balance.totalReceivables > 0 ? 'up' : 'neutral') : 'neutral';
 
   return (
     <div className={cn(
@@ -71,7 +174,6 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
           userRole === 'admin' ? "bg-brand-sidebar/50 border-brand-card" : "bg-white dark:bg-brand-sidebar border-stone-100 dark:border-brand-card"
         )}>
           <div className="flex items-center space-x-4">
-            {/* Hamburger — mobile only */}
             <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 -ml-2 text-stone-500 hover:text-brand-primary">
               <Menu className="w-6 h-6" />
             </button>
@@ -87,7 +189,6 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
               {userRole === 'admin' ? 'Financial Overview' : 'Operational Workspace'}
             </span>
 
-            {/* Active Branch indicator — shown for both admin and user */}
             {activeBranch && (
               <>
                 <span className={cn("hidden md:block h-4 w-[1px]", "bg-stone-200")}></span>
@@ -96,7 +197,6 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
                   <span className="text-sm font-semibold text-brand-primary">
                     {activeBranch.name}
                   </span>
-                  {/* Admin always gets switch, user only if multiple branches */}
                   {(isAdmin || allowedBranches.length > 1) && (
                     <button
                       onClick={() => setShowSwitchConfirm(true)}
@@ -132,9 +232,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
         <section className="px-4 md:px-8 pt-4 md:pt-6 flex-shrink-0">
           <button
             onClick={() => setStatsOpen(prev => !prev)}
-            className={cn(
-              'w-full flex items-center justify-between py-1 mb-2 group cursor-pointer',
-            )}
+            className="w-full flex items-center justify-between py-1 mb-2 group cursor-pointer"
           >
             <span className={cn(
               'text-[10px] font-bold uppercase tracking-widest',
@@ -153,25 +251,30 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
             statsOpen ? 'max-h-[600px] opacity-100 pb-2 md:pb-4' : 'max-h-0 opacity-0'
           )}>
             <StatCard
-              title={userRole === 'admin' ? "Cash Position" : "Cash Balance"}
-              amount={userRole === 'admin' ? `${currencySymbol}42,850` : `${currencySymbol}12,450`}
-              trend="+2.4% FROM LAST MONTH"
-              trendType="up"
+              title="Cash Position"
+              amount={cashAmount}
+              sub={balance ? `Opening: ${fmt(balance.openingCash, currencySymbol)}` : 'CASH PAYMENT METHODS'}
+              trendType={cashTrend}
               role={userRole}
+              loading={loadingBalance}
+              onEdit={isAdmin ? () => setEditModal({ title: 'Cash Position', field: 'openingCash', currentOpening: balance?.openingCash ?? 0 }) : undefined}
             />
             <StatCard
               title="Bank Balance"
-              amount={userRole === 'admin' ? `${currencySymbol}12,84,900` : `${currencySymbol}84,120`}
-              trend={userRole === 'admin' ? "PRIMARY SAVINGS & ESCROW" : "LAST SYNCED: 2 MINS AGO"}
-              trendType={userRole === 'admin' ? "neutral" : "up"}
+              amount={bankAmount}
+              sub={balance ? `Opening: ${fmt(balance.openingBank, currencySymbol)}` : 'BANK PAYMENT METHODS'}
+              trendType={bankTrend}
               role={userRole}
+              loading={loadingBalance}
+              onEdit={isAdmin ? () => setEditModal({ title: 'Bank Balance', field: 'openingBank', currentOpening: balance?.openingBank ?? 0 }) : undefined}
             />
             <StatCard
-              title={userRole === 'admin' ? "Total Receivables" : "Digital Wallet"}
-              amount={userRole === 'admin' ? `${currencySymbol}1,56,220` : `${currencySymbol}3,205`}
-              trend={userRole === 'admin' ? "OUTSTANDING FROM CLIENTS" : "Main Operating Wallet"}
-              trendType={userRole === 'admin' ? "up" : "neutral"}
+              title="Total Receivables"
+              amount={recvAmount}
+              sub="OUTSTANDING FROM CLIENTS"
+              trendType={recvTrend}
               role={userRole}
+              loading={loadingBalance}
             />
           </div>
         </section>
@@ -206,6 +309,16 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {editModal && (
+        <EditModal
+          title={editModal.title}
+          field={editModal.field}
+          currentOpening={editModal.currentOpening}
+          onSave={handleSaveOpening}
+          onClose={() => setEditModal(null)}
+        />
       )}
     </div>
   );
