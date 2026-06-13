@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getSuppliers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
-import QuickCreateModal from '../QuickCreateModal';
 import { getPurchaseVoucherNextNo, savePurchaseVoucher, getStockQty, getPurchases, updatePurchaseVoucher, deletePurchaseVoucher } from '../../../api/vouchers';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
 
@@ -21,6 +20,7 @@ const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehou
 const PurchaseVoucherForm = () => {
   const type = 'Purchase';
   const { activeBranch, currencySymbol } = useAuth();
+  const navigate = useNavigate();
 
   const [rows,         setRows]        = useState([emptyRow()]);
   const [date,         setDate]        = useState(new Date().toISOString().split('T')[0]);
@@ -34,7 +34,6 @@ const PurchaseVoucherForm = () => {
   const [products,   setProducts]   = useState([]);
   const [warehouses, setWarehouses] = useState([]);
 
-  const [quickCreate, setQuickCreate] = useState(null);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
@@ -206,7 +205,7 @@ const PurchaseVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Party (Supplier / Branch)</label>
-              <button type="button" onClick={() => setQuickCreate('Supplier')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Add Supplier"><Plus className="w-4 h-4" /></button>
+              <button type="button" onClick={() => navigate('/dashboard/master/supplier')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Go to Supplier Master"><Plus className="w-4 h-4" /></button>
             </div>
             <SelectSearch
               value={partyKey}
@@ -349,19 +348,6 @@ const PurchaseVoucherForm = () => {
         onUpdate={async (id, data) => { const u = await updatePurchaseVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
         loading={loadingVouchers}
       />
-      {quickCreate && (
-        <QuickCreateModal
-          type={quickCreate}
-          onClose={() => setQuickCreate(null)}
-          onCreated={(option) => {
-            if (quickCreate === 'Supplier') {
-              setSuppliers(prev => [...prev, option]);
-              setPartyKey(`supplier_${option.id}`);
-            }
-            setQuickCreate(null);
-          }}
-        />
-      )}
     </>
   );
 };
