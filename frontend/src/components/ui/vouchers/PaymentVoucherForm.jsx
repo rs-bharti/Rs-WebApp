@@ -8,7 +8,7 @@ import VoucherListModal, { fmtDate } from './VoucherListModal';
 
 const PaymentVoucherForm = () => {
   const type = 'Payment';
-  const { activeBranch, currencySymbol } = useAuth();
+  const { activeBranch, currencySymbol, isAdmin, allowedBranches } = useAuth();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo, setVoucherNo] = useState('');
@@ -77,11 +77,13 @@ const PaymentVoucherForm = () => {
     setPaymentMethodId('');
     setPaymentMethods([]);
     setLoadingVouchers(true);
+    // For admin: fetch all branches from master; for regular users: use their allowed branches
+    const branchPromise = isAdmin ? getMasterBranches() : Promise.resolve(allowedBranches);
     Promise.all([
       getCustomers(),
       getSuppliers(),
       getExpenses(),
-      getMasterBranches(),
+      branchPromise,
       getPaymentMethods(),
       getPaymentVoucherNextNo(),
       getPayments(),
