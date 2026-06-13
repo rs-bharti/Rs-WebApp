@@ -15,7 +15,6 @@ model CountryMaster {
   name      String        @unique
   currency  String?
   phoneCode String?
-  branches  Branch[]
   customers Customer[]
   states    StateMaster[]
   suppliers Supplier[]
@@ -27,7 +26,6 @@ model StateMaster {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   name      String
-  branches  Branch[]
   cities    CityMaster[]
   customers Customer[]
   country   CountryMaster @relation(fields: [countryId], references: [id])
@@ -42,7 +40,6 @@ model CityMaster {
   stateId    Int
   updatedAt  DateTime          @updatedAt
   name       String
-  branches   Branch[]
   state      StateMaster       @relation(fields: [stateId], references: [id])
   customers  Customer[]
   suppliers  Supplier[]
@@ -73,17 +70,9 @@ model WarehouseMaster {
 
 model Branch {
   id                Int                     @id @default(autoincrement())
-  name              String
-  address           String?
-  cityId            Int
-  stateId           Int
-  countryId         Int
+  name              String                  @unique
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
-  area              String?
-  city              CityMaster              @relation(fields: [cityId], references: [id])
-  country           CountryMaster           @relation(fields: [countryId], references: [id])
-  state             StateMaster             @relation(fields: [stateId], references: [id])
   categories        CategoryMaster[]
   contraVouchers    ContraVoucher[]
   customers         Customer[]
@@ -336,7 +325,7 @@ model ExpenseMaster {
 model PurchaseVoucher {
   id                Int                   @id @default(autoincrement())
   voucherNo         String                @unique
-  supplierId        Int
+  supplierId        Int?
   branchId          Int
   paymentMethodId   Int?
   createdById       Int
@@ -352,10 +341,11 @@ model PurchaseVoucher {
   narration         String?
   warehouseId       Int?
   warehouseName     String?
+  particularType    String?
   branch            Branch                @relation(fields: [branchId], references: [id])
   createdBy         User                  @relation(fields: [createdById], references: [id])
   paymentMethod     PaymentMethodMaster?  @relation(fields: [paymentMethodId], references: [id])
-  supplier          Supplier              @relation(fields: [supplierId], references: [id])
+  supplier          Supplier?             @relation(fields: [supplierId], references: [id])
   warehouse         WarehouseMaster?      @relation(fields: [warehouseId], references: [id])
   items             PurchaseVoucherItem[]
 }
@@ -379,7 +369,7 @@ model PurchaseVoucherItem {
 model SalesVoucher {
   id             Int              @id @default(autoincrement())
   voucherNo      String           @unique
-  customerId     Int
+  customerId     Int?
   branchId       Int
   createdById    Int
   date           DateTime
@@ -394,9 +384,10 @@ model SalesVoucher {
   warehouseId    Int?
   warehouseName  String?
   paymentTerms   String?
+  particularType String?
   branch         Branch           @relation(fields: [branchId], references: [id])
   createdBy      User             @relation(fields: [createdById], references: [id])
-  customer       Customer         @relation(fields: [customerId], references: [id])
+  customer       Customer?        @relation(fields: [customerId], references: [id])
   warehouse      WarehouseMaster? @relation(fields: [warehouseId], references: [id])
   items          SalesVoucherItem[]
 }
@@ -543,7 +534,7 @@ model PaymentVoucher {
 model PurchaseReturnVoucher {
   id                Int                         @id @default(autoincrement())
   voucherNo         String                      @unique
-  supplierId        Int
+  supplierId        Int?
   branchId          Int
   paymentMethodId   Int
   createdById       Int
@@ -559,10 +550,11 @@ model PurchaseReturnVoucher {
   paymentMethodName String?
   warehouseId       Int?
   warehouseName     String?
+  particularType    String?
   branch            Branch                      @relation(fields: [branchId], references: [id])
   createdBy         User                        @relation(fields: [createdById], references: [id])
   paymentMethod     PaymentMethodMaster         @relation(fields: [paymentMethodId], references: [id])
-  supplier          Supplier                    @relation(fields: [supplierId], references: [id])
+  supplier          Supplier?                   @relation(fields: [supplierId], references: [id])
   warehouse         WarehouseMaster?            @relation(fields: [warehouseId], references: [id])
   items             PurchaseReturnVoucherItem[]
 }
@@ -586,7 +578,7 @@ model PurchaseReturnVoucherItem {
 model SalesReturnVoucher {
   id             Int                      @id @default(autoincrement())
   voucherNo      String                   @unique
-  customerId     Int
+  customerId     Int?
   branchId       Int
   createdById    Int
   date           DateTime
@@ -599,9 +591,10 @@ model SalesReturnVoucher {
   updatedAt      DateTime                 @updatedAt
   customerName   String?
   paymentTerms   String?
+  particularType String?
   branch         Branch                   @relation(fields: [branchId], references: [id])
   createdBy      User                     @relation(fields: [createdById], references: [id])
-  customer       Customer                 @relation(fields: [customerId], references: [id])
+  customer       Customer?                @relation(fields: [customerId], references: [id])
   items          SalesReturnVoucherItem[]
 }
 

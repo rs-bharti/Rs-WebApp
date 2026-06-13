@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 
@@ -10,7 +10,8 @@ const PAYMENT_TERMS_OPTIONS = [
   { id: 'Cash', name: 'Cash' },
 ];
 import { Link } from 'react-router-dom';
-import { getCustomers, getProducts, getWarehouses } from '../../../api/masters';
+import { getCustomers, getProducts, getWarehouses, getMasterBranches } from '../../../api/masters';
+import { openInTab } from '../../../utils/openInTab';
 import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty, getSales, updateSalesVoucher, deleteSalesVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
@@ -21,15 +22,16 @@ const SalesVoucherForm = () => {
   const type = 'Sales';
   const { activeBranch, currencySymbol } = useAuth();
 
-  const [rows,            setRows]            = useState([emptyRow()]);
-  const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
-  const [voucherNo,       setVoucherNo]       = useState('');
-  const [customerId,      setCustomerId]      = useState('');
-  const [paymentTerms,    setPaymentTerms]    = useState('');
-  const [narration,       setNarration]       = useState('');
-  const [customers,       setCustomers]       = useState([]);
-  const [products,        setProducts]        = useState([]);
-  const [warehouses,      setWarehouses]      = useState([]);
+  const [rows,         setRows]        = useState([emptyRow()]);
+  const [date,         setDate]        = useState(new Date().toISOString().split('T')[0]);
+  const [voucherNo,    setVoucherNo]   = useState('');
+  const [partyKey,     setPartyKey]    = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [narration,    setNarration]   = useState('');
+  const [customers,    setCustomers]   = useState([]);
+  const [branches,     setBranches]    = useState([]);
+  const [products,     setProducts]    = useState([]);
+  const [warehouses,   setWarehouses]  = useState([]);
   const [saving,          setSaving]          = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
@@ -37,10 +39,15 @@ const SalesVoucherForm = () => {
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
 
+  const partyOptions = useMemo(() => [
+    ...customers.map(c => ({ id: `customer_${c.id}`, name: `${c.name} (Customer)` })),
+    ...branches.map(b =>  ({ id: `branch_${b.id}`,   name: `${b.name} (Branch)` })),
+  ], [customers, branches]);
+
   const COLUMNS = [
     { key: 'voucherNo',    label: 'Voucher No' },
     { key: 'date',         label: 'Date',      render: v => fmtDate(v.date) },
-    { key: 'customer',     label: 'Customer',  render: v => v.customer?.name || v.customerName || '—' },
+    { key: 'customer',     label: 'Party',     render: v => v.customerName || v.customer?.name || '—' },
     { key: 'paymentTerms', label: 'Terms',     render: v => v.paymentTerms || '—' },
     { key: 'warehouse',    label: 'Warehouse', render: v => v.warehouse?.name || v.warehouseName || '—' },
     { key: 'items',        label: 'Products',  render: v => { const items = v.items || []; if (!items.length) return '—'; const first = items[0].product?.name || items[0].productName || '—'; return items.length > 1 ? `${first} +${items.length - 1}` : first; } },
@@ -58,9 +65,9 @@ const SalesVoucherForm = () => {
 
   useEffect(() => {
     setLoadingVouchers(true);
-    Promise.all([getCustomers(), getProducts(), getWarehouses(), getSalesVoucherNextNo(), getSales()])
-      .then(([cust, prod, wh, vn, vlist]) => {
-        setCustomers(cust); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); setVouchers(vlist);
+    Promise.all([getCustomers(), getMasterBranches(), getProducts(), getWarehouses(), getSalesVoucherNextNo(), getSales()])
+      .then(([cust, brs, prod, wh, vn, vlist]) => {
+        setCustomers(cust); setBranches(brs); setProducts(prod); setWarehouses(wh); setVoucherNo(vn.voucherNo); setVouchers(vlist);
       }).catch(err => setError(err?.message || 'Failed to load form data'))
       .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
@@ -100,7 +107,7 @@ const SalesVoucherForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    if (!customerId)    return setError('Please select a customer');
+    if (!partyKey)      return setError('Please select a customer or branch');
     if (!paymentTerms)  return setError('Please select payment terms');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
@@ -110,15 +117,20 @@ const SalesVoucherForm = () => {
     );
     if (overStock.length) return setError('One or more items exceed available stock. Please reduce the quantity.');
 
+    const [pType, pId] = partyKey.split('_');
+    const partyName = partyOptions.find(o => o.id === partyKey)?.name.replace(/ \((Customer|Branch)\)$/, '') || '';
+
     setSaving(true);
     try {
       const voucher = await saveSalesVoucher({
         date,
-        customerId:   parseInt(customerId),
+        particularType: pType,
+        particularId:   parseInt(pId),
+        particularName: partyName,
         paymentTerms,
-        warehouseId:  validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
-        narration:       narration || undefined,
-        branchId:        activeBranch?.id,
+        warehouseId:    validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
+        narration:      narration || undefined,
+        branchId:       activeBranch?.id,
         items: validItems.map(r => ({
           productId:   parseInt(r.productId),
           warehouseId: r.warehouseId ? parseInt(r.warehouseId) : undefined,
@@ -127,7 +139,7 @@ const SalesVoucherForm = () => {
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
+      setRows([emptyRow()]); setPartyKey(''); setPaymentTerms(''); setNarration('');
       const [vn, vlist] = await Promise.all([getSalesVoucherNextNo(), getSales()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
@@ -139,7 +151,7 @@ const SalesVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([emptyRow()]); setCustomerId(''); setPaymentTerms(''); setNarration('');
+    setRows([emptyRow()]); setPartyKey(''); setPaymentTerms(''); setNarration('');
     setError(''); setSuccess('');
   };
 
@@ -179,26 +191,15 @@ const SalesVoucherForm = () => {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Customer Name</label>
-              <Link to="/dashboard/master/customer" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Customer Master"><ExternalLink className="w-4 h-4" /></Link>
+              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Party (Customer / Branch)</label>
+              <button type="button" onClick={() => openInTab('/dashboard/master/customer')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Customer Master"><Plus className="w-4 h-4" /></button>
             </div>
             <SelectSearch
-              value={customerId}
-              onChange={setCustomerId}
-              options={customers.map(c => { const bal = c.balance ?? 0; return { ...c, label: `${c.name} — ${bal >= 0 ? 'CR' : 'DR'} ${currencySymbol}${Math.abs(bal).toLocaleString()}` }; })}
-              placeholder="Select Customer"
+              value={partyKey}
+              onChange={setPartyKey}
+              options={partyOptions}
+              placeholder="Select Customer or Branch"
             />
-            {customerId && (() => {
-              const c = customers.find(c => String(c.id) === String(customerId));
-              if (!c) return null;
-              const bal = c.balance ?? 0;
-              const isCR = bal >= 0;
-              return (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
-                  {isCR ? 'CR' : 'DR'} {currencySymbol}{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              );
-            })()}
           </div>
         </div>
 

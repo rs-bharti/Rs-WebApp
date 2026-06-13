@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getProducts, getWarehouses, getPaymentMethods } from '../../../api/masters';
+import { getSuppliers, getProducts, getWarehouses, getPaymentMethods, getMasterBranches } from '../../../api/masters';
 import { openInTab } from '../../../utils/openInTab';
 import { getPurchaseReturnNextNo, savePurchaseReturnVoucher, getPurchaseReturns, updatePurchaseReturnVoucher, deletePurchaseReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -17,10 +17,11 @@ const PurchaseReturnVoucherForm = () => {
   const [rows,            setRows]            = useState([emptyRow()]);
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo,       setVoucherNo]       = useState('');
-  const [supplierId,      setSupplierId]      = useState('');
+  const [partyKey,        setPartyKey]        = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [narration,       setNarration]       = useState('');
   const [suppliers,       setSuppliers]       = useState([]);
+  const [branches,        setBranches]        = useState([]);
   const [products,        setProducts]        = useState([]);
   const [warehouses,      setWarehouses]      = useState([]);
   const [paymentMethods,  setPaymentMethods]  = useState([]);
@@ -31,10 +32,15 @@ const PurchaseReturnVoucherForm = () => {
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
 
+  const partyOptions = useMemo(() => [
+    ...suppliers.map(s => ({ id: `supplier_${s.id}`, name: `${s.name} (Supplier)` })),
+    ...branches.map(b =>  ({ id: `branch_${b.id}`,   name: `${b.name} (Branch)` })),
+  ], [suppliers, branches]);
+
   const COLUMNS = [
     { key: 'voucherNo',    label: 'Voucher No' },
     { key: 'date',         label: 'Date',         render: v => fmtDate(v.date) },
-    { key: 'supplier',     label: 'Supplier',     render: v => v.supplier?.name || '—' },
+    { key: 'supplier',     label: 'Party',        render: v => v.supplierName || v.supplier?.name || '—' },
     { key: 'paymentMethod',label: 'Method',       render: v => v.paymentMethod?.name || '—' },
     { key: 'warehouse',    label: 'Warehouse',    render: v => v.warehouse?.name || v.warehouseName || '—' },
     { key: 'items',        label: 'Products',     render: v => { const items = v.items || []; if (!items.length) return '—'; const first = items[0].product?.name || items[0].productName || '—'; return items.length > 1 ? `${first} +${items.length - 1}` : first; } },
@@ -53,9 +59,9 @@ const PurchaseReturnVoucherForm = () => {
   useEffect(() => {
     setPaymentMethodId(''); setPaymentMethods([]);
     setLoadingVouchers(true);
-    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getPurchaseReturnNextNo(), getPurchaseReturns()])
-      .then(([supp, prod, wh, pm, vn, vlist]) => {
-        setSuppliers(supp); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setVoucherNo(vn.voucherNo); setVouchers(vlist);
+    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getMasterBranches(), getPurchaseReturnNextNo(), getPurchaseReturns()])
+      .then(([supp, prod, wh, pm, br, vn, vlist]) => {
+        setSuppliers(supp); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm); setBranches(br); setVoucherNo(vn.voucherNo); setVouchers(vlist);
       }).catch(err => setError(err?.message || 'Failed to load form data'))
         .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
@@ -77,16 +83,21 @@ const PurchaseReturnVoucherForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    if (!supplierId)      return setError('Please select a supplier');
+    if (!partyKey)        return setError('Please select a supplier or branch');
     if (!paymentMethodId) return setError('Please select a payment method');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
+
+    const [pType, pId] = partyKey.split('_');
+    const partyName = partyOptions.find(o => o.id === partyKey)?.name.replace(/ \((Supplier|Branch)\)$/, '') || '';
 
     setSaving(true);
     try {
       const voucher = await savePurchaseReturnVoucher({
         date,
-        supplierId:      parseInt(supplierId),
+        particularType:  pType,
+        particularId:    parseInt(pId),
+        particularName:  partyName,
         paymentMethodId: parseInt(paymentMethodId),
         warehouseId:     validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
         narration:       narration || undefined,
@@ -99,7 +110,7 @@ const PurchaseReturnVoucherForm = () => {
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([emptyRow()]); setSupplierId(''); setPaymentMethodId(''); setNarration('');
+      setRows([emptyRow()]); setPartyKey(''); setPaymentMethodId(''); setNarration('');
       const [vn, vlist] = await Promise.all([getPurchaseReturnNextNo(), getPurchaseReturns()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
@@ -111,7 +122,7 @@ const PurchaseReturnVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([emptyRow()]); setSupplierId(''); setPaymentMethodId(''); setNarration('');
+    setRows([emptyRow()]); setPartyKey(''); setPaymentMethodId(''); setNarration('');
     setError(''); setSuccess('');
   };
 
@@ -151,26 +162,15 @@ const PurchaseReturnVoucherForm = () => {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Supplier Name</label>
-              <Link to="/dashboard/master/supplier" className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all" title="Go to Supplier Master"><ExternalLink className="w-4 h-4" /></Link>
+              <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Party (Supplier / Branch)</label>
+              <button type="button" onClick={() => openInTab('/dashboard/master/supplier')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Supplier Master"><Plus className="w-4 h-4" /></button>
             </div>
             <SelectSearch
-              value={supplierId}
-              onChange={setSupplierId}
-              options={suppliers.map(s => { const bal = s.balance ?? 0; return { ...s, label: `${s.name} — ${bal >= 0 ? 'CR' : 'DR'} ${currencySymbol}${Math.abs(bal).toLocaleString()}` }; })}
-              placeholder="Select Supplier"
+              value={partyKey}
+              onChange={setPartyKey}
+              options={partyOptions}
+              placeholder="Select Supplier or Branch"
             />
-            {supplierId && (() => {
-              const s = suppliers.find(s => String(s.id) === String(supplierId));
-              if (!s) return null;
-              const bal = s.balance ?? 0;
-              const isCR = bal >= 0;
-              return (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${isCR ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
-                  {isCR ? 'CR' : 'DR'} {currencySymbol}{Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              );
-            })()}
           </div>
         </div>
 

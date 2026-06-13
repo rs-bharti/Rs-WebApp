@@ -104,7 +104,10 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
   const { logout, canAccessVoucher, canAccessMaster, canAccessOther, isAdmin } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const isItemActive = (slug) => location.pathname.includes(`/dashboard/${slug}`);
+  const isItemActive = (slug) => {
+    const path = location.pathname;
+    return path.includes(`/${slug}`) && (path.endsWith(`/${slug}`) || path.includes(`/${slug}/`));
+  };
 
   const handleLogout = () => {
     onClose();
@@ -185,7 +188,7 @@ const Sidebar = ({ role = 'admin', open = false, onClose = () => {} }) => {
                   isActive ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-brand-card text-brand-primary border-stone-200 dark:border-brand-card hover:bg-stone-50 dark:hover:bg-brand-sidebar'
                 )}>
                 <Database className="w-5 h-5 mr-3" />
-                Create Branch
+                Branch Master
               </NavLink>
             </div>
           )}
