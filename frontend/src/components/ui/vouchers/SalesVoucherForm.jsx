@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 
@@ -38,6 +39,9 @@ const SalesVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const refreshVouchers = useCallback(() => { getSales().then(setVouchers).catch(console.error); }, []);
+  useAutoRefresh(refreshVouchers, 15000);
 
   const partyOptions = useMemo(() => [
     ...customers.map(c => ({ id: `customer_${c.id}`, name: `${c.name} (Customer)` })),
@@ -143,6 +147,7 @@ const SalesVoucherForm = () => {
       const [vn, vlist] = await Promise.all([getSalesVoucherNextNo(), getSales()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
+      emitDataChange();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -362,8 +367,8 @@ const SalesVoucherForm = () => {
         vouchers={vouchers}
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
-        onDelete={async (id) => { await deleteSalesVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
-        onUpdate={async (id, data) => { const u = await updateSalesVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        onDelete={async (id) => { await deleteSalesVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
+        onUpdate={async (id, data) => { const u = await updateSalesVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
         loading={loadingVouchers}
       />
     </>

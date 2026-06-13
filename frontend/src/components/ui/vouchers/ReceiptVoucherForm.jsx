@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, List, ChevronDown } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getCustomers, getSuppliers, getExpenses, getMasterBranchMasters, getPaymentMethods } from '../../../api/masters';
@@ -41,6 +42,11 @@ const ReceiptVoucherForm = () => {
   const [vouchers, setVouchers]             = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const refreshVouchers = useCallback(() => {
+    getReceipts().then(setVouchers).catch(console.error);
+  }, []);
+  useAutoRefresh(refreshVouchers, 15000);
 
   // Combined particulars options: "Name (Type)"
   const particularsOptions = useMemo(() => {
@@ -132,6 +138,7 @@ const ReceiptVoucherForm = () => {
       const [vn, vlist] = await Promise.all([getReceiptVoucherNextNo(), getReceipts()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
+      emitDataChange();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -151,10 +158,12 @@ const ReceiptVoucherForm = () => {
   const handleDeleteVoucher = async (id) => {
     await deleteReceiptVoucher(id);
     setVouchers(prev => prev.filter(v => v.id !== id));
+    emitDataChange();
   };
   const handleUpdateVoucher = async (id, data) => {
     const updated = await updateReceiptVoucher(id, data);
     setVouchers(prev => prev.map(v => v.id === id ? { ...v, ...updated } : v));
+    emitDataChange();
   };
 
   const typeBadgeClass = {

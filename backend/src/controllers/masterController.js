@@ -978,24 +978,17 @@ const getDashboardBalance = async (req, res) => {
     // Get or create opening balance for this branch
     let opening = await prisma.dashboardBalance.findUnique({ where: { branchId } });
     if (!opening) {
-      opening = await prisma.dashboardBalance.create({ data: { branchId, openingCash: 0, openingBank: 0 } });
+      opening = await prisma.dashboardBalance.create({ data: { branchId, openingCash: 0, openingBank: 0, openingReceivables: 0 } });
     }
 
-    // Resolve payment method IDs by category for this branch
-    const paymentMethods = await prisma.paymentMethodMaster.findMany({
-      where: { branchId },
-      select: { id: true, category: true },
-    });
-    const cashIds = paymentMethods.filter(p => p.category === 'CASH').map(p => p.id);
-    const bankIds = paymentMethods.filter(p => p.category === 'BANK').map(p => p.id);
-
-    // Receipt Vouchers = money IN (add to cash/bank)
+    // Filter directly via the payment method relation — avoids any branchId mismatch on the master table
     const [cashIn, bankIn, cashOut, bankOut] = await Promise.all([
-      prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethodId: { in: cashIds } }, _sum: { amount: true } }),
-      prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethodId: { in: bankIds } }, _sum: { amount: true } }),
-      // Payment Vouchers = money OUT (subtract from cash/bank)
-      prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethodId: { in: cashIds } }, _sum: { amount: true } }),
-      prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethodId: { in: bankIds } }, _sum: { amount: true } }),
+      // Receipt = money IN → add to balance
+      prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'CASH' } }, _sum: { amount: true } }),
+      prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'BANK' } }, _sum: { amount: true } }),
+      // Payment = money OUT → subtract from balance
+      prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'CASH' } }, _sum: { amount: true } }),
+      prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'BANK' } }, _sum: { amount: true } }),
     ]);
 
     const currentCash = opening.openingCash + (cashIn._sum.amount || 0) - (cashOut._sum.amount || 0);
@@ -1008,18 +1001,21 @@ const getDashboardBalance = async (req, res) => {
       prisma.salesReturnVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
       prisma.paymentVoucher.aggregate({ where: { branchId, customerId: { not: null } }, _sum: { amount: true } }),
     ]);
-    const totalReceivables =
+    const transactionReceivables =
       (salesAgg._sum.totalAmount || 0)
       - (custReceiptsAgg._sum.amount || 0)
       - (salesReturnAgg._sum.totalAmount || 0)
       + (payToCustomerAgg._sum.amount || 0);
 
+    const totalReceivables = (opening.openingReceivables || 0) + transactionReceivables;
+
     res.json({
-      openingCash:      Math.round(opening.openingCash * 100) / 100,
-      openingBank:      Math.round(opening.openingBank * 100) / 100,
-      currentCash:      Math.round(currentCash * 100) / 100,
-      currentBank:      Math.round(currentBank * 100) / 100,
-      totalReceivables: Math.round(totalReceivables * 100) / 100,
+      openingCash:         Math.round(opening.openingCash * 100) / 100,
+      openingBank:         Math.round(opening.openingBank * 100) / 100,
+      openingReceivables:  Math.round((opening.openingReceivables || 0) * 100) / 100,
+      currentCash:         Math.round(currentCash * 100) / 100,
+      currentBank:         Math.round(currentBank * 100) / 100,
+      totalReceivables:    Math.round(totalReceivables * 100) / 100,
     });
   } catch (err) {
     console.error('getDashboardBalance error:', err);
@@ -1032,18 +1028,20 @@ const updateDashboardBalance = async (req, res) => {
     const branchId = getBranchId(req);
     if (!branchId) return res.status(400).json({ message: 'Branch required' });
 
-    const { openingCash, openingBank } = req.body;
+    const { openingCash, openingBank, openingReceivables } = req.body;
 
     const balance = await prisma.dashboardBalance.upsert({
       where:  { branchId },
       update: {
-        ...(openingCash !== undefined ? { openingCash: Number(openingCash) } : {}),
-        ...(openingBank !== undefined ? { openingBank: Number(openingBank) } : {}),
+        ...(openingCash        !== undefined ? { openingCash:        Number(openingCash)        } : {}),
+        ...(openingBank        !== undefined ? { openingBank:        Number(openingBank)        } : {}),
+        ...(openingReceivables !== undefined ? { openingReceivables: Number(openingReceivables) } : {}),
       },
       create: {
         branchId,
-        openingCash: Number(openingCash ?? 0),
-        openingBank: Number(openingBank ?? 0),
+        openingCash:        Number(openingCash        ?? 0),
+        openingBank:        Number(openingBank        ?? 0),
+        openingReceivables: Number(openingReceivables ?? 0),
       },
     });
 

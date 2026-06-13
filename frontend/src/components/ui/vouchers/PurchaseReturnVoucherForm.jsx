@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SelectSearch from '../SelectSearch';
@@ -31,6 +32,9 @@ const PurchaseReturnVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const refreshVouchers = useCallback(() => { getPurchaseReturns().then(setVouchers).catch(console.error); }, []);
+  useAutoRefresh(refreshVouchers, 15000);
 
   const partyOptions = useMemo(() => [
     ...suppliers.map(s => ({ id: `supplier_${s.id}`, name: `${s.name} (Supplier)` })),
@@ -114,6 +118,7 @@ const PurchaseReturnVoucherForm = () => {
       const [vn, vlist] = await Promise.all([getPurchaseReturnNextNo(), getPurchaseReturns()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
+      emitDataChange();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -304,8 +309,8 @@ const PurchaseReturnVoucherForm = () => {
         vouchers={vouchers}
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
-        onDelete={async (id) => { await deletePurchaseReturnVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
-        onUpdate={async (id, data) => { const u = await updatePurchaseReturnVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        onDelete={async (id) => { await deletePurchaseReturnVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
+        onUpdate={async (id, data) => { const u = await updatePurchaseReturnVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
         loading={loadingVouchers}
       />
     </>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { Link } from 'react-router-dom';
@@ -25,6 +26,9 @@ const StockDataVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const refreshVouchers = useCallback(() => { getStockData().then(setVouchers).catch(console.error); }, []);
+  useAutoRefresh(refreshVouchers, 15000);
 
   const COLUMNS = [
     { key: 'voucherNo',  label: 'Voucher No' },
@@ -100,6 +104,7 @@ const StockDataVoucherForm = () => {
       const [vn, vlist] = await Promise.all([getStockDataVoucherNextNo(), getStockData()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
+      emitDataChange();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -301,8 +306,8 @@ const StockDataVoucherForm = () => {
         vouchers={vouchers}
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
-        onDelete={async (id) => { await deleteStockDataVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
-        onUpdate={async (id, data) => { const u = await updateStockDataVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        onDelete={async (id) => { await deleteStockDataVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
+        onUpdate={async (id, data) => { const u = await updateStockDataVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
         loading={loadingVouchers}
       />
     </>

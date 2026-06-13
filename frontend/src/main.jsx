@@ -5,6 +5,13 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 
+// ── Prevent scroll wheel from changing number input values ─────────────────
+document.addEventListener('wheel', () => {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    document.activeElement.blur();
+  }
+}, true);
+
 // ── Global uppercase enforcer ──────────────────────────────────────────────
 const SKIP_TYPES = new Set(['date','number','email','password','checkbox','radio','file','color','range','time','datetime-local','month','week','search','tel']);
 

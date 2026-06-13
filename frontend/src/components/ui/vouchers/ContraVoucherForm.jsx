@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getPaymentMethods } from '../../../api/masters';
@@ -27,6 +28,9 @@ const ContraVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const refreshVouchers = useCallback(() => { getContras().then(setVouchers).catch(console.error); }, []);
+  useAutoRefresh(refreshVouchers, 15000);
 
   const COLUMNS = [
     { key: 'voucherNo',          label: 'Voucher No' },
@@ -83,6 +87,7 @@ const ContraVoucherForm = () => {
       const [vn, vlist] = await Promise.all([getContraVoucherNextNo(), getContras()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
+      emitDataChange();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -222,8 +227,8 @@ const ContraVoucherForm = () => {
         vouchers={vouchers}
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
-        onDelete={async (id) => { await deleteContraVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
-        onUpdate={async (id, data) => { const u = await updateContraVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        onDelete={async (id) => { await deleteContraVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
+        onUpdate={async (id, data) => { const u = await updateContraVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
         loading={loadingVouchers}
       />
     </>

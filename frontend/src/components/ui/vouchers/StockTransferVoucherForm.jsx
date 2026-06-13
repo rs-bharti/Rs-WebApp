@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, X, ArrowRight, ExternalLink, List } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { Link } from 'react-router-dom';
@@ -23,6 +24,9 @@ const StockTransferVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const refreshVouchers = useCallback(() => { getStockTransfers().then(setVouchers).catch(console.error); }, []);
+  useAutoRefresh(refreshVouchers, 15000);
 
   const COLUMNS = [
     { key: 'voucherNo',     label: 'Voucher No' },
@@ -114,6 +118,7 @@ const StockTransferVoucherForm = () => {
       const [nextVn, vlist] = await Promise.all([getStockTransferVoucherNextNo(), getStockTransfers()]);
       setVoucherNo(nextVn.voucherNo);
       setVouchers(vlist);
+      emitDataChange();
       reset();
       setMessage({ type: 'success', text: `Voucher ${voucher.voucherNo} saved with ${validRows.length} item(s)` });
     } catch (err) {
@@ -304,8 +309,8 @@ const StockTransferVoucherForm = () => {
         vouchers={vouchers}
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
-        onDelete={async (id) => { await deleteStockTransferVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); }}
-        onUpdate={async (id, data) => { const u = await updateStockTransferVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
+        onDelete={async (id) => { await deleteStockTransferVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
+        onUpdate={async (id, data) => { const u = await updateStockTransferVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
         loading={loadingVouchers}
       />
     </>

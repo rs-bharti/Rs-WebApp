@@ -6,13 +6,15 @@ import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getDashboardBalance, updateDashboardBalance } from '../../api/masters';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
 const fmt = (n, symbol) => {
   if (n === null || n === undefined) return `${symbol}—`;
-  const abs = Math.abs(n);
-  if (abs >= 10000000) return `${symbol}${(abs / 10000000).toFixed(2)}Cr`;
-  if (abs >= 100000)   return `${symbol}${(abs / 100000).toFixed(2)}L`;
-  return `${symbol}${abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const abs  = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 10000000) return `${sign}${symbol}${(abs / 10000000).toFixed(2)}Cr`;
+  if (abs >= 100000)   return `${sign}${symbol}${(abs / 100000).toFixed(2)}L`;
+  return `${sign}${symbol}${abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const StatCard = ({ title, amount, sub, trendType, role, onEdit, loading }) => (
@@ -147,6 +149,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   }, [activeBranch]);
 
   useEffect(() => { fetchBalance(); }, [fetchBalance]);
+  useAutoRefresh(fetchBalance, 15000);
 
   const handleSaveOpening = async (body) => {
     await updateDashboardBalance(body);
@@ -157,9 +160,9 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const bankAmount  = balance ? fmt(balance.currentBank,      currencySymbol) : '—';
   const recvAmount  = balance ? fmt(balance.totalReceivables, currencySymbol) : '—';
 
-  const cashTrend  = balance ? (balance.currentCash  >= 0 ? 'up' : 'down') : 'neutral';
-  const bankTrend  = balance ? (balance.currentBank  >= 0 ? 'up' : 'down') : 'neutral';
-  const recvTrend  = balance ? (balance.totalReceivables > 0 ? 'up' : 'neutral') : 'neutral';
+  const cashTrend  = balance ? (balance.currentCash      >= 0 ? 'up' : 'down') : 'neutral';
+  const bankTrend  = balance ? (balance.currentBank      >= 0 ? 'up' : 'down') : 'neutral';
+  const recvTrend  = balance ? (balance.totalReceivables >  0 ? 'up' : 'neutral') : 'neutral';
 
   return (
     <div className={cn(
@@ -271,10 +274,11 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
             <StatCard
               title="Total Receivables"
               amount={recvAmount}
-              sub="OUTSTANDING FROM CLIENTS"
+              sub={balance ? `Opening: ${fmt(balance.openingReceivables, currencySymbol)}` : 'OUTSTANDING FROM CLIENTS'}
               trendType={recvTrend}
               role={userRole}
               loading={loadingBalance}
+              onEdit={isAdmin ? () => setEditModal({ title: 'Total Receivables', field: 'openingReceivables', currentOpening: balance?.openingReceivables ?? 0 }) : undefined}
             />
           </div>
         </section>

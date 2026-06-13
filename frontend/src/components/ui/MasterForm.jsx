@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { emitDataChange } from '../../hooks/useAutoRefresh';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { ChevronDown, PlusCircle, Trash2, CheckCircle, XCircle, Users2, Search, Pencil, X, List } from 'lucide-react';
@@ -353,6 +354,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       else if (isExpense)       await deleteExpense(id);
       setRecords(prev => prev.filter(r => r.id !== id));
       setDeleteModal(null);
+      emitDataChange();
     } catch (err) {
       setDeleteModalErr(err.message || 'Cannot delete this record.');
     } finally {
@@ -561,7 +563,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       }
 
       if (newRow && showList) setRecords(prev => [newRow, ...prev]);
-
+      emitDataChange();
       clearFields();
       setSuccess(`${type === 'Branches' ? 'Branch' : type} saved successfully!`);
       setTimeout(() => setSuccess(''), 3000);
@@ -647,6 +649,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       setRecords(prev => prev.map(r => r.id === id ? { ...r, ...editData, ...updated } : r));
       if (viewRecord?.id === id) setViewRecord(prev => ({ ...prev, ...editData, ...updated }));
       setEditingId(null);
+      emitDataChange();
     } catch (err) {
       setEditError(err.message || 'Failed to save');
     } finally {
