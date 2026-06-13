@@ -1437,7 +1437,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   };
 
   const displayType = type === 'Branches' ? 'Branch' : type;
-  const formTitle   = isCustomer ? 'Customer Details' : `${displayType} Master`;
+  const formTitle   = isBranch ? 'Create Branch' : isBranchMaster ? 'Branch Master' : isCustomer ? 'Customer Details' : `${displayType} Master`;
 
   return (
     <>
@@ -1448,7 +1448,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           {formTitle}
         </h2>
         <span className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full', isAdmin ? 'bg-brand-primary/10 text-brand-primary/70' : 'bg-rs-text-primary/10 text-rs-text-muted')}>
-          {displayType}
+          {isBranch ? 'Create Branch' : isBranchMaster ? 'Branch Master' : displayType}
         </span>
       </div>
 
@@ -1473,7 +1473,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             </button>
             <button type="submit" disabled={saving}
               className={cn('px-10 py-2.5 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95', saving ? 'opacity-60 cursor-not-allowed' : '', isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')}>
-              {saving ? 'Saving…' : `Save ${displayType}`}
+              {saving ? 'Saving…' : `Save ${isBranch ? 'Branch' : isBranchMaster ? 'Branch Master' : displayType}`}
             </button>
           </div>
         </div>

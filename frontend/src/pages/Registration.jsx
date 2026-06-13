@@ -137,8 +137,8 @@ const SuccessPopup = ({ data, onClose }) => {
   );
 };
 
-const VOUCHER_MODULES = ['Receipt', 'Payment', 'Expense', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
-const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse'];
+const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
+const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse', 'Expense', 'Payment Method'];
 const OTHER_MODULES   = ['DSR', 'Client Ledger', 'Supplier Ledger', 'Stock Ledger'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});

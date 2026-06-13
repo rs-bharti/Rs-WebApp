@@ -43,7 +43,7 @@ const MASTER_ROUTES = {
   'Warehouse':      { slug: 'warehouse',      icon: Warehouse },
   'Supplier':       { slug: 'supplier',       icon: Truck },
   'Product':        { slug: 'product',        icon: Package },
-  'Branch Master':  { slug: 'branch-master',  icon: Database },
+  'Branch':         { slug: 'branch-master',  icon: Database },
   'Expense':        { slug: 'expense',        icon: Receipt },
   'Payment Method': { slug: 'payment-method', icon: CreditCard },
 };
