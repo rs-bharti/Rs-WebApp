@@ -11,7 +11,7 @@ const PAYMENT_TERMS_OPTIONS = [
 ];
 import { Link } from 'react-router-dom';
 import { getCustomers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
-import { openInTab } from '../../../utils/openInTab';
+import QuickCreateModal from '../QuickCreateModal';
 import { getSalesVoucherNextNo, saveSalesVoucher, getStockQty, getSales, updateSalesVoucher, deleteSalesVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
@@ -32,6 +32,7 @@ const SalesVoucherForm = () => {
   const [branches,     setBranches]    = useState([]);
   const [products,     setProducts]    = useState([]);
   const [warehouses,   setWarehouses]  = useState([]);
+  const [quickCreate, setQuickCreate] = useState(null);
   const [saving,          setSaving]          = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
@@ -192,7 +193,7 @@ const SalesVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Party (Customer / Branch)</label>
-              <button type="button" onClick={() => openInTab('/dashboard/master/customer')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Customer Master"><Plus className="w-4 h-4" /></button>
+              <button type="button" onClick={() => setQuickCreate('Customer')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Add Customer"><Plus className="w-4 h-4" /></button>
             </div>
             <SelectSearch
               value={partyKey}
@@ -366,6 +367,19 @@ const SalesVoucherForm = () => {
         onUpdate={async (id, data) => { const u = await updateSalesVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
         loading={loadingVouchers}
       />
+      {quickCreate && (
+        <QuickCreateModal
+          type={quickCreate}
+          onClose={() => setQuickCreate(null)}
+          onCreated={(option) => {
+            if (quickCreate === 'Customer') {
+              setCustomers(prev => [...prev, option]);
+              setPartyKey(`customer_${option.id}`);
+            }
+            setQuickCreate(null);
+          }}
+        />
+      )}
     </>
   );
 };

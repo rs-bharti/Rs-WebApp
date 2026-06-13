@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, List, ChevronDown } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
 import { getCustomers, getSuppliers, getExpenses, getMasterBranchMasters, getPaymentMethods } from '../../../api/masters';
-import { openInTab } from '../../../utils/openInTab';
+import QuickCreateModal from '../QuickCreateModal';
 import { getPaymentVoucherNextNo, savePaymentVoucher, getPayments, updatePaymentVoucher, deletePaymentVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
@@ -34,6 +34,7 @@ const PaymentVoucherForm = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [masterPopup]);
 
+  const [quickCreate, setQuickCreate] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -209,10 +210,10 @@ const PaymentVoucherForm = () => {
                 </button>
                 {masterPopup && (
                   <div className="absolute right-0 top-7 z-50 bg-white border border-stone-200 rounded-xl shadow-lg py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
-                    {[['supplier', 'Supplier', '/dashboard/master/supplier'], ['customer', 'Customer', '/dashboard/master/customer'], ['expense', 'Expense', '/dashboard/master/expense']].map(([type, label, path]) => (
-                      <button key={type} type="button" onClick={() => { openInTab(path); setMasterPopup(false); }}
-                        className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-rs-accent-bg transition-colors`}>
-                        + Open {label} Master
+                    {[['supplier', 'Supplier'], ['customer', 'Customer'], ['expense', 'Expense']].map(([key, label]) => (
+                      <button key={key} type="button" onClick={() => { setQuickCreate(label); setMasterPopup(false); }}
+                        className="w-full text-left px-4 py-2 text-sm font-medium hover:bg-rs-accent-bg transition-colors">
+                        + Add {label}
                       </button>
                     ))}
                   </div>
@@ -234,7 +235,7 @@ const PaymentVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
-              <button type="button" onClick={() => openInTab('/dashboard/master/payment-method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Open Payment Method Master"><Plus className="w-4 h-4" /></button>
+              <button type="button" onClick={() => setQuickCreate('Payment Method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Add Payment Method"><Plus className="w-4 h-4" /></button>
             </div>
             <SelectSearch
               value={paymentMethodId}
@@ -297,6 +298,27 @@ const PaymentVoucherForm = () => {
         onUpdate={async (id, data) => { const u = await updatePaymentVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); }}
         loading={loadingVouchers}
       />
+      {quickCreate && (
+        <QuickCreateModal
+          type={quickCreate}
+          onClose={() => setQuickCreate(null)}
+          onCreated={(option) => {
+            if (quickCreate === 'Supplier') {
+              setSuppliers(prev => [...prev, option]);
+              setParticularKey(`supplier_${option.id}`);
+            } else if (quickCreate === 'Customer') {
+              setCustomers(prev => [...prev, option]);
+              setParticularKey(`customer_${option.id}`);
+            } else if (quickCreate === 'Expense') {
+              setExpenses(prev => [...prev, option]);
+              setParticularKey(`expense_${option.id}`);
+            } else if (quickCreate === 'Payment Method') {
+              setPaymentMethods(prev => [...prev, option]);
+            }
+            setQuickCreate(null);
+          }}
+        />
+      )}
     </>
   );
 };

@@ -447,24 +447,20 @@ const createSupplierTransaction = async (req, res) => {
 const createSupplier = async (req, res) => {
   try {
     const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts, openingBalance, openingBalanceType } = req.body;
-    if (!name)      return res.status(400).json({ message: 'Supplier name is required' });
-    if (!countryId) return res.status(400).json({ message: 'Please select a country' });
-    if (!stateId)   return res.status(400).json({ message: 'Please select a state' });
-    if (!cityId)    return res.status(400).json({ message: 'Please select a city' });
+    if (!name) return res.status(400).json({ message: 'Supplier name is required' });
     const branchId = getBranchId(req);
 
-    // Look up names to store alongside IDs
     const [cityRec, stateRec, countryRec] = await Promise.all([
-      prisma.cityMaster.findUnique({ where: { id: Number(cityId) }, select: { name: true } }),
-      prisma.stateMaster.findUnique({ where: { id: Number(stateId) }, select: { name: true } }),
-      prisma.countryMaster.findUnique({ where: { id: Number(countryId) }, select: { name: true } }),
+      cityId    ? prisma.cityMaster.findUnique({ where: { id: Number(cityId) }, select: { name: true } })    : Promise.resolve(null),
+      stateId   ? prisma.stateMaster.findUnique({ where: { id: Number(stateId) }, select: { name: true } })  : Promise.resolve(null),
+      countryId ? prisma.countryMaster.findUnique({ where: { id: Number(countryId) }, select: { name: true } }) : Promise.resolve(null),
     ]);
 
     const data = {
       name: name.trim(),
-      cityId: Number(cityId), cityName: cityRec?.name || null,
-      stateId: Number(stateId), stateName: stateRec?.name || null,
-      countryId: Number(countryId), countryName: countryRec?.name || null,
+      ...(cityId    && { cityId: Number(cityId), cityName: cityRec?.name || null }),
+      ...(stateId   && { stateId: Number(stateId), stateName: stateRec?.name || null }),
+      ...(countryId && { countryId: Number(countryId), countryName: countryRec?.name || null }),
       branchId: branchId || null,
     };
     if (address) data.address = address.trim();
@@ -603,24 +599,20 @@ const createCustomerTransaction = async (req, res) => {
 const createCustomer = async (req, res) => {
   try {
     const { name, address, area, phone, email, gstNo, cityId, stateId, countryId, contacts, openingBalance, openingBalanceType } = req.body;
-    if (!name)      return res.status(400).json({ message: 'Customer name is required' });
-    if (!countryId) return res.status(400).json({ message: 'Please select a country' });
-    if (!stateId)   return res.status(400).json({ message: 'Please select a state' });
-    if (!cityId)    return res.status(400).json({ message: 'Please select a city' });
+    if (!name) return res.status(400).json({ message: 'Customer name is required' });
     const branchId = getBranchId(req);
 
-    // Look up names to store alongside IDs
     const [cityRec, stateRec, countryRec] = await Promise.all([
-      prisma.cityMaster.findUnique({ where: { id: Number(cityId) }, select: { name: true } }),
-      prisma.stateMaster.findUnique({ where: { id: Number(stateId) }, select: { name: true } }),
-      prisma.countryMaster.findUnique({ where: { id: Number(countryId) }, select: { name: true } }),
+      cityId    ? prisma.cityMaster.findUnique({ where: { id: Number(cityId) }, select: { name: true } })    : Promise.resolve(null),
+      stateId   ? prisma.stateMaster.findUnique({ where: { id: Number(stateId) }, select: { name: true } })  : Promise.resolve(null),
+      countryId ? prisma.countryMaster.findUnique({ where: { id: Number(countryId) }, select: { name: true } }) : Promise.resolve(null),
     ]);
 
     const data = {
       name: name.trim(),
-      cityId: Number(cityId), cityName: cityRec?.name || null,
-      stateId: Number(stateId), stateName: stateRec?.name || null,
-      countryId: Number(countryId), countryName: countryRec?.name || null,
+      ...(cityId    && { cityId: Number(cityId), cityName: cityRec?.name || null }),
+      ...(stateId   && { stateId: Number(stateId), stateName: stateRec?.name || null }),
+      ...(countryId && { countryId: Number(countryId), countryName: countryRec?.name || null }),
       branchId: branchId || null,
     };
     if (address) data.address = address.trim();

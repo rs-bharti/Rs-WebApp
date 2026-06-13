@@ -7,6 +7,8 @@ import {
   getUnits,         createUnit,        deleteUnit,        updateUnit,
   getPaymentMethods, createPaymentMethod, deletePaymentMethod, updatePaymentMethod,
   getExpenses,      createExpense,     deleteExpense,     updateExpense,
+  getCustomers,     createCustomer,    deleteCustomer,    updateCustomer,
+  getSuppliers,     createSupplier,    deleteSupplier,    updateSupplier,
 } from '../../api/masters';
 
 const CONFIGS = {
@@ -68,6 +70,34 @@ const CONFIGS = {
     toOption:  (r) => ({ id: r.id, name: r.name }),
     label:     (r) => r.name,
     editFields: [{ key: 'name', placeholder: 'Expense name' }],
+    editInit:  (r) => ({ name: r.name }),
+  },
+  'Customer': {
+    title: 'Customer',
+    fields: [
+      { key: 'name', label: 'Customer Name', placeholder: 'e.g. John Doe', required: true },
+    ],
+    getAll:    () => getCustomers(),
+    save:      (data) => createCustomer({ name: data.name.trim() }),
+    remove:    (id) => deleteCustomer(id),
+    edit:      (id, data) => updateCustomer(id, { name: data.name.trim() }),
+    toOption:  (r) => ({ id: r.id, name: r.name }),
+    label:     (r) => r.name,
+    editFields: [{ key: 'name', placeholder: 'Customer name' }],
+    editInit:  (r) => ({ name: r.name }),
+  },
+  'Supplier': {
+    title: 'Supplier',
+    fields: [
+      { key: 'name', label: 'Supplier Name', placeholder: 'e.g. ABC Traders', required: true },
+    ],
+    getAll:    () => getSuppliers(),
+    save:      (data) => createSupplier({ name: data.name.trim() }),
+    remove:    (id) => deleteSupplier(id),
+    edit:      (id, data) => updateSupplier(id, { name: data.name.trim() }),
+    toOption:  (r) => ({ id: r.id, name: r.name }),
+    label:     (r) => r.name,
+    editFields: [{ key: 'name', placeholder: 'Supplier name' }],
     editInit:  (r) => ({ name: r.name }),
   },
 };
