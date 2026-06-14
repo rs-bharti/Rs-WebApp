@@ -228,13 +228,13 @@ const LedgerRow = ({ row }) => {
         {/* DR — Sales / Opening Balance (customer owes us) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'CR' ? (
-            <span className="text-rose-700">₹{fmt(row.amount)}</span>
+            <span className="text-rose-700">+₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
         {/* CR — Receipt / Sales Return (customer paid / returned) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'DR' ? (
-            <span className="text-emerald-700">₹{fmt(row.amount)}</span>
+            <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
         <td className={`px-3 py-3 text-right font-bold tabular-nums ${
