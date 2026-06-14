@@ -309,14 +309,8 @@ const CustomerLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // Use source to determine balance direction (type is used only for column display)
-    let effect;
-    if      (r.source === 'sales')               effect =  r.amount;  // increases receivable
-    else if (r.source === 'receipt')              effect = -r.amount;  // customer paid us
-    else if (r.source === 'sales_return')         effect = -r.amount;  // reduces receivable
-    else if (r.source === 'payment_to_customer')  effect = -r.amount;  // we paid customer
-    else effect = r.type === 'CR' ? r.amount : -r.amount;             // opening_balance / manual
-    runBal += effect;
+    // DR column = type 'CR' → add; CR column = type 'DR' → subtract
+    runBal += r.type === 'CR' ? r.amount : -r.amount;
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 
