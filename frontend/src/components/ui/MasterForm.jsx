@@ -900,7 +900,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
                   <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
-                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(f('obType') || 'CR') !== 'DR' ? '−' : '+'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -954,7 +954,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
                   <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
-                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(f('obType') || 'CR') !== 'DR' ? '−' : '+'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
