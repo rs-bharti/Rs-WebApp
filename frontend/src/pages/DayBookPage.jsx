@@ -5,7 +5,7 @@ import {
   ShoppingCart, RotateCcw, Repeat, Package, ArrowLeftRight,
   ChevronDown, ChevronRight, ChevronLeft, Download,
 } from 'lucide-react';
-import { exportDSR } from '../utils/exportLedger';
+import { exportDSR, exportTally } from '../utils/exportLedger';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -234,14 +234,24 @@ const DayBookPage = () => {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {data && hasAny && (
-            <button
-              onClick={() => exportDSR({ date, data, totalIn, totalOut })}
-              title="Download Excel"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-[10px] font-bold uppercase tracking-wider cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Excel
-            </button>
+            <>
+              <button
+                onClick={() => exportTally({ date, data })}
+                title="Export in Tally XML import format"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Import to Tally
+              </button>
+              <button
+                onClick={() => exportDSR({ date, data, totalIn, totalOut })}
+                title="Download Excel"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Excel
+              </button>
+            </>
           )}
           <button
             onClick={() => fetchData(date)}

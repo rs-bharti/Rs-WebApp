@@ -157,7 +157,61 @@ export function exportStockLedger({ product, warehouse, periodRowsWithBalance, f
   XLSX.writeFile(wb, `StockLedger_${safeProd}_${safeWH}_${fromDate || 'all'}.xlsx`);
 }
 
-// ── 4. DSR ────────────────────────────────────────────────────────────────────
+// ── 4. Tally Import ───────────────────────────────────────────────────────────
+export function exportTally({ date, data }) {
+  const wb = XLSX.utils.book_new();
+  const displayDate = date ? fmtD(date + 'T00:00:00') : '';
+
+  const headers = [
+    'Voucher Date', 'Voucher Type Name', 'Voucher Number',
+    'Buyer/Supplier - Address', 'Buyer/Supplier - Pincode',
+    'Ledger Name', 'Ledger Amount', 'Ledger Amount Dr/Cr',
+    'Item Name', 'Billed Quantity', 'Item Rate', 'Item Rate per',
+    'Item Amount', 'Change Mode',
+  ];
+
+  const rows = [headers];
+
+  const addVoucher = (v, voucherType, partyLedger, partyDrCr, counterLedger, counterDrCr) => {
+    const vNo  = v.voucherNo || '';
+    const amt  = n2(v.amount);
+    const base = [displayDate, voucherType, vNo, '', ''];
+
+    // Party ledger row
+    rows.push([...base, partyLedger || v.party || '', amt, partyDrCr, '', '', '', '', '', '']);
+
+    // Counter ledger row (Sales / Purchase / Cash / Bank)
+    rows.push([...base, counterLedger, amt, counterDrCr, '', '', '', '', '', '']);
+
+    // Item rows (inventory vouchers)
+    for (const item of (v.items || [])) {
+      rows.push([
+        ...base,
+        '', '', '',                              // ledger cols blank for item rows
+        item.productName || '', item.qty ?? '', item.rate ?? '', '',
+        n2(item.amount), '',
+      ]);
+    }
+  };
+
+  if (data) {
+    for (const v of (data.in.sales          || [])) addVoucher(v, 'Sales',       v.party || '', 'Dr', 'Sales',           'Cr');
+    for (const v of (data.out.purchases     || [])) addVoucher(v, 'Purchase',    'Purchase',    'Dr', v.party || '',     'Cr');
+    for (const v of (data.in.receipts       || [])) addVoucher(v, 'Receipt',     v.paymentMethod || 'Cash', 'Dr', v.party || '', 'Cr');
+    for (const v of (data.out.payments      || [])) addVoucher(v, 'Payment',     v.party || '', 'Dr', v.paymentMethod || 'Cash', 'Cr');
+    for (const v of (data.in.contras        || [])) addVoucher(v, 'Contra',      v.paymentMethod || 'Cash', 'Dr', v.party || 'Cash', 'Cr');
+    for (const v of (data.out.salesReturns  || [])) addVoucher(v, 'Credit Note', v.party || '', 'Cr', 'Sales Return',    'Dr');
+    for (const v of (data.in.purchaseReturns|| [])) addVoucher(v, 'Debit Note',  v.party || '', 'Dr', 'Purchase Return', 'Cr');
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  setWidths(ws, [14, 14, 14, 24, 12, 26, 14, 12, 26, 14, 12, 10, 14, 12]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Tally Import');
+
+  XLSX.writeFile(wb, `TallyImport_${date || 'unknown'}.xlsx`);
+}
+
+// ── 5. DSR ────────────────────────────────────────────────────────────────────
 export function exportDSR({ date, data, totalIn, totalOut }) {
   const wb  = XLSX.utils.book_new();
   const net = n2(totalIn - totalOut);
