@@ -1132,6 +1132,7 @@ const forceDeleteBranch = async (req, res) => {
       prisma.unitMaster.deleteMany({ where: { branchId: id } }),
       prisma.branchMaster.deleteMany({ where: { branchId: id } }),
       prisma.dashboardBalance.deleteMany({ where: { branchId: id } }),
+      prisma.user.deleteMany({ where: { branchId: id } }),
       prisma.branch.delete({ where: { id } }),
     ]);
     res.json({ message: 'Branch and all linked data deleted.' });
