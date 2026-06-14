@@ -90,12 +90,59 @@ const remove = async (req, res) => {
     if (total > 0) {
       return res.status(400).json({
         message: `Cannot delete this user — they have created ${total} voucher(s). Please deactivate the user instead.`,
+        total,
       });
     }
 
     await prisma.user.delete({ where: { id } });
     res.json({ message: 'User deleted' });
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
+};
+
+const forceDelete = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    // Collect voucher numbers to also wipe auto-generated ledger transactions
+    const [receiptNos, paymentNos, salesNos, purchaseNos, srNos, prNos] = await Promise.all([
+      prisma.receiptVoucher.findMany({ where: { createdById: id }, select: { voucherNo: true } }),
+      prisma.paymentVoucher.findMany({ where: { createdById: id }, select: { voucherNo: true } }),
+      prisma.salesVoucher.findMany({ where: { createdById: id }, select: { voucherNo: true } }),
+      prisma.purchaseVoucher.findMany({ where: { createdById: id }, select: { voucherNo: true } }),
+      prisma.salesReturnVoucher.findMany({ where: { createdById: id }, select: { voucherNo: true } }),
+      prisma.purchaseReturnVoucher.findMany({ where: { createdById: id }, select: { voucherNo: true } }),
+    ]);
+
+    const voucherNos = [
+      ...receiptNos, ...paymentNos, ...salesNos,
+      ...purchaseNos, ...srNos, ...prNos,
+    ].map(v => v.voucherNo);
+
+    await prisma.$transaction([
+      // Wipe ledger transactions auto-created for those vouchers
+      ...(voucherNos.length > 0 ? [
+        prisma.customerTransaction.deleteMany({ where: { refVoucherNo: { in: voucherNos } } }),
+        prisma.supplierTransaction.deleteMany({ where: { refVoucherNo: { in: voucherNos } } }),
+      ] : []),
+      // Delete all vouchers (items cascade via onDelete: Cascade)
+      prisma.receiptVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.paymentVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.salesVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.purchaseVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.salesReturnVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.purchaseReturnVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.stockDataVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.stockTransferVoucher.deleteMany({ where: { createdById: id } }),
+      prisma.contraVoucher.deleteMany({ where: { createdById: id } }),
+      // Finally delete the user
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    res.json({ message: 'User and all their voucher data deleted successfully.' });
+  } catch (err) {
+    console.error('forceDelete error:', err);
+    res.status(500).json({ message: 'Server error during force delete' });
+  }
 };
 
 const getBranches = async (req, res) => {
@@ -120,4 +167,4 @@ const getRoles = async (req, res) => {
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
 };
 
-module.exports = { getAll, getOne, create, update, remove, getBranches, getRoles };
+module.exports = { getAll, getOne, create, update, remove, forceDelete, getBranches, getRoles };
