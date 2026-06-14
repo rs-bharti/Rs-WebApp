@@ -63,8 +63,19 @@ const PurchaseReturnVoucherForm = () => {
     { key: 'createdBy',    label: 'Created By',   render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
+    { key: 'partyKey', label: 'Supplier / Party', type: 'select', options: partyOptions,
+      getValue: (v) => {
+        if (v.particularType === 'supplier' && v.supplierId) return `supplier_${v.supplierId}`;
+        if (v.particularType === 'branch' && v.supplierName) {
+          const found = partyOptions.find(o => o.name === `${v.supplierName} (Branch)`);
+          return found ? found.id : '';
+        }
+        return '';
+      },
+    },
     { key: 'date',      label: 'Date',      type: 'date' },
     { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+    { key: 'items',     label: 'Products',   type: 'items' },
   ];
 
   useEffect(() => {
@@ -359,7 +370,25 @@ const PurchaseReturnVoucherForm = () => {
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
         onDelete={async (id) => { await deletePurchaseReturnVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
-        onUpdate={async (id, data) => { const u = await updatePurchaseReturnVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
+        onUpdate={async (id, data) => {
+          const payload = { ...data };
+          if (data.partyKey !== undefined) {
+            const key = data.partyKey || '';
+            const us = key.indexOf('_');
+            if (us !== -1) {
+              payload.particularType = key.substring(0, us);
+              const partyId = key.substring(us + 1);
+              const opt = partyOptions.find(o => o.id === key);
+              const name = opt ? opt.name.replace(/ \((Supplier|Branch)\)$/, '') : '';
+              if (payload.particularType === 'supplier') { payload.supplierId = partyId; payload.supplierName = name; }
+              else { payload.supplierName = name; }
+            }
+            delete payload.partyKey;
+          }
+          const u = await updatePurchaseReturnVoucher(id, payload);
+          setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v));
+          emitDataChange();
+        }}
         loading={loadingVouchers}
       />
     </>

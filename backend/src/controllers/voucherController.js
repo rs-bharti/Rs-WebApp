@@ -1048,13 +1048,20 @@ const deleteStockTransfer = async (req, res) => {
 
 const updateReceipt = async (req, res) => {
   try {
-    const { date, amount, narration } = req.body;
+    const { date, amount, narration, particularType, particularId, particularName, paymentMethodId } = req.body;
     const updated = await prisma.receiptVoucher.update({
       where: { id: parseInt(req.params.id) },
       data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(amount   != null       && { amount: Number(amount) }),
-        ...(narration !== undefined && { narration: narration || null }),
+        ...(date            !== undefined && { date: new Date(date) }),
+        ...(amount          != null       && { amount: Number(amount) }),
+        ...(narration       !== undefined && { narration: narration || null }),
+        ...(particularType  !== undefined && { particularType: particularType || null }),
+        ...(particularId    != null       && { particularId: parseInt(particularId) }),
+        ...(particularName  !== undefined && { particularName: particularName || null }),
+        ...(paymentMethodId != null       && { paymentMethodId: parseInt(paymentMethodId) }),
+        ...(particularType === 'customer' && particularId != null && { customerId: parseInt(particularId), supplierId: null }),
+        ...(particularType === 'supplier' && particularId != null && { supplierId: parseInt(particularId), customerId: null }),
+        ...(particularType === 'branch'   && particularId != null && { customerId: null, supplierId: null }),
       },
     });
     res.json(updated);
@@ -1063,13 +1070,20 @@ const updateReceipt = async (req, res) => {
 
 const updatePayment = async (req, res) => {
   try {
-    const { date, amount, narration } = req.body;
+    const { date, amount, narration, particularType, particularId, particularName, paymentMethodId } = req.body;
     const updated = await prisma.paymentVoucher.update({
       where: { id: parseInt(req.params.id) },
       data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(amount   != null       && { amount: Number(amount) }),
-        ...(narration !== undefined && { narration: narration || null }),
+        ...(date            !== undefined && { date: new Date(date) }),
+        ...(amount          != null       && { amount: Number(amount) }),
+        ...(narration       !== undefined && { narration: narration || null }),
+        ...(particularType  !== undefined && { particularType: particularType || null }),
+        ...(particularId    != null       && { particularId: parseInt(particularId) }),
+        ...(particularName  !== undefined && { particularName: particularName || null }),
+        ...(paymentMethodId != null       && { paymentMethodId: parseInt(paymentMethodId) }),
+        ...(particularType === 'customer' && particularId != null && { customerId: parseInt(particularId), supplierId: null }),
+        ...(particularType === 'supplier' && particularId != null && { supplierId: parseInt(particularId), customerId: null }),
+        ...(particularType === 'branch'   && particularId != null && { customerId: null, supplierId: null }),
       },
     });
     res.json(updated);
@@ -1078,13 +1092,19 @@ const updatePayment = async (req, res) => {
 
 const updateContra = async (req, res) => {
   try {
-    const { date, amount, narration } = req.body;
+    const { date, amount, narration, fromPaymentMethodId, fromPaymentMethodName, toPaymentMethodId, toPaymentMethodName } = req.body;
+    if (fromPaymentMethodId && toPaymentMethodId && Number(fromPaymentMethodId) === Number(toPaymentMethodId))
+      return res.status(400).json({ message: 'From and To accounts must be different' });
     const updated = await prisma.contraVoucher.update({
       where: { id: parseInt(req.params.id) },
       data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(amount   != null       && { amount: Number(amount) }),
-        ...(narration !== undefined && { narration: narration || null }),
+        ...(date                 !== undefined && { date: new Date(date) }),
+        ...(amount               != null       && { amount: Number(amount) }),
+        ...(narration            !== undefined && { narration: narration || null }),
+        ...(fromPaymentMethodId  != null       && { fromPaymentMethodId: parseInt(fromPaymentMethodId) }),
+        ...(fromPaymentMethodName !== undefined && { fromPaymentMethodName: fromPaymentMethodName || null }),
+        ...(toPaymentMethodId    != null       && { toPaymentMethodId: parseInt(toPaymentMethodId) }),
+        ...(toPaymentMethodName  !== undefined && { toPaymentMethodName: toPaymentMethodName || null }),
       },
     });
     res.json(updated);
@@ -1093,86 +1113,193 @@ const updateContra = async (req, res) => {
 
 const updateSales = async (req, res) => {
   try {
-    const { date, narration } = req.body;
-    const updated = await prisma.salesVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(narration !== undefined && { narration: narration || null }),
-      },
+    const { date, narration, customerId, customerName, particularType, paymentTerms, items } = req.body;
+    const id = parseInt(req.params.id);
+
+    const updatedVoucher = await prisma.$transaction(async (tx) => {
+      let subTotal = 0, taxAmount = 0, discountAmount = 0, totalAmount = 0;
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await tx.salesVoucherItem.update({
+            where: { id: item.id },
+            data: { qty: Number(item.qty), rate: Number(item.rate), subTotal: Number(item.subTotal || 0), taxAmount: Number(item.taxAmount || 0), discountAmount: Number(item.discountAmount || 0), amount: Number(item.amount) },
+          });
+          subTotal      += Number(item.subTotal || 0);
+          taxAmount     += Number(item.taxAmount || 0);
+          discountAmount += Number(item.discountAmount || 0);
+          totalAmount   += Number(item.amount);
+        }
+      }
+      return tx.salesVoucher.update({
+        where: { id },
+        data: {
+          ...(date          !== undefined && { date: new Date(date) }),
+          ...(narration     !== undefined && { narration: narration || null }),
+          ...(paymentTerms  !== undefined && { paymentTerms: paymentTerms || null }),
+          ...(particularType !== undefined && { particularType: particularType || null }),
+          ...(customerId    != null       && { customerId: parseInt(customerId), customerName: customerName || null }),
+          ...(items && items.length > 0  && { subTotal, taxAmount, discountAmount, totalAmount }),
+        },
+        include: { items: { include: { product: { select: { name: true } } } } },
+      });
     });
-    res.json(updated);
+    res.json(updatedVoucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 const updatePurchase = async (req, res) => {
   try {
-    const { date, narration, paymentTerms } = req.body;
-    const updated = await prisma.purchaseVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date         !== undefined && { date: new Date(date) }),
-        ...(narration    !== undefined && { narration: narration || null }),
-        ...(paymentTerms !== undefined && { paymentTerms: paymentTerms || null }),
-      },
+    const { date, narration, paymentTerms, supplierId, supplierName, particularType, items } = req.body;
+    const id = parseInt(req.params.id);
+
+    const updatedVoucher = await prisma.$transaction(async (tx) => {
+      let subTotal = 0, taxAmount = 0, discountAmount = 0, totalAmount = 0;
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await tx.purchaseVoucherItem.update({
+            where: { id: item.id },
+            data: { qty: Number(item.qty), rate: Number(item.rate), subTotal: Number(item.subTotal || 0), taxAmount: Number(item.taxAmount || 0), discountAmount: Number(item.discountAmount || 0), amount: Number(item.amount) },
+          });
+          subTotal      += Number(item.subTotal || 0);
+          taxAmount     += Number(item.taxAmount || 0);
+          discountAmount += Number(item.discountAmount || 0);
+          totalAmount   += Number(item.amount);
+        }
+      }
+      return tx.purchaseVoucher.update({
+        where: { id },
+        data: {
+          ...(date          !== undefined && { date: new Date(date) }),
+          ...(narration     !== undefined && { narration: narration || null }),
+          ...(paymentTerms  !== undefined && { paymentTerms: paymentTerms || null }),
+          ...(particularType !== undefined && { particularType: particularType || null }),
+          ...(supplierId    != null       && { supplierId: parseInt(supplierId), supplierName: supplierName || null }),
+          ...(items && items.length > 0  && { subTotal, taxAmount, discountAmount, totalAmount }),
+        },
+        include: { items: { include: { product: { select: { name: true } } } } },
+      });
     });
-    res.json(updated);
+    res.json(updatedVoucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 const updateSalesReturn = async (req, res) => {
   try {
-    const { date, narration } = req.body;
-    const updated = await prisma.salesReturnVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(narration !== undefined && { narration: narration || null }),
-      },
+    const { date, narration, customerId, customerName, particularType, items } = req.body;
+    const id = parseInt(req.params.id);
+
+    const updatedVoucher = await prisma.$transaction(async (tx) => {
+      let totalAmount = 0;
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await tx.salesReturnVoucherItem.update({
+            where: { id: item.id },
+            data: { qty: Number(item.qty), rate: Number(item.rate), amount: Number(item.amount) },
+          });
+          totalAmount += Number(item.amount);
+        }
+      }
+      return tx.salesReturnVoucher.update({
+        where: { id },
+        data: {
+          ...(date           !== undefined && { date: new Date(date) }),
+          ...(narration      !== undefined && { narration: narration || null }),
+          ...(particularType !== undefined && { particularType: particularType || null }),
+          ...(customerId     != null       && { customerId: parseInt(customerId), customerName: customerName || null }),
+          ...(items && items.length > 0   && { totalAmount }),
+        },
+        include: { items: { include: { product: { select: { name: true } } } } },
+      });
     });
-    res.json(updated);
+    res.json(updatedVoucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 const updatePurchaseReturn = async (req, res) => {
   try {
-    const { date, narration } = req.body;
-    const updated = await prisma.purchaseReturnVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(narration !== undefined && { narration: narration || null }),
-      },
+    const { date, narration, supplierId, supplierName, particularType, items } = req.body;
+    const id = parseInt(req.params.id);
+
+    const updatedVoucher = await prisma.$transaction(async (tx) => {
+      let totalAmount = 0;
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await tx.purchaseReturnVoucherItem.update({
+            where: { id: item.id },
+            data: { qty: Number(item.qty), rate: Number(item.rate), amount: Number(item.amount) },
+          });
+          totalAmount += Number(item.amount);
+        }
+      }
+      return tx.purchaseReturnVoucher.update({
+        where: { id },
+        data: {
+          ...(date           !== undefined && { date: new Date(date) }),
+          ...(narration      !== undefined && { narration: narration || null }),
+          ...(particularType !== undefined && { particularType: particularType || null }),
+          ...(supplierId     != null       && { supplierId: parseInt(supplierId), supplierName: supplierName || null }),
+          ...(items && items.length > 0   && { totalAmount }),
+        },
+        include: { items: { include: { product: { select: { name: true } } } } },
+      });
     });
-    res.json(updated);
+    res.json(updatedVoucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 const updateStockData = async (req, res) => {
   try {
-    const { date, narration } = req.body;
-    const updated = await prisma.stockDataVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(narration !== undefined && { narration: narration || null }),
-      },
+    const { date, narration, items } = req.body;
+    const id = parseInt(req.params.id);
+
+    const updatedVoucher = await prisma.$transaction(async (tx) => {
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await tx.stockDataVoucherItem.update({
+            where: { id: item.id },
+            data: { qty: Number(item.qty), rate: Number(item.rate) },
+          });
+        }
+      }
+      return tx.stockDataVoucher.update({
+        where: { id },
+        data: {
+          ...(date      !== undefined && { date: new Date(date) }),
+          ...(narration !== undefined && { narration: narration || null }),
+        },
+        include: { items: { include: { product: { select: { name: true } } } } },
+      });
     });
-    res.json(updated);
+    res.json(updatedVoucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 const updateStockTransfer = async (req, res) => {
   try {
-    const { date, narration } = req.body;
-    const updated = await prisma.stockTransferVoucher.update({
-      where: { id: parseInt(req.params.id) },
-      data: {
-        ...(date     !== undefined && { date: new Date(date) }),
-        ...(narration !== undefined && { narration: narration || null }),
-      },
+    const { date, narration, fromWarehouseId, fromWarehouseName, toWarehouseId, toWarehouseName, items } = req.body;
+    const id = parseInt(req.params.id);
+
+    const updatedVoucher = await prisma.$transaction(async (tx) => {
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await tx.stockTransferVoucherItem.update({
+            where: { id: item.id },
+            data: { qty: Number(item.qty) },
+          });
+        }
+      }
+      return tx.stockTransferVoucher.update({
+        where: { id },
+        data: {
+          ...(date            !== undefined && { date: new Date(date) }),
+          ...(narration       !== undefined && { narration: narration || null }),
+          ...(fromWarehouseId != null       && { fromWarehouseId: parseInt(fromWarehouseId), fromWarehouseName: fromWarehouseName || null }),
+          ...(toWarehouseId   != null       && { toWarehouseId: parseInt(toWarehouseId), toWarehouseName: toWarehouseName || null }),
+        },
+        include: { items: { include: { product: { select: { name: true } } } } },
+      });
     });
-    res.json(updated);
+    res.json(updatedVoucher);
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 

@@ -43,6 +43,8 @@ const ContraVoucherForm = () => {
     { key: 'createdBy',  label: 'Created By', render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
+    { key: 'fromPaymentMethodId', label: 'From (Payment Method)', type: 'select', options: paymentMethods.map(m => ({ id: m.id, name: m.name })) },
+    { key: 'toPaymentMethodId',   label: 'To (Payment Method)',   type: 'select', options: paymentMethods.map(m => ({ id: m.id, name: m.name })) },
     { key: 'date',      label: 'Date',      type: 'date' },
     { key: 'amount',    label: 'Amount (₹)', type: 'number', placeholder: '0.00' },
     { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
@@ -228,7 +230,20 @@ const ContraVoucherForm = () => {
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
         onDelete={async (id) => { await deleteContraVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
-        onUpdate={async (id, data) => { const u = await updateContraVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
+        onUpdate={async (id, data) => {
+          const payload = { ...data };
+          if (data.fromPaymentMethodId !== undefined) {
+            const m = paymentMethods.find(m => m.id === Number(data.fromPaymentMethodId));
+            payload.fromPaymentMethodName = m ? m.name : '';
+          }
+          if (data.toPaymentMethodId !== undefined) {
+            const m = paymentMethods.find(m => m.id === Number(data.toPaymentMethodId));
+            payload.toPaymentMethodName = m ? m.name : '';
+          }
+          const u = await updateContraVoucher(id, payload);
+          setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v));
+          emitDataChange();
+        }}
         loading={loadingVouchers}
       />
     </>

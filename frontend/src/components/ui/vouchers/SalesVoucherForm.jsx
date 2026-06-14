@@ -63,8 +63,20 @@ const SalesVoucherForm = () => {
     { key: 'createdBy',    label: 'Created By',render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
+    { key: 'partyKey', label: 'Customer / Party', type: 'select', options: partyOptions,
+      getValue: (v) => {
+        if (v.particularType === 'customer' && v.customerId) return `customer_${v.customerId}`;
+        if (v.particularType === 'branch' && v.customerName) {
+          const found = partyOptions.find(o => o.name === `${v.customerName} (Branch)`);
+          return found ? found.id : '';
+        }
+        return '';
+      },
+    },
+    { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: PAYMENT_TERMS_OPTIONS },
     { key: 'date',      label: 'Date',      type: 'date' },
     { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+    { key: 'items',     label: 'Products',   type: 'items' },
   ];
 
   useEffect(() => {
@@ -420,7 +432,25 @@ const SalesVoucherForm = () => {
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
         onDelete={async (id) => { await deleteSalesVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
-        onUpdate={async (id, data) => { const u = await updateSalesVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
+        onUpdate={async (id, data) => {
+          const payload = { ...data };
+          if (data.partyKey !== undefined) {
+            const key = data.partyKey || '';
+            const us = key.indexOf('_');
+            if (us !== -1) {
+              payload.particularType = key.substring(0, us);
+              const partyId = key.substring(us + 1);
+              const opt = partyOptions.find(o => o.id === key);
+              const name = opt ? opt.name.replace(/ \((Customer|Branch)\)$/, '') : '';
+              if (payload.particularType === 'customer') { payload.customerId = partyId; payload.customerName = name; }
+              else { payload.customerName = name; }
+            }
+            delete payload.partyKey;
+          }
+          const u = await updateSalesVoucher(id, payload);
+          setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v));
+          emitDataChange();
+        }}
         loading={loadingVouchers}
       />
     </>

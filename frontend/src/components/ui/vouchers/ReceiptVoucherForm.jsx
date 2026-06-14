@@ -92,6 +92,19 @@ const ReceiptVoucherForm = () => {
     { key: 'createdBy',  label: 'Created By', render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
+    { key: 'particularKey', label: 'Particular', type: 'select', options: particularsOptions,
+      getValue: (v) => {
+        if (v.particularType === 'customer' && v.customerId) return `customer_${v.customerId}`;
+        if (v.particularType === 'supplier' && v.supplierId) return `supplier_${v.supplierId}`;
+        if (v.particularType && v.particularName) {
+          const typeCap = v.particularType.charAt(0).toUpperCase() + v.particularType.slice(1);
+          const found = particularsOptions.find(o => o.name === `${v.particularName} (${typeCap})`);
+          return found ? found.id : '';
+        }
+        return '';
+      },
+    },
+    { key: 'paymentMethodId', label: 'Payment Method', type: 'select', options: paymentMethods.map(m => ({ id: m.id, name: m.name })) },
     { key: 'date',      label: 'Date',      type: 'date' },
     { key: 'amount',    label: 'Amount (₹)', type: 'number', placeholder: '0.00' },
     { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
@@ -176,7 +189,19 @@ const ReceiptVoucherForm = () => {
     emitDataChange();
   };
   const handleUpdateVoucher = async (id, data) => {
-    const updated = await updateReceiptVoucher(id, data);
+    const payload = { ...data };
+    if (data.particularKey !== undefined) {
+      const key = data.particularKey || '';
+      const us = key.indexOf('_');
+      if (us !== -1) {
+        payload.particularType = key.substring(0, us);
+        payload.particularId   = key.substring(us + 1);
+        const opt = particularsOptions.find(o => o.id === key);
+        payload.particularName = opt ? opt.name.replace(/ \(.*\)$/, '') : '';
+      }
+      delete payload.particularKey;
+    }
+    const updated = await updateReceiptVoucher(id, payload);
     setVouchers(prev => prev.map(v => v.id === id ? { ...v, ...updated } : v));
     emitDataChange();
   };

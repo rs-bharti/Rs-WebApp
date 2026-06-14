@@ -670,7 +670,9 @@ const createCustomer = async (req, res) => {
     let balance = 0;
     const obAmt = parseFloat(openingBalance);
     if (!isNaN(obAmt) && obAmt > 0) {
-      const obType = openingBalanceType === 'DR' ? 'DR' : 'CR';
+      // Ledger column logic: type 'CR' shows in DR column, type 'DR' shows in CR column.
+      // So we flip the obType so master DR → DR column and master CR → CR column.
+      const obType = openingBalanceType === 'DR' ? 'CR' : 'DR';
       await prisma.customerTransaction.create({
         data: {
           customerId: row.id,

@@ -40,8 +40,13 @@ const StockTransferVoucherForm = () => {
     { key: 'createdBy',     label: 'Created By',     render: v => v.createdBy?.name || '—', detailOnly: true },
   ];
   const EDIT_FIELDS = [
+    { key: 'fromWarehouseId', label: 'From Warehouse', type: 'select', options: warehouses,
+      getValue: (v) => v.fromWarehouseId || '' },
+    { key: 'toWarehouseId',   label: 'To Warehouse',   type: 'select', options: warehouses,
+      getValue: (v) => v.toWarehouseId || '' },
     { key: 'date',      label: 'Date',      type: 'date' },
     { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+    { key: 'items',     label: 'Products',   type: 'items' },
   ];
 
   useEffect(() => {
@@ -310,7 +315,20 @@ const StockTransferVoucherForm = () => {
         columns={COLUMNS}
         editFields={EDIT_FIELDS}
         onDelete={async (id) => { await deleteStockTransferVoucher(id); setVouchers(p => p.filter(v => v.id !== id)); emitDataChange(); }}
-        onUpdate={async (id, data) => { const u = await updateStockTransferVoucher(id, data); setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v)); emitDataChange(); }}
+        onUpdate={async (id, data) => {
+          const payload = { ...data };
+          if (data.fromWarehouseId !== undefined) {
+            const w = warehouses.find(w => w.id === Number(data.fromWarehouseId));
+            payload.fromWarehouseName = w ? w.name : '';
+          }
+          if (data.toWarehouseId !== undefined) {
+            const w = warehouses.find(w => w.id === Number(data.toWarehouseId));
+            payload.toWarehouseName = w ? w.name : '';
+          }
+          const u = await updateStockTransferVoucher(id, payload);
+          setVouchers(p => p.map(v => v.id === id ? { ...v, ...u } : v));
+          emitDataChange();
+        }}
         loading={loadingVouchers}
       />
     </>

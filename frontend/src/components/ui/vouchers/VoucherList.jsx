@@ -31,7 +31,15 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
   const startEdit = () => {
     const data = {};
     (editFields || []).forEach(f => {
-      data[f.key] = f.type === 'date' ? toDateInput(selected[f.key]) : (selected[f.key] ?? '');
+      if (f.type === 'items') {
+        data[f.key] = (selected.items || []).map(i => ({ ...i }));
+      } else if (f.getValue) {
+        data[f.key] = f.getValue(selected);
+      } else if (f.type === 'date') {
+        data[f.key] = toDateInput(selected[f.key]);
+      } else {
+        data[f.key] = selected[f.key] ?? '';
+      }
     });
     setEditData(data);
     setEditing(true);
@@ -313,7 +321,61 @@ const VoucherList = ({ title, vouchers = [], columns, editFields, onDelete, onUp
                             <option key={o.id} value={o.id}>{o.name}</option>
                           ))}
                         </select>
-                      ) : (
+                      ) : f.type === 'items' ? (() => {
+                        const items = editData[f.key] || [];
+                        const showRate = items.some(i => i.rate != null);
+                        const updateItem = (idx, field, raw) => {
+                          setEditData(p => ({
+                            ...p,
+                            [f.key]: p[f.key].map((it, i) => {
+                              if (i !== idx) return it;
+                              const val   = parseFloat(raw) || 0;
+                              const qty   = field === 'qty'  ? val : it.qty;
+                              const rate  = field === 'rate' ? val : (it.rate ?? 0);
+                              const sub   = qty * rate;
+                              const tax   = sub * (it.taxRate || 0) / 100;
+                              const disc  = it.discountAmount || 0;
+                              return { ...it, [field]: val, subTotal: sub, taxAmount: tax, amount: sub + tax - disc };
+                            }),
+                          }));
+                        };
+                        return (
+                          <div className="rounded-xl border border-stone-100 overflow-hidden overflow-x-auto">
+                            <table className="w-full text-sm min-w-[360px]">
+                              <thead>
+                                <tr className="bg-stone-50 border-b border-stone-100">
+                                  <th className="px-3 py-2 text-left text-[10px] font-bold uppercase text-stone-400">Product</th>
+                                  <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-stone-400 w-24">Qty</th>
+                                  {showRate && <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-stone-400 w-28">Rate</th>}
+                                  <th className="px-3 py-2 text-right text-[10px] font-bold uppercase text-stone-400 w-28">Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.map((item, idx) => (
+                                  <tr key={item.id ?? idx} className="border-b border-stone-50 last:border-0">
+                                    <td className="px-3 py-2 text-sm text-stone-700 font-medium">{item.product?.name || item.productName || '—'}</td>
+                                    <td className="px-2 py-1.5">
+                                      <input type="number" min="0" step="any" value={item.qty ?? ''}
+                                        onChange={e => updateItem(idx, 'qty', e.target.value)}
+                                        className="w-full text-right rounded-lg border border-stone-200 px-2 py-1.5 text-sm outline-none focus:border-rs-text-primary bg-white" />
+                                    </td>
+                                    {showRate && (
+                                      <td className="px-2 py-1.5">
+                                        <input type="number" min="0" step="any" value={item.rate ?? ''}
+                                          onChange={e => updateItem(idx, 'rate', e.target.value)}
+                                          className="w-full text-right rounded-lg border border-stone-200 px-2 py-1.5 text-sm outline-none focus:border-rs-text-primary bg-white" />
+                                      </td>
+                                    )}
+                                    <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums text-stone-700">
+                                      ₹{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })() : (
                         <input
                           type={f.type}
                           placeholder={f.placeholder || ''}

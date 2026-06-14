@@ -44,6 +44,7 @@ const StockDataVoucherForm = () => {
   const EDIT_FIELDS = [
     { key: 'date',      label: 'Date',      type: 'date' },
     { key: 'narration', label: 'Narration',  type: 'textarea', placeholder: 'Optional remarks' },
+    { key: 'items',     label: 'Products',   type: 'items' },
   ];
 
   useEffect(() => {

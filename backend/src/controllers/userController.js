@@ -71,7 +71,29 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
   try {
-    await prisma.user.delete({ where: { id: Number(req.params.id) } });
+    const id = Number(req.params.id);
+
+    // Check if user has any created vouchers (FK constraint would block delete)
+    const [receipts, payments, sales, purchases, salesReturns, purchaseReturns, stockData, stockTransfers, contras] = await Promise.all([
+      prisma.receiptVoucher.count({ where: { createdById: id } }),
+      prisma.paymentVoucher.count({ where: { createdById: id } }),
+      prisma.salesVoucher.count({ where: { createdById: id } }),
+      prisma.purchaseVoucher.count({ where: { createdById: id } }),
+      prisma.salesReturnVoucher.count({ where: { createdById: id } }),
+      prisma.purchaseReturnVoucher.count({ where: { createdById: id } }),
+      prisma.stockDataVoucher.count({ where: { createdById: id } }),
+      prisma.stockTransferVoucher.count({ where: { createdById: id } }),
+      prisma.contraVoucher.count({ where: { createdById: id } }),
+    ]);
+
+    const total = receipts + payments + sales + purchases + salesReturns + purchaseReturns + stockData + stockTransfers + contras;
+    if (total > 0) {
+      return res.status(400).json({
+        message: `Cannot delete this user — they have created ${total} voucher(s). Please deactivate the user instead.`,
+      });
+    }
+
+    await prisma.user.delete({ where: { id } });
     res.json({ message: 'User deleted' });
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
 };
