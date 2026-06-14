@@ -20,7 +20,7 @@ const emptyRow = () => ({ id: Date.now() + Math.random(), productId: '', warehou
 
 const SalesVoucherForm = () => {
   const type = 'Sales';
-  const { activeBranch, currencySymbol } = useAuth();
+  const { activeBranch, currencySymbol, canAccessMaster } = useAuth();
   const navigate = useNavigate();
 
   const [rows,         setRows]        = useState([emptyRow()]);
@@ -197,7 +197,7 @@ const SalesVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Party (Customer / Branch)</label>
-              <button type="button" onClick={() => navigate('/dashboard/master/customer')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Go to Customer Master"><Plus className="w-4 h-4" /></button>
+              {canAccessMaster('Customer') && <button type="button" onClick={() => navigate('/dashboard/master/customer')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Go to Customer Master"><Plus className="w-4 h-4" /></button>}
             </div>
             <SelectSearch
               value={partyKey}
@@ -276,8 +276,8 @@ const SalesVoucherForm = () => {
             <table className="w-full text-sm text-left border-collapse min-w-[1050px]">
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
-                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name <Link to="/dashboard/master/product" className="inline-flex items-center justify-center ml-1 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all align-middle" title="Go to Product Master"><ExternalLink className="w-4 h-4" /></Link></th>
-                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-40">Warehouse <Link to="/dashboard/master/warehouse" className="inline-flex items-center justify-center ml-1 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all align-middle" title="Go to Warehouse Master"><ExternalLink className="w-4 h-4" /></Link></th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted">Product Name {canAccessMaster('Product') && <Link to="/dashboard/master/product" className="inline-flex items-center justify-center ml-1 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all align-middle" title="Go to Product Master"><ExternalLink className="w-4 h-4" /></Link>}</th>
+                  <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted w-40">Warehouse {canAccessMaster('Warehouse') && <Link to="/dashboard/master/warehouse" className="inline-flex items-center justify-center ml-1 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all align-middle" title="Go to Warehouse Master"><ExternalLink className="w-4 h-4" /></Link>}</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Avl. Stock</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Qty</th>
                   <th className="px-4 py-3 font-bold text-[10px] uppercase tracking-widest text-rs-text-muted text-right w-24">Rate</th>
@@ -393,18 +393,18 @@ const SalesVoucherForm = () => {
           </div>
         </div>
 
-        <div className="flex justify-between items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-8 pt-6 md:pt-8 border-t border-stone-100">
           <button type="button" onClick={() => setShowList(true)}
-            className="flex items-center gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
+            className="flex items-center justify-center sm:justify-start gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
             <List className="w-4 h-4" /> View Entries
           </button>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 sm:gap-8">
             <button type="button" onClick={handleDiscard}
-              className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+              className="flex-1 sm:flex-none text-center sm:text-left text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer py-2 sm:py-0">
               Discard
             </button>
             <button type="submit" disabled={saving}
-              className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
+              className="flex-1 sm:flex-none bg-rs-text-primary text-white px-4 sm:px-12 py-3 sm:py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
               {saving ? 'Saving…' : `Save ${type} Voucher`}
             </button>
           </div>

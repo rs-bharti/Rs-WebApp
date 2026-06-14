@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Landmark, TrendingUp, TrendingDown, X, Users, ChevronDown } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Landmark, TrendingUp, TrendingDown, X, Users, ChevronDown, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardBalance } from '../api/masters';
 
@@ -27,13 +28,14 @@ const CATEGORY_STYLE = {
   BANK: { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-500',    badge: 'bg-blue-100 text-blue-700',       openingBg: 'bg-blue-50',    openingBorder: 'border-b border-blue-100'    },
 };
 
-const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId }) => {
+const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId, hasReceivables }) => {
   const [open,     setOpen]    = useState(false);
   const [dropPos,  setDropPos] = useState({});
   const triggerRef = useRef(null);
   const dropRef    = useRef(null);
 
-  const selectedData = selectedMethodId
+  const isReceivables = selectedMethodId === 'receivables';
+  const selectedData  = (!isReceivables && selectedMethodId)
     ? categoryFiltered.find(d => String(d.method.id) === selectedMethodId)?.method
     : null;
 
@@ -41,10 +43,10 @@ const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId 
     if (!open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom - 8;
-      const openUp     = spaceBelow < 240;
+      const openUp     = spaceBelow < 260;
       setDropPos(openUp
-        ? { bottom: window.innerHeight - rect.top + 4, left: rect.left, minWidth: Math.max(rect.width, 220) }
-        : { top:    rect.bottom + 4,                   left: rect.left, minWidth: Math.max(rect.width, 220) }
+        ? { bottom: window.innerHeight - rect.top + 4, left: rect.left, minWidth: Math.max(rect.width, 240) }
+        : { top:    rect.bottom + 4,                   left: rect.left, minWidth: Math.max(rect.width, 240) }
       );
     }
     setOpen(o => !o);
@@ -61,16 +63,24 @@ const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId 
 
   const catStyle = (cat) => CATEGORY_STYLE[cat] || { dot: 'bg-stone-400', badge: 'bg-stone-100 text-stone-600', text: 'text-stone-600' };
 
+  const clearable = !!selectedMethodId;
+
   return (
     <>
       <div
         ref={triggerRef}
         onClick={toggle}
-        className={`flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg border cursor-pointer min-w-[200px] transition-colors ${
+        className={`flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg border cursor-pointer min-w-[220px] transition-colors ${
           open ? 'border-stone-400 bg-white' : 'border-stone-200 bg-stone-50 hover:border-stone-300'
         }`}
       >
-        {selectedData ? (
+        {isReceivables ? (
+          <>
+            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-indigo-500" />
+            <span className="text-sm text-stone-700 font-medium flex-1 truncate">Total Receivables</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 bg-indigo-100 text-indigo-700">RECV</span>
+          </>
+        ) : selectedData ? (
           <>
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${catStyle(selectedData.category).dot}`} />
             <span className="text-sm text-stone-700 font-medium flex-1 truncate">{selectedData.name}</span>
@@ -79,10 +89,10 @@ const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId 
             </span>
           </>
         ) : (
-          <span className="text-sm text-stone-500 flex-1">All Methods</span>
+          <span className="text-sm text-stone-400 flex-1 italic">Select a method…</span>
         )}
         <ChevronDown className={`w-3.5 h-3.5 text-stone-400 flex-shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
-        {selectedData && (
+        {clearable && (
           <span
             onClick={e => { e.stopPropagation(); setSelectedMethodId(''); setOpen(false); }}
             className="ml-0.5 text-stone-300 hover:text-stone-500 cursor-pointer transition-colors"
@@ -98,22 +108,13 @@ const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId 
           style={{ position: 'fixed', zIndex: 9999, ...dropPos }}
           className="bg-white border border-stone-200 rounded-xl shadow-2xl overflow-hidden py-1"
         >
-          <div
-            onClick={() => { setSelectedMethodId(''); setOpen(false); }}
-            className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors text-sm ${
-              !selectedMethodId ? 'bg-stone-100 text-stone-800 font-semibold' : 'text-stone-500 hover:bg-stone-50'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-stone-300 flex-shrink-0" />
-            All Methods
-          </div>
           {['CASH', 'BANK'].map(cat => {
             const group = categoryFiltered.filter(d => d.method.category === cat);
             if (!group.length) return null;
             const cs = catStyle(cat);
             return (
               <div key={cat}>
-                <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest border-t border-stone-100 ${cs.text}`}>
+                <div className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest border-b border-stone-100 ${cs.text} bg-stone-50/60`}>
                   {cat}
                 </div>
                 {group.map(d => {
@@ -128,15 +129,30 @@ const MethodPicker = ({ categoryFiltered, selectedMethodId, setSelectedMethodId 
                     >
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cs.dot}`} />
                       <span className="text-sm flex-1 truncate">{d.method.name}</span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${cs.badge}`}>
-                        {cat}
-                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${cs.badge}`}>{cat}</span>
                     </div>
                   );
                 })}
               </div>
             );
           })}
+          {hasReceivables && (
+            <>
+              <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border-t border-stone-100 text-indigo-600 bg-stone-50/60">
+                Receivables
+              </div>
+              <div
+                onClick={() => { setSelectedMethodId('receivables'); setOpen(false); }}
+                className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors ${
+                  isReceivables ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'hover:bg-stone-50 text-stone-700'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-indigo-500" />
+                <span className="text-sm flex-1">Total Receivables</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 bg-indigo-100 text-indigo-700">RECV</span>
+              </div>
+            </>
+          )}
         </div>,
         document.body
       )}
@@ -480,9 +496,80 @@ const MoneyLedgerPage = () => {
   };
 
   const categoryFiltered = filterCat === 'ALL' ? data : data.filter(d => d.method.category === filterCat);
-  const displayed = selectedMethodId
-    ? categoryFiltered.filter(d => String(d.method.id) === selectedMethodId)
-    : categoryFiltered;
+  const hasReceivables   = !!(balance && receivables);
+
+  const selectedData     = (selectedMethodId && selectedMethodId !== 'receivables')
+    ? categoryFiltered.find(d => String(d.method.id) === selectedMethodId)
+    : null;
+
+  const downloadExcel = () => {
+    const wb = XLSX.utils.book_new();
+
+    if (selectedMethodId === 'receivables' && receivables) {
+      // --- Receivables sheet ---
+      const opening = balance?.openingReceivables || 0;
+      const rows = [
+        ['Total Receivables Ledger'],
+        fromDate || toDate ? [`Period: ${fromDate || '—'} to ${toDate || '—'}`] : [],
+        [],
+        ['Date', 'Voucher No', 'Particular', 'Narration', 'In (CR)', 'Out (DR)', 'Balance'],
+        ['Opening Balance', '', '', '', '', '', fmt(opening)],
+      ];
+      let runBal = opening;
+      const filtered = receivables.entries.filter(e => {
+        if (fromDate && e.date < fromDate) return false;
+        if (toDate   && e.date > toDate)   return false;
+        return true;
+      });
+      filtered.forEach(e => {
+        const cr = e.type === 'receipt'  ? e.amount : 0;
+        const dr = e.type === 'payment'  ? e.amount : 0;
+        runBal += cr - dr;
+        rows.push([e.date, e.voucherNo || '', e.particular || '', e.narration || '', cr || '', dr || '', runBal]);
+      });
+      rows.push([]);
+      const totalCr = filtered.filter(e => e.type === 'receipt').reduce((s, e) => s + e.amount, 0);
+      const totalDr = filtered.filter(e => e.type === 'payment').reduce((s, e) => s + e.amount, 0);
+      rows.push(['Closing Balance', '', '', '', fmt(totalCr), fmt(totalDr), fmt(runBal)]);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows.filter(r => r.length > 0 || rows.indexOf(r) !== 1 || (fromDate || toDate)));
+      ws['!cols'] = [{ wch: 15 }, { wch: 14 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Total Receivables');
+    } else if (selectedData) {
+      // --- Payment method sheet ---
+      const { method, entries } = selectedData;
+      const filtered = entries.filter(e => {
+        if (fromDate && e.date < fromDate) return false;
+        if (toDate   && e.date > toDate)   return false;
+        return true;
+      });
+      const rows = [
+        [`${method.name} Ledger`],
+        [`Category: ${method.category}`],
+        fromDate || toDate ? [`Period: ${fromDate || '—'} to ${toDate || '—'}`] : [],
+        [],
+        ['Date', 'Voucher No', 'Particular', 'Narration', 'In (CR)', 'Out (DR)', 'Balance'],
+        ['Opening Balance', '', '', '', '', '', fmt(method.openingBalance)],
+      ];
+      let runBal = method.openingBalance;
+      filtered.forEach(e => {
+        const cr = e.type === 'receipt'  ? e.amount : 0;
+        const dr = e.type === 'payment'  ? e.amount : 0;
+        runBal += cr - dr;
+        rows.push([e.date, e.voucherNo || '', e.particular || '', e.narration || '', cr || '', dr || '', runBal]);
+      });
+      rows.push([]);
+      const totalCr = filtered.filter(e => e.type === 'receipt').reduce((s, e) => s + e.amount, 0);
+      const totalDr = filtered.filter(e => e.type === 'payment').reduce((s, e) => s + e.amount, 0);
+      rows.push(['Closing Balance', '', '', '', fmt(totalCr), fmt(totalDr), fmt(runBal)]);
+
+      const ws = XLSX.utils.aoa_to_sheet(rows.filter(r => r.length > 0 || rows.indexOf(r) > 1));
+      ws['!cols'] = [{ wch: 15 }, { wch: 14 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws, method.name.slice(0, 31));
+    }
+
+    XLSX.writeFile(wb, `money-ledger-${selectedMethodId === 'receivables' ? 'receivables' : selectedData?.method.name || 'export'}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
   const grandTotalIn  = data.reduce((s, d) => s + d.entries.filter(e => e.type === 'receipt').reduce((a, e) => a + e.amount, 0), 0);
   const grandTotalOut = data.reduce((s, d) => s + d.entries.filter(e => e.type === 'payment').reduce((a, e) => a + e.amount, 0), 0);
@@ -507,7 +594,16 @@ const MoneyLedgerPage = () => {
             <p className="text-sm text-stone-400 mt-0.5">Cash & Bank position — Receipt · Payment per method</p>
           </div>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {selectedMethodId && (
+            <button
+              onClick={downloadExcel}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-sm font-medium cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Download Excel</span>
+            </button>
+          )}
           <button
             onClick={fetchData}
             disabled={loading}
@@ -589,6 +685,7 @@ const MoneyLedgerPage = () => {
             categoryFiltered={categoryFiltered}
             selectedMethodId={selectedMethodId}
             setSelectedMethodId={setSelectedMethodId}
+            hasReceivables={hasReceivables}
           />
         </div>
       </div>
@@ -601,26 +698,30 @@ const MoneyLedgerPage = () => {
         <div className="text-center py-24 flex items-center justify-center gap-2 text-stone-400 text-sm">
           <RefreshCw className="w-5 h-5 animate-spin text-blue-500" /> Loading money ledger…
         </div>
-      ) : displayed.length === 0 && !receivables ? (
+      ) : data.length === 0 && !hasReceivables ? (
         <div className="text-center py-24 bg-white border border-dashed border-stone-200 rounded-xl flex flex-col items-center gap-3 text-stone-400">
           <Landmark className="w-12 h-12 text-stone-200" />
           <p className="text-sm">No payment methods found for this branch.</p>
           <p className="text-xs text-stone-300">Add payment methods in Payment Method Master to get started.</p>
         </div>
+      ) : !selectedMethodId ? (
+        <div className="text-center py-28 bg-white border border-dashed border-stone-200 rounded-xl flex flex-col items-center gap-3 text-stone-400">
+          <Landmark className="w-14 h-14 text-stone-200" />
+          <p className="text-base font-medium text-stone-500">Select a payment method to view its ledger</p>
+          <p className="text-xs text-stone-300">Use the dropdown above to choose Cash, Bank, or Total Receivables</p>
+        </div>
       ) : (
         <div className="space-y-6">
-          {displayed.map(d => (
+          {selectedData && (
             <MethodSection
-              key={d.method.id}
-              data={d}
+              key={selectedData.method.id}
+              data={selectedData}
               fromDate={fromDate}
               toDate={toDate}
               currencySymbol={currencySymbol}
             />
-          ))}
-
-          {/* Receivables ledger — always shown regardless of method selection */}
-          {!selectedMethodId && balance && receivables && (
+          )}
+          {selectedMethodId === 'receivables' && hasReceivables && (
             <ReceivablesSection
               entries={receivables.entries}
               openingReceivables={balance.openingReceivables || 0}

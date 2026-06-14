@@ -26,7 +26,11 @@ import { useAuth } from './context/AuthContext';
 
 const MasterRouteWrapper = ({ userRole }) => {
   const { type } = useParams();
+  const { canAccessMaster, isAdmin } = useAuth();
   const capitalizedType = type.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  if (!isAdmin && !canAccessMaster(capitalizedType)) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <MasterForm type={capitalizedType} userRole={userRole} />;
 };
 

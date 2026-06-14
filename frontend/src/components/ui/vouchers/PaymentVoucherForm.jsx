@@ -10,7 +10,7 @@ import VoucherListModal, { fmtDate } from './VoucherListModal';
 
 const PaymentVoucherForm = () => {
   const type = 'Payment';
-  const { activeBranch, currencySymbol, isAdmin, allowedBranches } = useAuth();
+  const { activeBranch, currencySymbol, isAdmin, allowedBranches, canAccessMaster } = useAuth();
   const navigate = useNavigate();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -211,13 +211,14 @@ const PaymentVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Particulars</label>
+              {[['Supplier', '/dashboard/master/supplier'], ['Customer', '/dashboard/master/customer'], ['Expense', '/dashboard/master/expense']].some(([label]) => canAccessMaster(label)) && (
               <div className="relative" ref={masterPopupRef}>
                 <button type="button" onClick={() => setMasterPopup(p => !p)} className="flex items-center gap-0.5 text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded px-1.5 py-0.5 transition-all cursor-pointer text-[10px] font-bold uppercase tracking-widest">
                   <Plus className="w-3 h-3" /> Add <ChevronDown className="w-3 h-3" />
                 </button>
                 {masterPopup && (
                   <div className="absolute right-0 top-7 z-50 bg-white border border-stone-200 rounded-xl shadow-lg py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
-                    {[['Supplier', '/dashboard/master/supplier'], ['Customer', '/dashboard/master/customer'], ['Expense', '/dashboard/master/expense']].map(([label, path]) => (
+                    {[['Supplier', '/dashboard/master/supplier'], ['Customer', '/dashboard/master/customer'], ['Expense', '/dashboard/master/expense']].filter(([label]) => canAccessMaster(label)).map(([label, path]) => (
                       <button key={label} type="button" onClick={() => navigate(path)}
                         className="w-full text-left px-4 py-2 text-sm font-medium hover:bg-rs-accent-bg transition-colors">
                         + Go to {label} Master
@@ -226,6 +227,7 @@ const PaymentVoucherForm = () => {
                   </div>
                 )}
               </div>
+              )}
             </div>
             <SelectSearch
               value={particularKey}
@@ -242,7 +244,7 @@ const PaymentVoucherForm = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
-              <button type="button" onClick={() => navigate('/dashboard/master/payment-method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Go to Payment Method Master"><Plus className="w-4 h-4" /></button>
+              {canAccessMaster('Payment Method') && <button type="button" onClick={() => navigate('/dashboard/master/payment-method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Go to Payment Method Master"><Plus className="w-4 h-4" /></button>}
             </div>
             <SelectSearch
               value={paymentMethodId}
@@ -282,15 +284,15 @@ const PaymentVoucherForm = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
-          <button type="button" onClick={() => setShowList(true)} className="flex items-center gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-8 pt-6 md:pt-8 border-t border-stone-100">
+          <button type="button" onClick={() => setShowList(true)} className="flex items-center justify-center sm:justify-start gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
             <List className="w-4 h-4" /> View Entries
           </button>
-          <div className="flex items-center gap-8">
-            <button type="button" onClick={handleDiscard} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+          <div className="flex items-center gap-4 sm:gap-8">
+            <button type="button" onClick={handleDiscard} className="flex-1 sm:flex-none text-center sm:text-left text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer py-2 sm:py-0">
               Discard
             </button>
-            <button type="submit" disabled={saving} className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
+            <button type="submit" disabled={saving} className="flex-1 sm:flex-none bg-rs-text-primary text-white px-4 sm:px-12 py-3 sm:py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
               {saving ? 'Saving…' : `Save ${type} Voucher`}
             </button>
           </div>

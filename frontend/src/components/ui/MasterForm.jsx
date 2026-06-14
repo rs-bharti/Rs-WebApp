@@ -208,6 +208,60 @@ const ListSearch = ({ value, onChange, placeholder = 'Search…' }) => (
   </div>
 );
 
+// ── Branch name autocomplete (used inside Branch Master form) ─────────────────
+const BranchSuggestInput = ({ value, onChange, suggestions, className }) => {
+  const [open,   setOpen]   = useState(false);
+  const wrapRef             = useRef(null);
+
+  const q        = (value || '').trim().toLowerCase();
+  const filtered = suggestions
+    .filter(b => !q || b.name.toLowerCase().includes(q))
+    .slice(0, 12);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <input
+        type="text"
+        className={className}
+        placeholder="e.g. Retail, Wholesale, Export"
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        required
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] bg-white border border-stone-200 rounded-xl shadow-2xl overflow-hidden">
+          <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-400 border-b border-stone-100 bg-stone-50/80 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rs-text-primary/40 flex-shrink-0" />
+            Existing Branches
+          </div>
+          <ul className="max-h-48 overflow-y-auto overscroll-contain" style={{ overscrollBehavior: 'contain' }}>
+            {filtered.map(b => (
+              <li
+                key={b.id}
+                onMouseDown={() => { onChange(b.name); setOpen(false); }}
+                className="px-4 py-2.5 text-sm text-stone-700 cursor-pointer hover:bg-stone-50 active:bg-stone-100 flex items-center gap-2.5 select-none transition-colors"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rs-text-primary/30 flex-shrink-0" />
+                {b.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const { activeBranch, clearBranch, currencySymbol } = useAuth();
@@ -255,7 +309,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [selCategory, setSelCategory] = useState('');
   const [selUnit,     setSelUnit]     = useState('');
 
-  const [quickCreate, setQuickCreate] = useState(null);
+  const [quickCreate,       setQuickCreate]       = useState(null);
+  const [branchSuggestions, setBranchSuggestions] = useState([]);
 
   // List of existing records
   const [records,     setRecords]     = useState([]);
@@ -376,6 +431,10 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (isProduct) {
           const [cats, us] = await Promise.all([getCategories(), getUnits()]);
           setCategories(cats); setUnits(us);
+        }
+        // Load branch list for autocomplete in Branch Master form
+        if (isBranchMaster) {
+          getMasterBranches().then(setBranchSuggestions).catch(console.error);
         }
         if (showList) {
           setLoadingList(true);
@@ -701,6 +760,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     </div>
   );
 
+  const inputContact = 'w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all placeholder:text-stone-300';
+
   const contactsTable = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -710,7 +771,42 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <PlusCircle className="w-3.5 h-3.5" />Add Contact
         </button>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-stone-100 shadow-sm">
+
+      {/* Mobile card view */}
+      <div className="sm:hidden space-y-3">
+        {contacts.map((c) => (
+          <div key={c.id} className="border border-stone-100 rounded-xl p-4 space-y-3 bg-white shadow-sm">
+            <div className="flex items-center gap-2">
+              <input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className={cn(inputContact, 'flex-1')} />
+              <button type="button" onClick={() => removeContact(c.id)} className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-all flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+            </div>
+            <div className="flex items-center gap-2">
+              <PhonePrefixSelect value={c.phonePrefix || '+91'} onChange={(prefix) => updContact(c.id, 'phonePrefix', prefix)} countries={countries} isAdmin={isAdmin} />
+              <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Phone number" maxLength={phoneMaxLength(c.phonePrefix)} className={cn(inputContact, 'flex-1')} />
+            </div>
+            <select value={c.designation} onChange={e => updContact(c.id, 'designation', e.target.value)} className={cn(inputContact, 'cursor-pointer appearance-none')}>
+              <option value="">Select role…</option>
+              {['Manager', 'Owner', 'Sales Head', 'Procurement Head', 'Sales Boy', 'President', 'CEO'].map(d => <option key={d}>{d}</option>)}
+            </select>
+            <input
+              type="date" min="1900-01-01" max={new Date().toISOString().split('T')[0]}
+              value={c.dob}
+              onChange={e => {
+                const val = e.target.value;
+                if (!val) { updContact(c.id, 'dob', ''); return; }
+                const picked = new Date(val + 'T00:00:00');
+                const today  = new Date(); today.setHours(23, 59, 59, 999);
+                if (isNaN(picked.getTime()) || picked > today) return;
+                updContact(c.id, 'dob', val);
+              }}
+              className={cn(inputContact, 'text-rs-text-muted')}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table view */}
+      <div className="hidden sm:block overflow-x-auto rounded-xl border border-stone-100 shadow-sm">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className={cn('border-b', isAdmin ? 'border-brand-bg bg-brand-bg/10' : 'border-rs-accent-bg bg-rs-cream/20')}>
@@ -722,29 +818,22 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
           <tbody>
             {contacts.map((c) => (
               <tr key={c.id} className={trHoverCls}>
-                <td className="px-3 py-2"><input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all placeholder:text-stone-300" /></td>
+                <td className="px-3 py-2"><input type="text" value={c.name} onChange={e => updContact(c.id, 'name', e.target.value)} placeholder="Full Name" className={inputContact} /></td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
-                    <PhonePrefixSelect
-                      value={c.phonePrefix || '+91'}
-                      onChange={(prefix) => updContact(c.id, 'phonePrefix', prefix)}
-                      countries={countries}
-                      isAdmin={isAdmin}
-                    />
-                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(c.phonePrefix)} className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all placeholder:text-stone-300" />
+                    <PhonePrefixSelect value={c.phonePrefix || '+91'} onChange={(prefix) => updContact(c.id, 'phonePrefix', prefix)} countries={countries} isAdmin={isAdmin} />
+                    <input type="tel" value={c.phone} onChange={e => updContact(c.id, 'phone', e.target.value)} placeholder="Number" maxLength={phoneMaxLength(c.phonePrefix)} className={inputContact} />
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <select value={c.designation} onChange={e => updContact(c.id, 'designation', e.target.value)} className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all cursor-pointer appearance-none">
+                  <select value={c.designation} onChange={e => updContact(c.id, 'designation', e.target.value)} className={cn(inputContact, 'cursor-pointer appearance-none')}>
                     <option value="">Select role…</option>
                     {['Manager', 'Owner', 'Sales Head', 'Procurement Head', 'Sales Boy', 'President', 'CEO'].map(d => <option key={d}>{d}</option>)}
                   </select>
                 </td>
                 <td className="px-3 py-2">
                   <input
-                    type="date"
-                    min="1900-01-01"
-                    max={new Date().toISOString().split('T')[0]}
+                    type="date" min="1900-01-01" max={new Date().toISOString().split('T')[0]}
                     value={c.dob}
                     onChange={e => {
                       const val = e.target.value;
@@ -754,7 +843,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                       if (isNaN(picked.getTime()) || picked > today) return;
                       updContact(c.id, 'dob', val);
                     }}
-                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 outline-none text-sm focus:border-rs-text-primary focus:ring-1 focus:ring-rs-text-primary/10 transition-all text-rs-text-muted"
+                    className={cn(inputContact, 'text-rs-text-muted')}
                   />
                 </td>
                 <td className="px-3 py-2 text-center">
@@ -916,7 +1005,15 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
     if (isBranchMaster) return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl">
-        <div className="space-y-2"><label className={labelCls}>Branch Master Name <span className="text-red-400">*</span></label><input className={inputCls} type="text" placeholder="e.g. Retail, Wholesale, Export" value={f('name')} onChange={upd('name')} required /></div>
+        <div className="space-y-2">
+          <label className={labelCls}>Branch Master Name <span className="text-red-400">*</span></label>
+          <BranchSuggestInput
+            value={f('name')}
+            onChange={val => setFormData(prev => ({ ...prev, name: val }))}
+            suggestions={branchSuggestions}
+            className={inputCls}
+          />
+        </div>
       </div>
     );
 
@@ -1484,20 +1581,20 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
         <div className="min-h-[250px]">{renderFields()}</div>
 
-        <div className={cn('flex justify-between items-center gap-4 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
+        <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 pt-6 md:pt-8 border-t', isAdmin ? 'border-brand-bg' : 'border-stone-100')}>
           {showList ? (
             <button type="button" onClick={() => setShowListModal(true)}
-              className={cn('flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer', isAdmin ? 'text-brand-primary/60 hover:text-brand-primary' : 'text-rs-text-muted hover:text-rs-text-primary')}>
+              className={cn('flex items-center justify-center sm:justify-start gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer px-5 py-3 rounded-lg border', isAdmin ? 'text-brand-primary border-brand-bg hover:bg-brand-bg/20' : 'text-rs-text-muted border-stone-200 hover:text-rs-text-primary hover:border-stone-300 hover:bg-stone-50')}>
               <List className="w-4 h-4" /> View Entries
             </button>
-          ) : <span />}
-          <div className="flex items-center gap-4">
+          ) : <span className="sm:block hidden" />}
+          <div className="flex items-center gap-3 sm:gap-4">
             <button type="button" onClick={resetForm}
-              className={cn('px-6 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-stone-50 active:scale-95', isAdmin ? 'border-brand-bg text-brand-primary/60 hover:border-brand-primary/30' : 'border-stone-200 text-rs-text-muted hover:border-stone-300 hover:text-rs-text-primary')}>
+              className={cn('flex-1 sm:flex-none text-center sm:text-left px-6 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:bg-stone-50 active:scale-95', isAdmin ? 'border-brand-bg text-brand-primary/60 hover:border-brand-primary/30' : 'border-stone-200 text-rs-text-muted hover:border-stone-300 hover:text-rs-text-primary')}>
               Discard
             </button>
             <button type="submit" disabled={saving}
-              className={cn('px-10 py-2.5 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95', saving ? 'opacity-60 cursor-not-allowed' : '', isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')}>
+              className={cn('flex-1 sm:flex-none px-10 py-2.5 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all hover:shadow-md hover:brightness-110 active:scale-95', saving ? 'opacity-60 cursor-not-allowed' : '', isAdmin ? 'bg-brand-primary text-white' : 'bg-rs-text-primary text-white')}>
               {saving ? 'Saving…' : `Save ${isBranch ? 'Branch' : isBranchMaster ? 'Branch Master' : displayType}`}
             </button>
           </div>

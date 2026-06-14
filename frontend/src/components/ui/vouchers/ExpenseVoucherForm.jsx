@@ -184,15 +184,15 @@ const ExpenseVoucherForm = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center gap-8 pt-6 md:pt-8 border-t border-stone-100">
-          <button type="button" onClick={() => setShowList(true)} className="flex items-center gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-8 pt-6 md:pt-8 border-t border-stone-100">
+          <button type="button" onClick={() => setShowList(true)} className="flex items-center justify-center sm:justify-start gap-2 bg-rs-text-primary text-white px-5 py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer">
             <List className="w-4 h-4" /> View Entries
           </button>
-          <div className="flex items-center gap-8">
-            <button type="button" onClick={handleDiscard} className="text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer">
+          <div className="flex items-center gap-4 sm:gap-8">
+            <button type="button" onClick={handleDiscard} className="flex-1 sm:flex-none text-center sm:text-left text-[10px] font-bold text-rs-text-muted uppercase tracking-widest hover:text-rs-text-primary transition-colors cursor-pointer py-2 sm:py-0">
               Discard
             </button>
-            <button type="submit" disabled={saving} className="bg-rs-text-primary text-white px-12 py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
+            <button type="submit" disabled={saving} className="flex-1 sm:flex-none bg-rs-text-primary text-white px-4 sm:px-12 py-3 sm:py-4 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-60">
               {saving ? 'Saving…' : `Save ${type} Voucher`}
             </button>
           </div>
