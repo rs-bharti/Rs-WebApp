@@ -261,6 +261,10 @@ const ReceiptVoucherForm = () => {
               options={paymentMethods}
               placeholder="Select Method"
             />
+            {paymentMethodId && (() => {
+              const m = paymentMethods.find(x => String(x.id) === String(paymentMethodId));
+              return m ? <p className="text-[10px] text-stone-400 mt-1">Opening Balance: {currencySymbol} {Number(m.openingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p> : null;
+            })()}
           </div>
 
           <div className="space-y-2">
