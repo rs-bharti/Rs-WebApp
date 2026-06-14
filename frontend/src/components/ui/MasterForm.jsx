@@ -132,7 +132,9 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled, dis
 const PhonePrefixSelect = ({ value, onChange, countries, isAdmin }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const ref = useRef(null);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
+  const ref    = useRef(null);
+  const btnRef = useRef(null);
 
   const filtered = countries
     .filter(c => c.phoneCode)
@@ -148,11 +150,21 @@ const PhonePrefixSelect = ({ value, onChange, countries, isAdmin }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setDropPos({ top: rect.bottom + 4, left: rect.left });
+    }
+    setOpen(o => !o);
+    setSearch('');
+  };
+
   return (
     <div className="relative flex-shrink-0" ref={ref}>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => { setOpen(o => !o); setSearch(''); }}
+        onClick={handleToggle}
         className={cn(
           'h-full flex items-center gap-1 px-3 rounded-lg border text-sm font-bold cursor-pointer transition-colors whitespace-nowrap',
           isAdmin
@@ -164,7 +176,10 @@ const PhonePrefixSelect = ({ value, onChange, countries, isAdmin }) => {
         <ChevronDown className="w-3 h-3 opacity-60" />
       </button>
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-white border border-stone-200 rounded-lg shadow-lg">
+        <div
+          className="fixed z-[9999] w-56 bg-white border border-stone-200 rounded-lg shadow-lg"
+          style={{ top: dropPos.top, left: dropPos.left }}
+        >
           <input
             autoFocus
             type="text"
