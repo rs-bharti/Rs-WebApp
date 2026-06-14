@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Navigate } from 'react-router-dom';
 import {
   Users, Trash2, Settings2, FileText, Database, Building2, X, AlertTriangle,
+  KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getUsers, deleteUser, updateUserPermissions, getBranches } from '../api/users';
@@ -70,6 +71,9 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
   );
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
+  const [newPassword,        setNewPassword]        = useState('');
+  const [showCurrentPw,      setShowCurrentPw]      = useState(false);
+  const [showNewPw,          setShowNewPw]          = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -93,7 +97,7 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
         branches:    checkedBranches.map(b => b.id),
         branchNames: checkedBranches.map(b => b.name),
       };
-      await onSave(permissions);
+      await onSave(permissions, newPassword.trim() || null);
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -215,6 +219,47 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
               </div>
             </div>
           )}
+
+          {/* Password */}
+          <div className="pt-6 border-t border-stone-100">
+            <div className="flex items-center gap-2 mb-4">
+              <KeyRound className="w-4 h-4 text-brand-accent" />
+              <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Password</h4>
+            </div>
+
+            {user.plainPassword && (
+              <div className="mb-4">
+                <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Current Password</label>
+                <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5">
+                  <span className="flex-1 text-sm font-mono text-stone-700 tracking-widest">
+                    {showCurrentPw ? user.plainPassword : '•'.repeat(Math.min(user.plainPassword.length, 16))}
+                  </span>
+                  <button type="button" onClick={() => setShowCurrentPw(p => !p)}
+                    className="text-stone-400 hover:text-stone-600 transition-colors cursor-pointer flex-shrink-0">
+                    {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Set New Password</label>
+              <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary transition-colors">
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Leave blank to keep current password"
+                  className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
+                />
+                <button type="button" onClick={() => setShowNewPw(p => !p)}
+                  className="text-stone-400 hover:text-stone-600 transition-colors cursor-pointer flex-shrink-0">
+                  {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-stone-400 mt-1.5">Leave blank to keep password unchanged</p>
+            </div>
+          </div>
 
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-md text-rose-600 text-sm">{error}</div>
@@ -347,10 +392,13 @@ const ManageUsers = () => {
     }
   };
 
-  const handleSavePermissions = async (permissions) => {
-    await updateUserPermissions(editTarget.id, permissions);
-    setUsers(prev => prev.map(u => u.id === editTarget.id ? { ...u, permissions } : u));
-    flash(`Permissions updated for ${editTarget.name}.`);
+  const handleSavePermissions = async (permissions, newPassword) => {
+    await updateUserPermissions(editTarget.id, permissions, newPassword);
+    setUsers(prev => prev.map(u => u.id === editTarget.id
+      ? { ...u, permissions, ...(newPassword ? { plainPassword: newPassword } : {}) }
+      : u
+    ));
+    flash(`Updated ${editTarget.name}${newPassword ? ' (password changed)' : ''}.`);
     setEditTarget(null);
   };
 

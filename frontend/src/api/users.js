@@ -47,11 +47,13 @@ export const deleteUser = async (userId) => {
   return data;
 };
 
-export const updateUserPermissions = async (userId, permissions) => {
+export const updateUserPermissions = async (userId, permissions, password) => {
+  const body = { permissions };
+  if (password) body.password = password;
   const res = await fetch(`${API_URL}/api/users/${userId}`, {
     method: 'PUT',
     headers: authHeaders(),
-    body: JSON.stringify({ permissions }),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Failed to update permissions');
