@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Navigate } from 'react-router-dom';
 import {
   Users, Trash2, Settings2, FileText, Database, Building2, X, AlertTriangle,
-  KeyRound, Eye, EyeOff,
+  KeyRound, Eye, EyeOff, Mail,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getUsers, deleteUser, updateUserPermissions, getBranches } from '../api/users';
@@ -71,6 +71,7 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
   );
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
+  const [newEmail,           setNewEmail]           = useState('');
   const [newPassword,        setNewPassword]        = useState('');
   const [showCurrentPw,      setShowCurrentPw]      = useState(false);
   const [showNewPw,          setShowNewPw]          = useState(false);
@@ -97,7 +98,7 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
         branches:    checkedBranches.map(b => b.id),
         branchNames: checkedBranches.map(b => b.name),
       };
-      await onSave(permissions, newPassword.trim() || null);
+      await onSave(permissions, newPassword.trim() || null, newEmail.trim() || null);
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -219,6 +220,37 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
               </div>
             </div>
           )}
+
+          {/* Email */}
+          <div className="pt-6 border-t border-stone-100">
+            <div className="flex items-center gap-2 mb-4">
+              <Mail className="w-4 h-4 text-brand-accent" />
+              <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Email</h4>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Current Email</label>
+              <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5">
+                <Mail className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+                <span className="flex-1 text-sm text-stone-700">{user.email}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Set New Email</label>
+              <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary transition-colors">
+                <Mail className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  placeholder="Leave blank to keep current email"
+                  className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
+                />
+              </div>
+              <p className="text-[10px] text-stone-400 mt-1.5">Leave blank to keep email unchanged</p>
+            </div>
+          </div>
 
           {/* Password */}
           <div className="pt-6 border-t border-stone-100">
@@ -392,13 +424,18 @@ const ManageUsers = () => {
     }
   };
 
-  const handleSavePermissions = async (permissions, newPassword) => {
-    await updateUserPermissions(editTarget.id, permissions, newPassword);
+  const handleSavePermissions = async (permissions, newPassword, newEmail) => {
+    await updateUserPermissions(editTarget.id, permissions, newPassword, newEmail);
     setUsers(prev => prev.map(u => u.id === editTarget.id
-      ? { ...u, permissions, ...(newPassword ? { plainPassword: newPassword } : {}) }
+      ? {
+          ...u, permissions,
+          ...(newPassword ? { plainPassword: newPassword } : {}),
+          ...(newEmail    ? { email: newEmail.toLowerCase().trim() } : {}),
+        }
       : u
     ));
-    flash(`Updated ${editTarget.name}${newPassword ? ' (password changed)' : ''}.`);
+    const changes = [newEmail && 'email', newPassword && 'password'].filter(Boolean);
+    flash(`Updated ${editTarget.name}${changes.length ? ` (${changes.join(' & ')} changed)` : ''}.`);
     setEditTarget(null);
   };
 
