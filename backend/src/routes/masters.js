@@ -18,6 +18,9 @@ const {
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
   updateContact, deleteContact,
   getDashboardBalance, updateDashboardBalance,
+  forceDeleteBranch, forceDeleteSupplier, forceDeleteCustomer,
+  forceDeleteProduct, forceDeleteWarehouse, forceDeleteCategory,
+  forceDeleteUnit, forceDeletePaymentMethod,
 } = require('../controllers/masterController');
 
 const router = express.Router();
@@ -31,7 +34,8 @@ router.get('/cities',    getCities);
 router.get('/branches',        getBranches);
 router.post('/branches',       requireAdmin, createBranch);
 router.put('/branches/:id',    requireAdmin, updateBranch);
-router.delete('/branches/:id', requireAdmin, deleteBranch);
+router.delete('/branches/:id/force', requireAdmin, forceDeleteBranch);
+router.delete('/branches/:id',       requireAdmin, deleteBranch);
 
 router.get('/branch-master',        getBranchMasters);
 router.post('/branch-master',       requireAdmin, createBranchMaster);
@@ -41,16 +45,19 @@ router.delete('/branch-master/:id', requireAdmin, deleteBranchMaster);
 router.get('/categories',        getCategories);
 router.post('/categories',       requirePermission('masters', 'Category'), createCategory);
 router.put('/categories/:id',    requirePermission('masters', 'Category'), updateCategory);
-router.delete('/categories/:id', requirePermission('masters', 'Category'), deleteCategory);
+router.delete('/categories/:id/force', requirePermission('masters', 'Category'), forceDeleteCategory);
+router.delete('/categories/:id',       requirePermission('masters', 'Category'), deleteCategory);
 
 router.get('/units',           getUnits);
 router.post('/units',          requirePermission('masters', 'Unit'), createUnit);
 router.put('/units/:id',       requirePermission('masters', 'Unit'), updateUnit);
-router.delete('/units/:id',    requirePermission('masters', 'Unit'), deleteUnit);
+router.delete('/units/:id/force', requirePermission('masters', 'Unit'), forceDeleteUnit);
+router.delete('/units/:id',       requirePermission('masters', 'Unit'), deleteUnit);
 
 router.get('/suppliers',                        getSuppliers);
 router.post('/suppliers',                       requirePermission('masters', 'Supplier'), createSupplier);
 router.put('/suppliers/:id',                    requirePermission('masters', 'Supplier'), updateSupplier);
+router.delete('/suppliers/:id/force',           requirePermission('masters', 'Supplier'), forceDeleteSupplier);
 router.delete('/suppliers/:id',                 requirePermission('masters', 'Supplier'), deleteSupplier);
 router.get('/suppliers/:id/transactions',       getSupplierTransactions);
 router.post('/suppliers/:id/transactions',      requirePermission('masters', 'Supplier'), createSupplierTransaction);
@@ -58,6 +65,7 @@ router.post('/suppliers/:id/transactions',      requirePermission('masters', 'Su
 router.get('/customers',                        getCustomers);
 router.post('/customers',                       requirePermission('masters', 'Customer'), createCustomer);
 router.put('/customers/:id',                    requirePermission('masters', 'Customer'), updateCustomer);
+router.delete('/customers/:id/force',           requirePermission('masters', 'Customer'), forceDeleteCustomer);
 router.delete('/customers/:id',                 requirePermission('masters', 'Customer'), deleteCustomer);
 router.get('/customers/:id/transactions',       getCustomerTransactions);
 router.post('/customers/:id/transactions',      requirePermission('masters', 'Customer'), createCustomerTransaction);
@@ -65,12 +73,14 @@ router.post('/customers/:id/transactions',      requirePermission('masters', 'Cu
 router.get('/products',         getProducts);
 router.post('/products',        requirePermission('masters', 'Product'), createProduct);
 router.put('/products/:id',     requirePermission('masters', 'Product'), updateProduct);
-router.delete('/products/:id',  requirePermission('masters', 'Product'), deleteProduct);
+router.delete('/products/:id/force', requirePermission('masters', 'Product'), forceDeleteProduct);
+router.delete('/products/:id',       requirePermission('masters', 'Product'), deleteProduct);
 
 router.get('/payment-methods',        getPaymentMethods);
 router.post('/payment-methods',       requirePermission('masters', 'Payment Method'), createPaymentMethod);
 router.put('/payment-methods/:id',    requirePermission('masters', 'Payment Method'), updatePaymentMethod);
-router.delete('/payment-methods/:id', requirePermission('masters', 'Payment Method'), deletePaymentMethod);
+router.delete('/payment-methods/:id/force', requirePermission('masters', 'Payment Method'), forceDeletePaymentMethod);
+router.delete('/payment-methods/:id',       requirePermission('masters', 'Payment Method'), deletePaymentMethod);
 
 router.get('/expenses',        getExpenses);
 router.post('/expenses',       requirePermission('masters', 'Expense'), createExpense);
@@ -80,7 +90,8 @@ router.delete('/expenses/:id', requirePermission('masters', 'Expense'), deleteEx
 router.get('/warehouses',        getWarehouses);
 router.post('/warehouses',       requirePermission('masters', 'Warehouse'), createWarehouse);
 router.put('/warehouses/:id',    requirePermission('masters', 'Warehouse'), updateWarehouse);
-router.delete('/warehouses/:id', requirePermission('masters', 'Warehouse'), deleteWarehouse);
+router.delete('/warehouses/:id/force', requirePermission('masters', 'Warehouse'), forceDeleteWarehouse);
+router.delete('/warehouses/:id',       requirePermission('masters', 'Warehouse'), deleteWarehouse);
 
 router.put('/contacts/:id',    updateContact);
 router.delete('/contacts/:id', deleteContact);

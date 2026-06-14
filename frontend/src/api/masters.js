@@ -35,7 +35,8 @@ export const getCities = ({ stateId, search } = {}) => {
 export const getMasterBranches = ()          => apiFetch('/api/masters/branches');
 export const createBranch      = (body)      => apiFetch('/api/masters/branches', { method: 'POST',   body: JSON.stringify(body) });
 export const updateBranch      = (id, body)  => apiFetch(`/api/masters/branches/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteBranch      = (id)        => apiFetch(`/api/masters/branches/${id}`, { method: 'DELETE' });
+export const deleteBranch      = (id)        => apiFetch(`/api/masters/branches/${id}`,       { method: 'DELETE' });
+export const forceDeleteBranch = (id)        => apiFetch(`/api/masters/branches/${id}/force`,  { method: 'DELETE' });
 
 // ── Branch Master (voucher party dropdowns) ────────────────────────────────────
 export const getMasterBranchMasters = ()          => apiFetch('/api/masters/branch-master');
@@ -47,19 +48,22 @@ export const deleteBranchMaster     = (id)        => apiFetch(`/api/masters/bran
 export const getCategories    = ()          => apiFetch('/api/masters/categories');
 export const createCategory   = (body)      => apiFetch('/api/masters/categories', { method: 'POST',   body: JSON.stringify(body) });
 export const updateCategory   = (id, body)  => apiFetch(`/api/masters/categories/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteCategory   = (id)        => apiFetch(`/api/masters/categories/${id}`, { method: 'DELETE' });
+export const deleteCategory      = (id) => apiFetch(`/api/masters/categories/${id}`,       { method: 'DELETE' });
+export const forceDeleteCategory = (id) => apiFetch(`/api/masters/categories/${id}/force`, { method: 'DELETE' });
 
 // ── Units ──────────────────────────────────────────────────────────────────────
 export const getUnits    = ()          => apiFetch('/api/masters/units');
 export const createUnit  = (body)      => apiFetch('/api/masters/units', { method: 'POST',   body: JSON.stringify(body) });
 export const updateUnit  = (id, body)  => apiFetch(`/api/masters/units/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteUnit  = (id)        => apiFetch(`/api/masters/units/${id}`, { method: 'DELETE' });
+export const deleteUnit      = (id) => apiFetch(`/api/masters/units/${id}`,       { method: 'DELETE' });
+export const forceDeleteUnit = (id) => apiFetch(`/api/masters/units/${id}/force`, { method: 'DELETE' });
 
 // ── Suppliers ──────────────────────────────────────────────────────────────────
 export const getSuppliers   = ()          => apiFetch('/api/masters/suppliers');
 export const createSupplier = (body)      => apiFetch('/api/masters/suppliers', { method: 'POST',   body: JSON.stringify(body) });
 export const updateSupplier = (id, body)  => apiFetch(`/api/masters/suppliers/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteSupplier = (id)        => apiFetch(`/api/masters/suppliers/${id}`, { method: 'DELETE' });
+export const deleteSupplier      = (id) => apiFetch(`/api/masters/suppliers/${id}`,       { method: 'DELETE' });
+export const forceDeleteSupplier = (id) => apiFetch(`/api/masters/suppliers/${id}/force`, { method: 'DELETE' });
 export const getSupplierTransactions   = (id)       => apiFetch(`/api/masters/suppliers/${id}/transactions`);
 export const createSupplierTransaction = (id, body) => apiFetch(`/api/masters/suppliers/${id}/transactions`, { method: 'POST', body: JSON.stringify(body) });
 
@@ -76,7 +80,8 @@ export const getCustomerLedger = (customerId) =>
 export const getCustomers   = ()          => apiFetch('/api/masters/customers');
 export const createCustomer = (body)      => apiFetch('/api/masters/customers', { method: 'POST',   body: JSON.stringify(body) });
 export const updateCustomer = (id, body)  => apiFetch(`/api/masters/customers/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteCustomer = (id)        => apiFetch(`/api/masters/customers/${id}`, { method: 'DELETE' });
+export const deleteCustomer      = (id) => apiFetch(`/api/masters/customers/${id}`,       { method: 'DELETE' });
+export const forceDeleteCustomer = (id) => apiFetch(`/api/masters/customers/${id}/force`, { method: 'DELETE' });
 export const getCustomerTransactions   = (id)       => apiFetch(`/api/masters/customers/${id}/transactions`);
 export const createCustomerTransaction = (id, body) => apiFetch(`/api/masters/customers/${id}/transactions`, { method: 'POST', body: JSON.stringify(body) });
 
@@ -84,19 +89,22 @@ export const createCustomerTransaction = (id, body) => apiFetch(`/api/masters/cu
 export const getProducts   = ()           => apiFetch('/api/masters/products');
 export const createProduct = (body)       => apiFetch('/api/masters/products', { method: 'POST',   body: JSON.stringify(body) });
 export const updateProduct = (id, body)   => apiFetch(`/api/masters/products/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteProduct = (id)         => apiFetch(`/api/masters/products/${id}`, { method: 'DELETE' });
+export const deleteProduct      = (id) => apiFetch(`/api/masters/products/${id}`,       { method: 'DELETE' });
+export const forceDeleteProduct = (id) => apiFetch(`/api/masters/products/${id}/force`, { method: 'DELETE' });
 
 // ── Warehouses ─────────────────────────────────────────────────────────────────
 export const getWarehouses   = ()          => apiFetch('/api/masters/warehouses');
 export const createWarehouse = (body)      => apiFetch('/api/masters/warehouses', { method: 'POST',   body: JSON.stringify(body) });
 export const updateWarehouse = (id, body)  => apiFetch(`/api/masters/warehouses/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deleteWarehouse = (id)        => apiFetch(`/api/masters/warehouses/${id}`, { method: 'DELETE' });
+export const deleteWarehouse      = (id) => apiFetch(`/api/masters/warehouses/${id}`,       { method: 'DELETE' });
+export const forceDeleteWarehouse = (id) => apiFetch(`/api/masters/warehouses/${id}/force`, { method: 'DELETE' });
 
 // ── Payment Methods ────────────────────────────────────────────────────────────
 export const getPaymentMethods    = ()          => apiFetch('/api/masters/payment-methods');
 export const createPaymentMethod  = (body)      => apiFetch('/api/masters/payment-methods', { method: 'POST',   body: JSON.stringify(body) });
 export const updatePaymentMethod  = (id, body)  => apiFetch(`/api/masters/payment-methods/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
-export const deletePaymentMethod  = (id)        => apiFetch(`/api/masters/payment-methods/${id}`, { method: 'DELETE' });
+export const deletePaymentMethod       = (id) => apiFetch(`/api/masters/payment-methods/${id}`,       { method: 'DELETE' });
+export const forceDeletePaymentMethod  = (id) => apiFetch(`/api/masters/payment-methods/${id}/force`, { method: 'DELETE' });
 
 // ── Expense Master ─────────────────────────────────────────────────────────────
 export const getExpenses    = ()          => apiFetch('/api/masters/expenses');

@@ -18,6 +18,9 @@ import {
   getExpenses,      createExpense,     updateExpense,     deleteExpense,
   getWarehouses,    createWarehouse,   updateWarehouse,   deleteWarehouse,
   updateContact,    deleteContact,
+  forceDeleteBranch, forceDeleteSupplier, forceDeleteCustomer,
+  forceDeleteProduct, forceDeleteWarehouse, forceDeleteCategory,
+  forceDeleteUnit, forceDeletePaymentMethod,
 } from '../../api/masters';
 
 // Phone number max digits by country dial code (national subscriber number length)
@@ -318,6 +321,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
   const [deletingId,  setDeletingId]  = useState(null);
   const [deleteModal, setDeleteModal] = useState(null); // { id, label }
   const [deleteModalErr, setDeleteModalErr] = useState('');
+  const [forceMode, setForceMode] = useState(false);
 
   // Search state for lists
   const [listSearch, setListSearch] = useState('');
@@ -347,7 +351,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
   // Global keyboard shortcuts — register once, read latest state via ref
   const kbRef = useRef({});
-  kbRef.current = { deleteModal, deleteModalErr, deletingId, viewRecord, contactsRecord, showListModal, quickCreate, saving };
+  kbRef.current = { deleteModal, deleteModalErr, deletingId, viewRecord, contactsRecord, showListModal, quickCreate, saving, forceMode };
 
   const confirmDeleteRef = useRef(null);
   const handleSubmitRef  = useRef(null);
@@ -357,12 +361,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       const s = kbRef.current;
       if (e.key === 'Escape') {
         if (s.quickCreate)    { setQuickCreate(null); return; }
-        if (s.deleteModal)    { setDeleteModal(null); setDeleteModalErr(''); return; }
+        if (s.deleteModal)    { setDeleteModal(null); setDeleteModalErr(''); setForceMode(false); return; }
         if (s.viewRecord)     { setViewRecord(null); setEditingId(null); setEditData({}); setEditError(''); return; }
         if (s.contactsRecord) { setContactsRecord(null); setEditingContactId(null); setDeleteContactId(null); setContactErr(''); return; }
         if (s.showListModal)  { setShowListModal(false); setListSearch(''); setEditingId(null); return; }
       }
-      if (e.key === 'Enter' && s.deleteModal && !s.deleteModalErr && !s.deletingId) {
+      if (e.key === 'Enter' && s.deleteModal && !s.deleteModalErr && !s.deletingId && !s.forceMode) {
         confirmDeleteRef.current?.();
         return;
       }
@@ -390,6 +394,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     const label  = record?.name || record?.unitName || `this ${type.toLowerCase()}`;
     setDeleteModal({ id, label });
     setDeleteModalErr('');
+    setForceMode(false);
   };
 
   const confirmDelete = async () => {
@@ -413,6 +418,30 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       emitDataChange();
     } catch (err) {
       setDeleteModalErr(err.message || 'Cannot delete this record.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const confirmForceDelete = async () => {
+    if (!deleteModal) return;
+    const { id } = deleteModal;
+    setDeletingId(id);
+    try {
+      if (isWarehouse)          await forceDeleteWarehouse(id);
+      else if (isBranch)        await forceDeleteBranch(id);
+      else if (isDetailed)      await forceDeleteSupplier(id);
+      else if (isCustomer)      await forceDeleteCustomer(id);
+      else if (isProduct)       await forceDeleteProduct(id);
+      else if (isPaymentMethod) await forceDeletePaymentMethod(id);
+      else if (isUnit)          await forceDeleteUnit(id);
+      else if (isCategory)      await forceDeleteCategory(id);
+      setRecords(prev => prev.filter(r => r.id !== id));
+      setDeleteModal(null);
+      setForceMode(false);
+      emitDataChange();
+    } catch (err) {
+      setDeleteModalErr(err.message || 'Force delete failed.');
     } finally {
       setDeletingId(null);
     }
@@ -1632,16 +1661,21 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-sm mx-4 p-6 space-y-5 animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${deleteModalErr ? 'bg-amber-50 border border-amber-100' : 'bg-red-50 border border-red-100'}`}>
-                <Trash2 className={`w-5 h-5 ${deleteModalErr ? 'text-amber-500' : 'text-red-500'}`} />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${forceMode ? 'bg-red-100 border border-red-200' : deleteModalErr ? 'bg-amber-50 border border-amber-100' : 'bg-red-50 border border-red-100'}`}>
+                <Trash2 className={`w-5 h-5 ${forceMode ? 'text-red-700' : deleteModalErr ? 'text-amber-500' : 'text-red-500'}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-bold text-stone-800">Delete {type === 'Branches' ? 'Branch' : type}?</h3>
-                {deleteModalErr ? (
+                {deleteModalErr && !forceMode ? (
                   <div className="mt-2 space-y-1">
                     <p className="text-sm font-semibold text-amber-700">Cannot delete "{deleteModal.label}"</p>
                     <p className="text-sm text-stone-500 leading-relaxed">{deleteModalErr}</p>
-                    <p className="text-xs text-stone-400 mt-1">Remove or reassign the linked entries first, then try again.</p>
+                    <p className="text-xs text-stone-400 mt-1">Remove or reassign the linked entries first, or use Force Delete to remove everything.</p>
+                  </div>
+                ) : forceMode ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm font-bold text-red-700">Force Delete "{deleteModal.label}"</p>
+                    <p className="text-sm text-red-500 leading-relaxed">This will permanently delete this record <span className="font-semibold">and all linked vouchers, transactions, and data</span>. This cannot be undone.</p>
                   </div>
                 ) : (
                   <p className="text-sm text-stone-500 mt-1">
@@ -1653,12 +1687,21 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <div className="flex justify-end gap-3 pt-1">
               <button
                 type="button"
-                onClick={() => { setDeleteModal(null); setDeleteModalErr(''); }}
+                onClick={() => { setDeleteModal(null); setDeleteModalErr(''); setForceMode(false); }}
                 className="px-5 py-2 rounded-xl text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all active:scale-95"
               >
-                {deleteModalErr ? 'Close' : 'Cancel'}
+                Cancel
               </button>
-              {!deleteModalErr && (
+              {deleteModalErr && !forceMode && !isBranchMaster && !isExpense && (
+                <button
+                  type="button"
+                  onClick={() => { setForceMode(true); setDeleteModalErr(''); }}
+                  className="px-4 py-2 rounded-xl text-sm font-bold bg-red-900 text-white hover:bg-red-950 transition-all active:scale-95 shadow-sm"
+                >
+                  Force Delete
+                </button>
+              )}
+              {!deleteModalErr && !forceMode && (
                 <button
                   type="button"
                   onClick={confirmDelete}
@@ -1666,6 +1709,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                   className="px-5 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {deletingId ? 'Deleting…' : 'Yes, Delete'}
+                </button>
+              )}
+              {forceMode && (
+                <button
+                  type="button"
+                  onClick={confirmForceDelete}
+                  disabled={!!deletingId}
+                  className="px-5 py-2 rounded-xl text-sm font-bold bg-red-700 text-white hover:bg-red-800 transition-all active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {deletingId ? 'Deleting…' : 'Yes, Force Delete'}
                 </button>
               )}
             </div>

@@ -1077,6 +1077,164 @@ const updateDashboardBalance = async (req, res) => {
   }
 };
 
+// ── Force Delete helpers ───────────────────────────────────────────────────────
+// Deletes all vouchers tied to a list of productIds (items cascade on voucher delete)
+const forceDeleteVouchersForProducts = async (productIds) => {
+  if (!productIds.length) return;
+  const [pvIds, prvIds, svIds, srvIds, sdvIds, stIds] = await Promise.all([
+    prisma.purchaseVoucherItem.findMany({ where: { productId: { in: productIds } }, select: { voucherId: true } }),
+    prisma.purchaseReturnVoucherItem.findMany({ where: { productId: { in: productIds } }, select: { voucherId: true } }),
+    prisma.salesVoucherItem.findMany({ where: { productId: { in: productIds } }, select: { voucherId: true } }),
+    prisma.salesReturnVoucherItem.findMany({ where: { productId: { in: productIds } }, select: { voucherId: true } }),
+    prisma.stockDataVoucherItem.findMany({ where: { productId: { in: productIds } }, select: { voucherId: true } }),
+    prisma.stockTransferVoucherItem.findMany({ where: { productId: { in: productIds } }, select: { voucherId: true } }),
+  ]);
+  const uniq = (arr) => [...new Set(arr.map(i => i.voucherId))];
+  const ops = [];
+  const pv = uniq(pvIds); if (pv.length) ops.push(prisma.purchaseVoucher.deleteMany({ where: { id: { in: pv } } }));
+  const prv = uniq(prvIds); if (prv.length) ops.push(prisma.purchaseReturnVoucher.deleteMany({ where: { id: { in: prv } } }));
+  const sv = uniq(svIds); if (sv.length) ops.push(prisma.salesVoucher.deleteMany({ where: { id: { in: sv } } }));
+  const srv = uniq(srvIds); if (srv.length) ops.push(prisma.salesReturnVoucher.deleteMany({ where: { id: { in: srv } } }));
+  const sdv = uniq(sdvIds); if (sdv.length) ops.push(prisma.stockDataVoucher.deleteMany({ where: { id: { in: sdv } } }));
+  const st = uniq(stIds); if (st.length) ops.push(prisma.stockTransferVoucher.deleteMany({ where: { id: { in: st } } }));
+  if (ops.length) await prisma.$transaction(ops);
+};
+
+const forceDeleteBranch = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const [custIds, suppIds, prodIds] = await Promise.all([
+      prisma.customer.findMany({ where: { branchId: id }, select: { id: true } }),
+      prisma.supplier.findMany({ where: { branchId: id }, select: { id: true } }),
+      prisma.product.findMany({ where: { branchId: id }, select: { id: true } }),
+    ]);
+    const cIds = custIds.map(c => c.id);
+    const sIds = suppIds.map(s => s.id);
+    const pIds = prodIds.map(p => p.id);
+    await forceDeleteVouchersForProducts(pIds);
+    await prisma.$transaction([
+      prisma.receiptVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.paymentVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.salesVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.purchaseVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.salesReturnVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.purchaseReturnVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.stockDataVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.stockTransferVoucher.deleteMany({ where: { branchId: id } }),
+      prisma.contraVoucher.deleteMany({ where: { branchId: id } }),
+      ...(cIds.length ? [prisma.customer.deleteMany({ where: { id: { in: cIds } } })] : []),
+      ...(sIds.length ? [prisma.supplier.deleteMany({ where: { id: { in: sIds } } })] : []),
+      ...(pIds.length ? [prisma.product.deleteMany({ where: { id: { in: pIds } } })] : []),
+      prisma.warehouseMaster.deleteMany({ where: { branchId: id } }),
+      prisma.paymentMethodMaster.deleteMany({ where: { branchId: id } }),
+      prisma.expenseMaster.deleteMany({ where: { branchId: id } }),
+      prisma.categoryMaster.deleteMany({ where: { branchId: id } }),
+      prisma.unitMaster.deleteMany({ where: { branchId: id } }),
+      prisma.branchMaster.deleteMany({ where: { branchId: id } }),
+      prisma.dashboardBalance.deleteMany({ where: { branchId: id } }),
+      prisma.branch.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Branch and all linked data deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeleteSupplier = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.$transaction([
+      prisma.purchaseVoucher.deleteMany({ where: { supplierId: id } }),
+      prisma.purchaseReturnVoucher.deleteMany({ where: { supplierId: id } }),
+      prisma.paymentVoucher.deleteMany({ where: { supplierId: id } }),
+      prisma.receiptVoucher.deleteMany({ where: { supplierId: id } }),
+      prisma.supplier.delete({ where: { id } }), // SupplierTransaction & ContactPerson cascade
+    ]);
+    res.json({ message: 'Supplier and all linked data deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeleteCustomer = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.$transaction([
+      prisma.salesVoucher.deleteMany({ where: { customerId: id } }),
+      prisma.salesReturnVoucher.deleteMany({ where: { customerId: id } }),
+      prisma.receiptVoucher.deleteMany({ where: { customerId: id } }),
+      prisma.paymentVoucher.deleteMany({ where: { customerId: id } }),
+      prisma.customer.delete({ where: { id } }), // CustomerTransaction & ContactPerson cascade
+    ]);
+    res.json({ message: 'Customer and all linked data deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeleteProduct = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await forceDeleteVouchersForProducts([id]);
+    await prisma.product.delete({ where: { id } });
+    res.json({ message: 'Product and all linked vouchers deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeleteWarehouse = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    // Find SalesReturnVouchers that have items tied to this warehouse
+    const srvItems = await prisma.salesReturnVoucherItem.findMany({ where: { warehouseId: id }, select: { voucherId: true } });
+    const srvIds = [...new Set(srvItems.map(i => i.voucherId))];
+    await prisma.$transaction([
+      prisma.salesVoucher.deleteMany({ where: { warehouseId: id } }),
+      prisma.purchaseVoucher.deleteMany({ where: { warehouseId: id } }),
+      prisma.purchaseReturnVoucher.deleteMany({ where: { warehouseId: id } }),
+      prisma.stockDataVoucher.deleteMany({ where: { warehouseId: id } }),
+      prisma.stockTransferVoucher.deleteMany({ where: { OR: [{ fromWarehouseId: id }, { toWarehouseId: id }] } }),
+      ...(srvIds.length ? [prisma.salesReturnVoucher.deleteMany({ where: { id: { in: srvIds } } })] : []),
+      prisma.warehouseMaster.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Warehouse and all linked vouchers deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeleteCategory = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const products = await prisma.product.findMany({ where: { categoryId: id }, select: { id: true } });
+    await forceDeleteVouchersForProducts(products.map(p => p.id));
+    await prisma.$transaction([
+      ...(products.length ? [prisma.product.deleteMany({ where: { categoryId: id } })] : []),
+      prisma.categoryMaster.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Category and all linked products deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeleteUnit = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const products = await prisma.product.findMany({ where: { unitId: id }, select: { id: true } });
+    await forceDeleteVouchersForProducts(products.map(p => p.id));
+    await prisma.$transaction([
+      ...(products.length ? [prisma.product.deleteMany({ where: { unitId: id } })] : []),
+      prisma.unitMaster.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Unit and all linked products deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
+const forceDeletePaymentMethod = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.$transaction([
+      prisma.receiptVoucher.deleteMany({ where: { paymentMethodId: id } }),
+      prisma.paymentVoucher.deleteMany({ where: { paymentMethodId: id } }),
+      prisma.purchaseVoucher.deleteMany({ where: { paymentMethodId: id } }),
+      prisma.purchaseReturnVoucher.deleteMany({ where: { paymentMethodId: id } }),
+      prisma.contraVoucher.deleteMany({ where: { OR: [{ fromPaymentMethodId: id }, { toPaymentMethodId: id }] } }),
+      prisma.paymentMethodMaster.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Payment method and all linked vouchers deleted.' });
+  } catch (err) { console.error(err); res.status(500).json({ message: prismaErr(err) }); }
+};
+
 module.exports = {
   getCountries, createCountry, updateCountry, deleteCountry,
   getStates,    createState,   updateState,   deleteState,
@@ -1095,4 +1253,7 @@ module.exports = {
   getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
   updateContact, deleteContact,
   getDashboardBalance, updateDashboardBalance,
+  forceDeleteBranch, forceDeleteSupplier, forceDeleteCustomer,
+  forceDeleteProduct, forceDeleteWarehouse, forceDeleteCategory,
+  forceDeleteUnit, forceDeletePaymentMethod,
 };
