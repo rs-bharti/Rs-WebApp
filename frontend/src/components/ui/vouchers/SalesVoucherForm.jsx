@@ -130,10 +130,10 @@ const SalesVoucherForm = () => {
         date,
         particularType: pType,
         particularId:   parseInt(pId),
-        particularName: partyName,
+        particularName: partyName.toUpperCase(),
         paymentTerms,
         warehouseId:    validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
-        narration:      narration || undefined,
+        narration:      narration ? narration.toUpperCase() : undefined,
         branchId:       activeBranch?.id,
         items: validItems.map(r => ({
           productId:   parseInt(r.productId),

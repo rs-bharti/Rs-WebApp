@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, List, ChevronDown } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
-import { getCustomers, getSuppliers, getExpenses, getMasterBranchMasters, getPaymentMethods } from '../../../api/masters';
+import { getCustomers, getSuppliers, getMasterBranchMasters, getPaymentMethods } from '../../../api/masters';
 import { useNavigate } from 'react-router-dom';
 import { getReceiptVoucherNextNo, saveReceiptVoucher, getReceipts, updateReceiptVoucher, deleteReceiptVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -22,7 +22,6 @@ const ReceiptVoucherForm = () => {
 
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [expenses, setExpenses] = useState([]);
   const [branches, setBranches] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
 
@@ -53,10 +52,9 @@ const ReceiptVoucherForm = () => {
     const opts = [];
     for (const c of customers) opts.push({ id: `customer_${c.id}`, name: `${c.name} (Customer)` });
     for (const s of suppliers) opts.push({ id: `supplier_${s.id}`, name: `${s.name} (Supplier)` });
-    for (const e of expenses)  opts.push({ id: `expense_${e.id}`,  name: `${e.name} (Expense)` });
     for (const b of branches)  opts.push({ id: `branch_${b.id}`,   name: `${b.name} (Branch)` });
     return opts;
-  }, [customers, suppliers, expenses, branches]);
+  }, [customers, suppliers, branches]);
 
   const parseParticular = (key) => {
     if (!key) return null;
@@ -90,15 +88,13 @@ const ReceiptVoucherForm = () => {
     Promise.all([
       getCustomers(),
       getSuppliers(),
-      getExpenses(),
       branchPromise,
       getPaymentMethods(),
       getReceiptVoucherNextNo(),
       getReceipts(),
-    ]).then(([cust, supp, exp, brnch, pm, vn, vlist]) => {
+    ]).then(([cust, supp, brnch, pm, vn, vlist]) => {
       setCustomers(cust);
       setSuppliers(supp);
-      setExpenses(exp);
       setBranches(brnch);
       setPaymentMethods(pm.map(m => ({ ...m, name: m.category ? `${m.name} (${m.category})` : m.name })));
       setVoucherNo(vn.voucherNo);
@@ -124,10 +120,10 @@ const ReceiptVoucherForm = () => {
         date,
         particularType:  parsed.type,
         particularId:    parsed.id,
-        particularName:  name,
+        particularName:  name.toUpperCase(),
         paymentMethodId: parseInt(paymentMethodId),
         amount:          parseFloat(amount),
-        narration:       narration || undefined,
+        narration:       narration ? narration.toUpperCase() : undefined,
         branchId:        activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
@@ -169,7 +165,6 @@ const ReceiptVoucherForm = () => {
   const typeBadgeClass = {
     customer: 'bg-blue-50 text-blue-700 border border-blue-100',
     supplier: 'bg-purple-50 text-purple-700 border border-purple-100',
-    expense:  'bg-orange-50 text-orange-700 border border-orange-100',
     branch:   'bg-teal-50 text-teal-700 border border-teal-100',
   };
 
@@ -228,7 +223,7 @@ const ReceiptVoucherForm = () => {
                 </button>
                 {masterPopup && (
                   <div className="absolute right-0 top-7 z-50 bg-white border border-stone-200 rounded-xl shadow-lg py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
-                    {[['customer', 'Customer', '/dashboard/master/customer'], ['supplier', 'Supplier', '/dashboard/master/supplier'], ['expense', 'Expense', '/dashboard/master/expense']].map(([key, label, path]) => (
+                    {[['customer', 'Customer', '/dashboard/master/customer'], ['supplier', 'Supplier', '/dashboard/master/supplier']].map(([key, label, path]) => (
                       <button key={key} type="button" onClick={() => navigate(path)}
                         className={`w-full text-left px-4 py-2 text-sm font-medium hover:bg-rs-accent-bg transition-colors ${typeBadgeClass[key]?.replace('border', '').trim() || ''}`}>
                         + Go to {label} Master
@@ -242,7 +237,7 @@ const ReceiptVoucherForm = () => {
               value={particularKey}
               onChange={setParticularKey}
               options={particularsOptions}
-              placeholder="Select Customer / Supplier / Expense / Branch"
+              placeholder="Select Customer / Supplier / Branch"
             />
             {selectedTypeBadge()}
           </div>

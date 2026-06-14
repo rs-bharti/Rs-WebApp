@@ -104,9 +104,9 @@ const SalesReturnVoucherForm = () => {
         date,
         particularType: pType,
         particularId:   parseInt(pId),
-        particularName: partyName,
+        particularName: partyName.toUpperCase(),
         paymentTerms,
-        narration:      narration || undefined,
+        narration:      narration ? narration.toUpperCase() : undefined,
         branchId:       activeBranch?.id,
         items: validItems.map(r => ({
           productId:   parseInt(r.productId),

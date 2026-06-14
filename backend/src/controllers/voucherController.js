@@ -451,9 +451,9 @@ const getPurchaseReturns = async (req, res) => {
 
 const createPurchaseReturn = async (req, res) => {
   try {
-    const { particularType = 'supplier', particularId, particularName, paymentMethodId, warehouseId, date, items, narration } = req.body;
-    if (!particularId || !paymentMethodId || !items?.length)
-      return res.status(400).json({ message: 'Party, paymentMethodId, and items are required' });
+    const { particularType = 'supplier', particularId, particularName, paymentTerms, warehouseId, date, items, narration } = req.body;
+    if (!particularId || !items?.length)
+      return res.status(400).json({ message: 'Party and items are required' });
 
     const branchId = getBranchId(req);
 
@@ -468,8 +468,7 @@ const createPurchaseReturn = async (req, res) => {
     }
 
     const productIds = [...new Set(items.map(i => Number(i.productId)))];
-    const [paymentMethodRecord, warehouseRecord, productRecords] = await Promise.all([
-      prisma.paymentMethodMaster.findUnique({ where: { id: Number(paymentMethodId) }, select: { name: true } }),
+    const [warehouseRecord, productRecords] = await Promise.all([
       warehouseId
         ? prisma.warehouseMaster.findUnique({ where: { id: Number(warehouseId) }, select: { name: true } })
         : Promise.resolve(null),
@@ -484,19 +483,18 @@ const createPurchaseReturn = async (req, res) => {
 
     const voucher = await withVoucherRetry(async () => prisma.purchaseReturnVoucher.create({
       data: {
-        voucherNo:         await nextNo('purchaseReturnVoucher', 'PRV'),
-        supplierId:        resolvedSupplierId,
-        supplierName:      resolvedSupplierName,
+        voucherNo:     await nextNo('purchaseReturnVoucher', 'PRV'),
+        supplierId:    resolvedSupplierId,
+        supplierName:  resolvedSupplierName,
         particularType,
         branchId,
-        warehouseId:       warehouseId ? Number(warehouseId) : null,
-        warehouseName:     warehouseRecord?.name || null,
-        paymentMethodId:   Number(paymentMethodId),
-        paymentMethodName: paymentMethodRecord?.name || null,
-        date:              date ? new Date(date) : new Date(),
+        warehouseId:   warehouseId ? Number(warehouseId) : null,
+        warehouseName: warehouseRecord?.name || null,
+        paymentTerms:  paymentTerms || null,
+        date:          date ? new Date(date) : new Date(),
         subTotal, taxAmount, discountAmount, totalAmount,
-        narration:         narration || null,
-        createdById:       req.user.id,
+        narration:     narration || null,
+        createdById:   req.user.id,
         items: {
           create: items.map(i => ({
             productId:      Number(i.productId),
@@ -2036,6 +2034,56 @@ const getMoneyLedger = async (req, res) => {
   }
 };
 
+const getReceivablesLedger = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    if (!branchId) return res.status(400).json({ message: 'Branch required' });
+
+    const customerFilter = { OR: [{ customerId: { not: null } }, { particularType: 'customer' }] };
+
+    const [receipts, payments] = await Promise.all([
+      prisma.receiptVoucher.findMany({
+        where: { branchId, ...customerFilter },
+        select: {
+          id: true, voucherNo: true, date: true, amount: true, narration: true,
+          particularName: true, particularType: true,
+          customer: { select: { name: true } },
+        },
+        orderBy: { date: 'asc' },
+      }),
+      prisma.paymentVoucher.findMany({
+        where: { branchId, ...customerFilter },
+        select: {
+          id: true, voucherNo: true, date: true, amount: true, narration: true,
+          particularName: true, particularType: true,
+          customer: { select: { name: true } },
+        },
+        orderBy: { date: 'asc' },
+      }),
+    ]);
+
+    const entries = [
+      ...receipts.map(r => ({
+        id: `rv-${r.id}`, type: 'receipt',
+        voucherNo: r.voucherNo, date: r.date, amount: r.amount,
+        narration: r.narration || '',
+        particular: r.particularName || r.customer?.name || '—',
+      })),
+      ...payments.map(p => ({
+        id: `pv-${p.id}`, type: 'payment',
+        voucherNo: p.voucherNo, date: p.date, amount: p.amount,
+        narration: p.narration || '',
+        particular: p.particularName || p.customer?.name || '—',
+      })),
+    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    res.json({ entries });
+  } catch (err) {
+    console.error('getReceivablesLedger error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getContraNextNo,        getContras,        createContra,        deleteContra,        updateContra,
   getReceiptNextNo,       getReceipts,       createReceipt,       deleteReceipt,       updateReceipt,
@@ -2054,4 +2102,5 @@ module.exports = {
   getCustomerLedger,
   getDayBook,
   getMoneyLedger,
+  getReceivablesLedger,
 };

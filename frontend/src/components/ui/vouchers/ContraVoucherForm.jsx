@@ -76,7 +76,7 @@ const ContraVoucherForm = () => {
         fromPaymentMethodId: parseInt(fromPaymentMethodId),
         toPaymentMethodId:   parseInt(toPaymentMethodId),
         amount:              parseFloat(amount),
-        narration:           narration || undefined,
+        narration:           narration ? narration.toUpperCase() : undefined,
         branchId:            activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);

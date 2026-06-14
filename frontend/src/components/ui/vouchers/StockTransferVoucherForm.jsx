@@ -107,7 +107,7 @@ const StockTransferVoucherForm = () => {
         date,
         fromWarehouseId: Number(validRows[0].fromWarehouseId),
         toWarehouseId:   Number(toWarehouseId),
-        narration:       narration || undefined,
+        narration:       narration ? narration.toUpperCase() : undefined,
         branchId:        activeBranch?.id,
         items: validRows.map(r => ({
           productId:       Number(r.productId),

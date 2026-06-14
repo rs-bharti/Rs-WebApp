@@ -124,10 +124,10 @@ const PaymentVoucherForm = () => {
         date,
         particularType:  parsed.type,
         particularId:    parsed.id,
-        particularName:  name,
+        particularName:  name.toUpperCase(),
         paymentMethodId: parseInt(paymentMethodId),
         amount:          parseFloat(amount),
-        narration:       narration || undefined,
+        narration:       narration ? narration.toUpperCase() : undefined,
         branchId:        activeBranch?.id,
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);

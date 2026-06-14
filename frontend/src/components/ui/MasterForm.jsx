@@ -233,6 +233,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
   const f   = (field) => formData[field] ?? '';
   const upd = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  const up  = (v) => (v || '').trim().toUpperCase();
 
   // Contacts
   const [contacts, setContacts] = useState([{ id: 1, name: '', phone: '', phonePrefix: '+91', designation: '', dob: '' }]);
@@ -484,7 +485,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     setSaving(true);
     try {
       const validContacts = contacts.filter(c => c.name.trim()).map(c => ({
-        name: c.name.trim(),
+        name: c.name.trim().toUpperCase(),
         phone: c.phone ? `${c.phonePrefix || ''}${c.phonePrefix ? ' ' : ''}${c.phone}`.trim() : undefined,
         designation: c.designation || undefined,
         dob: c.dob || undefined,
@@ -494,37 +495,37 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       if (isPaymentMethod) {
         if (!f('name')) return setError('Payment method name is required');
         if (!f('category')) return setError('Please select a category (CASH or BANK)');
-        newRow = await createPaymentMethod({ name: f('name'), category: f('category'), openingBalance: parseFloat(f('openingBalance') || 0) });
+        newRow = await createPaymentMethod({ name: up(f('name')), category: f('category'), openingBalance: parseFloat(f('openingBalance') || 0) });
       } else if (isExpense) {
         if (!f('name')) return setError('Expense name is required');
-        newRow = await createExpense({ name: f('name') });
+        newRow = await createExpense({ name: up(f('name')) });
       } else if (type === 'Category') {
-        newRow = await createCategory({ name: f('name') });
+        newRow = await createCategory({ name: up(f('name')) });
       } else if (isUnit) {
-        newRow = await createUnit({ unitName: f('unitName'), ...(f('shortName') && { shortName: f('shortName') }) });
+        newRow = await createUnit({ unitName: up(f('unitName')), ...(f('shortName') && { shortName: up(f('shortName')) }) });
       } else if (isBranch) {
         if (!f('name')) return setError('Branch name is required');
         newRow = await createBranch({
-          name: f('name'),
+          name: up(f('name')),
           ...(selCountry && { countryId: selCountry }),
           ...(selState   && { stateId:   selState }),
           ...(selCity    && { cityId:    selCity }),
-          ...(f('address') && { address: f('address') }),
-          ...(f('area')    && { area:    f('area') }),
+          ...(f('address') && { address: up(f('address')) }),
+          ...(f('area')    && { area:    up(f('area')) }),
         });
       } else if (isBranchMaster) {
         if (!f('name')) return setError('Branch Master name is required');
-        newRow = await createBranchMaster({ name: f('name') });
+        newRow = await createBranchMaster({ name: up(f('name')) });
       } else if (isDetailed) {
         const fullPhone = f('phone') ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${f('phone')}`.trim() : undefined;
         const obAmt = parseFloat(f('openingBalance'));
         newRow = await createSupplier({
-          name: f('name'), countryId: selCountry, stateId: selState, cityId: selCity,
-          ...(f('area')    && { area:    f('area') }),
-          ...(f('address') && { address: f('address') }),
+          name: up(f('name')), countryId: selCountry, stateId: selState, cityId: selCity,
+          ...(f('area')    && { area:    up(f('area')) }),
+          ...(f('address') && { address: up(f('address')) }),
           ...(fullPhone    && { phone:   fullPhone }),
           ...(f('email')   && { email:   f('email') }),
-          ...(f('gstNo')   && { gstNo:   f('gstNo') }),
+          ...(f('gstNo')   && { gstNo:   up(f('gstNo')) }),
           ...(!isNaN(obAmt) && obAmt > 0 && { openingBalance: obAmt, openingBalanceType: f('obType') === 'DR' ? 'DR' : 'CR' }),
           contacts: validContacts,
         });
@@ -532,12 +533,12 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         const fullPhone = f('phone') ? `${f('phonePrefix') || ''}${f('phonePrefix') ? ' ' : ''}${f('phone')}`.trim() : undefined;
         const obAmt = parseFloat(f('openingBalance'));
         newRow = await createCustomer({
-          name: f('name'), countryId: selCountry, stateId: selState, cityId: selCity,
-          ...(f('area')    && { area:    f('area') }),
-          ...(f('address') && { address: f('address') }),
+          name: up(f('name')), countryId: selCountry, stateId: selState, cityId: selCity,
+          ...(f('area')    && { area:    up(f('area')) }),
+          ...(f('address') && { address: up(f('address')) }),
           ...(fullPhone    && { phone:   fullPhone }),
           ...(f('email')   && { email:   f('email') }),
-          ...(f('gstNo')   && { gstNo:   f('gstNo') }),
+          ...(f('gstNo')   && { gstNo:   up(f('gstNo')) }),
           ...(!isNaN(obAmt) && obAmt > 0 && { openingBalance: obAmt, openingBalanceType: f('obType') === 'DR' ? 'DR' : 'CR' }),
           contacts: validContacts,
         });
@@ -548,16 +549,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         if (f('lowerLimit') === '') return setError('Lower limit is required');
         if (f('upperLimit') === '') return setError('Upper limit is required');
         newRow = await createProduct({
-          name: f('name'), categoryId: selCategory, unitId: selUnit,
+          name: up(f('name')), categoryId: selCategory, unitId: selUnit,
           lowerLimit: f('lowerLimit'), upperLimit: f('upperLimit'),
-          ...(f('barcode') && { barcode: f('barcode') }),
+          ...(f('barcode') && { barcode: up(f('barcode')) }),
         });
       } else if (isWarehouse) {
         if (!f('name')) return setError('Warehouse name is required');
         newRow = await createWarehouse({
-          name: f('name'),
-          ...(f('address') && { address: f('address') }),
-          ...(f('area')    && { area:    f('area') }),
+          name: up(f('name')),
+          ...(f('address') && { address: up(f('address')) }),
+          ...(f('area')    && { area:    up(f('area')) }),
           ...(selCity      && { cityId:  selCity }),
         });
       }
@@ -628,25 +629,25 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     try {
       let updated;
       if (isProduct) {
-        updated = await updateProduct(id, { name: editData.name.trim(), categoryId: editData.categoryId || undefined, unitId: editData.unitId || undefined, lowerLimit: Number(editData.lowerLimit), upperLimit: Number(editData.upperLimit), barcode: editData.barcode || undefined });
+        updated = await updateProduct(id, { name: editData.name.trim().toUpperCase(), categoryId: editData.categoryId || undefined, unitId: editData.unitId || undefined, lowerLimit: Number(editData.lowerLimit), upperLimit: Number(editData.upperLimit), barcode: editData.barcode || undefined });
       } else if (isBranch) {
-        updated = await updateBranch(id, { name: editData.name.trim(), address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
+        updated = await updateBranch(id, { name: editData.name.trim().toUpperCase(), address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
       } else if (isBranchMaster) {
-        updated = await updateBranchMaster(id, { name: editData.name.trim() });
+        updated = await updateBranchMaster(id, { name: editData.name.trim().toUpperCase() });
       } else if (isDetailed) {
-        updated = await updateSupplier(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
+        updated = await updateSupplier(id, { name: editData.name.trim().toUpperCase(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
       } else if (isCustomer) {
-        updated = await updateCustomer(id, { name: editData.name.trim(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
+        updated = await updateCustomer(id, { name: editData.name.trim().toUpperCase(), phone: editData.phone || undefined, email: editData.email || undefined, gstNo: editData.gstNo || undefined, address: editData.address || undefined, area: editData.area || undefined, cityId: editData.cityId || undefined, stateId: editData.stateId || undefined, countryId: editData.countryId || undefined });
       } else if (isWarehouse) {
-        updated = await updateWarehouse(id, { name: editData.name.trim(), address: editData.address || undefined, area: editData.area || undefined });
+        updated = await updateWarehouse(id, { name: editData.name.trim().toUpperCase(), address: editData.address || undefined, area: editData.area || undefined });
       } else if (isUnit) {
-        updated = await updateUnit(id, { unitName: editData.unitName.trim(), shortName: editData.shortName || undefined });
+        updated = await updateUnit(id, { unitName: editData.unitName.trim().toUpperCase(), shortName: editData.shortName ? editData.shortName.toUpperCase() : undefined });
       } else if (isCategory) {
-        updated = await updateCategory(id, { name: editData.name.trim() });
+        updated = await updateCategory(id, { name: editData.name.trim().toUpperCase() });
       } else if (isPaymentMethod) {
-        updated = await updatePaymentMethod(id, { name: editData.name.trim(), category: editData.category || null, openingBalance: Number(editData.openingBalance ?? 0) });
+        updated = await updatePaymentMethod(id, { name: editData.name.trim().toUpperCase(), category: editData.category || null, openingBalance: Number(editData.openingBalance ?? 0) });
       } else if (isExpense) {
-        updated = await updateExpense(id, { name: editData.name.trim() });
+        updated = await updateExpense(id, { name: editData.name.trim().toUpperCase() });
       }
       setRecords(prev => prev.map(r => r.id === id ? { ...r, ...editData, ...updated } : r));
       if (viewRecord?.id === id) setViewRecord(prev => ({ ...prev, ...editData, ...updated }));

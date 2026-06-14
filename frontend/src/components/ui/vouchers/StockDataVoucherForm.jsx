@@ -94,7 +94,7 @@ const StockDataVoucherForm = () => {
       const voucher = await saveStockDataVoucher({
         date,
         warehouseId: parseInt(validRows[0].warehouseId),
-        narration:   narration || undefined,
+        narration:   narration ? narration.toUpperCase() : undefined,
         branchId:    activeBranch?.id,
         items:       validRows.map(r => ({ productId: parseInt(r.productId), warehouseId: parseInt(r.warehouseId), qty: parseFloat(r.qty), rate: r.rate !== '' ? parseFloat(r.rate) : undefined })),
       });

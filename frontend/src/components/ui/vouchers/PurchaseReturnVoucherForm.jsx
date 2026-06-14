@@ -3,7 +3,15 @@ import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getProducts, getWarehouses, getPaymentMethods, getMasterBranchMasters } from '../../../api/masters';
+import { getSuppliers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
+
+const PAYMENT_TERMS_OPTIONS = [
+  { id: '60 Days Consignment Basis', name: '60 Days Consignment Basis' },
+  { id: '45 Days Consignment Basis', name: '45 Days Consignment Basis' },
+  { id: '30 Days Consignment Basis', name: '30 Days Consignment Basis' },
+  { id: '15 Days Consignment Basis', name: '15 Days Consignment Basis' },
+  { id: 'Cash', name: 'Cash' },
+];
 import { getPurchaseReturnNextNo, savePurchaseReturnVoucher, getPurchaseReturns, updatePurchaseReturnVoucher, deletePurchaseReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
@@ -18,14 +26,13 @@ const PurchaseReturnVoucherForm = () => {
   const [rows,            setRows]            = useState([emptyRow()]);
   const [date,            setDate]            = useState(new Date().toISOString().split('T')[0]);
   const [voucherNo,       setVoucherNo]       = useState('');
-  const [partyKey,        setPartyKey]        = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [narration,       setNarration]       = useState('');
-  const [suppliers,       setSuppliers]       = useState([]);
-  const [branches,        setBranches]        = useState([]);
-  const [products,        setProducts]        = useState([]);
-  const [warehouses,      setWarehouses]      = useState([]);
-  const [paymentMethods,  setPaymentMethods]  = useState([]);
+  const [partyKey,      setPartyKey]      = useState('');
+  const [paymentTerms,  setPaymentTerms]  = useState('');
+  const [narration,     setNarration]     = useState('');
+  const [suppliers,     setSuppliers]     = useState([]);
+  const [branches,      setBranches]      = useState([]);
+  const [products,      setProducts]      = useState([]);
+  const [warehouses,    setWarehouses]    = useState([]);
   const [saving,          setSaving]          = useState(false);
   const [error,           setError]           = useState('');
   const [success,         setSuccess]         = useState('');
@@ -45,7 +52,7 @@ const PurchaseReturnVoucherForm = () => {
     { key: 'voucherNo',    label: 'Voucher No' },
     { key: 'date',         label: 'Date',         render: v => fmtDate(v.date) },
     { key: 'supplier',     label: 'Party',        render: v => v.supplierName || v.supplier?.name || '—' },
-    { key: 'paymentMethod',label: 'Method',       render: v => v.paymentMethod?.name || '—' },
+    { key: 'paymentTerms', label: 'Payment Terms', render: v => v.paymentTerms || '—' },
     { key: 'warehouse',    label: 'Warehouse',    render: v => v.warehouse?.name || v.warehouseName || '—' },
     { key: 'items',        label: 'Products',     render: v => { const items = v.items || []; if (!items.length) return '—'; const first = items[0].product?.name || items[0].productName || '—'; return items.length > 1 ? `${first} +${items.length - 1}` : first; } },
     { key: '_qty',         label: 'Qty',          render: v => { const items = v.items || []; const t = items.reduce((s, i) => s + (parseFloat(i.qty) || 0), 0); return t || '—'; } },
@@ -61,11 +68,10 @@ const PurchaseReturnVoucherForm = () => {
   ];
 
   useEffect(() => {
-    setPaymentMethodId(''); setPaymentMethods([]);
     setLoadingVouchers(true);
-    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getPaymentMethods(), getMasterBranchMasters(), getPurchaseReturnNextNo(), getPurchaseReturns()])
-      .then(([supp, prod, wh, pm, br, vn, vlist]) => {
-        setSuppliers(supp); setProducts(prod); setWarehouses(wh); setPaymentMethods(pm.map(m => ({ ...m, name: m.category ? `${m.name} (${m.category})` : m.name }))); setBranches(br); setVoucherNo(vn.voucherNo); setVouchers(vlist);
+    Promise.all([getSuppliers(), getProducts(), getWarehouses(), getMasterBranchMasters(), getPurchaseReturnNextNo(), getPurchaseReturns()])
+      .then(([supp, prod, wh, br, vn, vlist]) => {
+        setSuppliers(supp); setProducts(prod); setWarehouses(wh); setBranches(br); setVoucherNo(vn.voucherNo); setVouchers(vlist);
       }).catch(err => setError(err?.message || 'Failed to load form data'))
         .finally(() => setLoadingVouchers(false));
   }, [activeBranch?.id]);
@@ -87,8 +93,7 @@ const PurchaseReturnVoucherForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    if (!partyKey)        return setError('Please select a supplier or branch');
-    if (!paymentMethodId) return setError('Please select a payment method');
+    if (!partyKey) return setError('Please select a supplier or branch');
     const validItems = rows.filter(r => r.productId && parseFloat(r.qty) > 0);
     if (!validItems.length) return setError('Please add at least one product with quantity');
 
@@ -101,10 +106,10 @@ const PurchaseReturnVoucherForm = () => {
         date,
         particularType:  pType,
         particularId:    parseInt(pId),
-        particularName:  partyName,
-        paymentMethodId: parseInt(paymentMethodId),
+        particularName: partyName.toUpperCase(),
+        paymentTerms:   paymentTerms || undefined,
         warehouseId:     validItems[0]?.warehouseId ? parseInt(validItems[0].warehouseId) : undefined,
-        narration:       narration || undefined,
+        narration:       narration ? narration.toUpperCase() : undefined,
         branchId:        activeBranch?.id,
         items: validItems.map(r => ({
           productId:   parseInt(r.productId),
@@ -114,7 +119,7 @@ const PurchaseReturnVoucherForm = () => {
         })),
       });
       setSuccess(`Voucher ${voucher.voucherNo} saved successfully!`);
-      setRows([emptyRow()]); setPartyKey(''); setPaymentMethodId(''); setNarration('');
+      setRows([emptyRow()]); setPartyKey(''); setPaymentTerms(''); setNarration('');
       const [vn, vlist] = await Promise.all([getPurchaseReturnNextNo(), getPurchaseReturns()]);
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
@@ -127,7 +132,7 @@ const PurchaseReturnVoucherForm = () => {
   };
 
   const handleDiscard = () => {
-    setRows([emptyRow()]); setPartyKey(''); setPaymentMethodId(''); setNarration('');
+    setRows([emptyRow()]); setPartyKey(''); setPaymentTerms(''); setNarration('');
     setError(''); setSuccess('');
   };
 
@@ -180,15 +185,12 @@ const PurchaseReturnVoucherForm = () => {
         </div>
 
         <div className="max-w-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Payment Method</label>
-            <button type="button" onClick={() => navigate('/dashboard/master/payment-method')} className="text-rs-text-muted hover:text-rs-text-primary bg-rs-text-primary/10 hover:bg-rs-text-primary/20 rounded p-0.5 transition-all cursor-pointer" title="Go to Payment Method Master"><Plus className="w-4 h-4" /></button>
-          </div>
+          <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block">Payment Terms</label>
           <SelectSearch
-            value={paymentMethodId}
-            onChange={setPaymentMethodId}
-            options={paymentMethods}
-            placeholder="Select Payment Method"
+            value={paymentTerms}
+            onChange={setPaymentTerms}
+            options={PAYMENT_TERMS_OPTIONS}
+            placeholder="Select Payment Terms"
           />
         </div>
 

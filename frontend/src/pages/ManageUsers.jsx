@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 
 const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
 const MASTER_MODULES  = ['Customer', 'Supplier', 'Product', 'Warehouse', 'Expense', 'Payment Method'];
-const OTHER_MODULES   = ['DSR', 'Client Ledger', 'Supplier Ledger', 'Stock Ledger'];
+const OTHER_MODULES   = ['DSR', 'Client Ledger', 'Supplier Ledger', 'Stock Ledger', 'Money Ledger'];
 
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});
