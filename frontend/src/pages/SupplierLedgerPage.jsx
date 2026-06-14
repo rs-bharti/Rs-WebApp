@@ -311,7 +311,11 @@ const SupplierLedgerPage = () => {
     fetchLedger(id);
   };
 
-  const allRows = ledgerData?.ledger || [];
+  const allRows = (ledgerData?.ledger || []).sort((a, b) => {
+    if (a.source === 'opening_balance') return -1;
+    if (b.source === 'opening_balance') return  1;
+    return 0;
+  });
 
   // Date filter → recompute running balance for the period
   const dateFiltered = (fromDate || toDate)

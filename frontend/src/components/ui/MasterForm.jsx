@@ -624,7 +624,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
 
       if (newRow && showList) setRecords(prev => [newRow, ...prev]);
       emitDataChange();
-      clearFields();
+      // Clear form fields but keep country/state/city so the next entry is pre-filled
+      const defaultPrefix = activeBranch?.country?.phoneCode ? `+${activeBranch.country.phoneCode}` : '+91';
+      setFormData({});
+      setSelCategory(''); setSelUnit('');
+      setContacts([{ id: 1, name: '', phone: '', phonePrefix: defaultPrefix, designation: '', dob: '' }]);
       setSuccess(`${type === 'Branches' ? 'Branch' : type} saved successfully!`);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
