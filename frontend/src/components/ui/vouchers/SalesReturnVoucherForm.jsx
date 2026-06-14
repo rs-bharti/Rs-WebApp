@@ -194,7 +194,59 @@ const SalesReturnVoucherForm = () => {
         {/* Product Table — warehouse + available per row */}
         <div className="space-y-4">
           <h5 className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest">Product Details</h5>
-          <div className="overflow-x-auto">
+
+          {/* Mobile card view */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {rows.map(row => (
+              <div key={row.id} className="border border-stone-200 rounded-xl p-4 bg-white space-y-3 relative">
+                <button type="button" onClick={() => removeRow(row.id)}
+                  className="absolute top-3 right-3 text-stone-300 hover:text-rose-500 transition-colors cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block mb-1">Product</label>
+                  <SelectSearch
+                    value={row.productId}
+                    onChange={v => updateRow(row.id, 'productId', v)}
+                    options={products}
+                    placeholder="Select Product"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block mb-1">Return to Warehouse</label>
+                  <SelectSearch
+                    value={row.warehouseId}
+                    onChange={v => updateRow(row.id, 'warehouseId', v)}
+                    options={warehouses}
+                    placeholder="Select Warehouse"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block mb-1">Qty</label>
+                    <input className="w-full text-right bg-rs-cream/30 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-rs-text-primary"
+                      type="number" min="0" value={row.qty === 0 ? '' : row.qty}
+                      onFocus={e => e.target.select()}
+                      onChange={e => updateRow(row.id, 'qty', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block mb-1">Rate</label>
+                    <input className="w-full text-right bg-rs-cream/30 border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-rs-text-primary"
+                      type="number" min="0" value={row.rate === 0 ? '' : row.rate}
+                      onFocus={e => e.target.select()}
+                      onChange={e => updateRow(row.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-rs-text-muted tracking-widest block mb-1">Total</label>
+                    <p className="text-right font-bold text-rs-text-primary text-sm py-2">{currencySymbol} {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-rs-cream/30 border-b border-stone-100">
@@ -209,8 +261,6 @@ const SalesReturnVoucherForm = () => {
               <tbody className="divide-y divide-stone-50">
                 {rows.map(row => (
                     <tr key={row.id} className="group hover:bg-rs-cream/10 transition-colors">
-
-                      {/* Product */}
                       <td className="px-4 py-3">
                         <SelectSearch
                           variant="inline"
@@ -220,8 +270,6 @@ const SalesReturnVoucherForm = () => {
                           placeholder="Select Product"
                         />
                       </td>
-
-                      {/* Warehouse */}
                       <td className="px-4 py-3">
                         <SelectSearch
                           variant="inline"
@@ -231,14 +279,12 @@ const SalesReturnVoucherForm = () => {
                           placeholder="Select Warehouse"
                         />
                       </td>
-
                       <td className="px-4 py-3 text-right">
                         <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
                           type="number" min="0" value={row.qty === 0 ? '' : row.qty}
                           onFocus={e => e.target.select()}
                           onChange={e => updateRow(row.id, 'qty', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} />
                       </td>
-
                       <td className="px-4 py-3 text-right">
                         <input className="w-full text-right bg-transparent border-none p-0 focus:ring-0 outline-none"
                           type="number" min="0" value={row.rate === 0 ? '' : row.rate}
@@ -259,6 +305,7 @@ const SalesReturnVoucherForm = () => {
               </tbody>
             </table>
           </div>
+
           <button type="button" onClick={addRow}
             className="flex items-center gap-2 text-rs-text-primary font-bold text-[10px] uppercase tracking-widest mt-4 hover:opacity-70 transition-opacity cursor-pointer">
             <Plus className="w-4 h-4" /> Add Product Row

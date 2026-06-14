@@ -1970,6 +1970,72 @@ const getDayBook = async (req, res) => {
   }
 };
 
+// ── Money Ledger ───────────────────────────────────────────────────────────────
+const getMoneyLedger = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    if (!branchId) return res.status(400).json({ message: 'Branch required' });
+
+    const methods = await prisma.paymentMethodMaster.findMany({
+      where: { branchId },
+      select: { id: true, name: true, category: true, openingBalance: true },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+
+    const result = await Promise.all(methods.map(async (method) => {
+      const [receipts, payments] = await Promise.all([
+        prisma.receiptVoucher.findMany({
+          where: { branchId, paymentMethodId: method.id },
+          select: {
+            id: true, voucherNo: true, date: true, amount: true, narration: true,
+            particularName: true, particularType: true,
+            customer: { select: { name: true } },
+            supplier: { select: { name: true } },
+          },
+          orderBy: { date: 'asc' },
+        }),
+        prisma.paymentVoucher.findMany({
+          where: { branchId, paymentMethodId: method.id },
+          select: {
+            id: true, voucherNo: true, date: true, amount: true, narration: true,
+            particularName: true, particularType: true,
+            customer: { select: { name: true } },
+            supplier: { select: { name: true } },
+          },
+          orderBy: { date: 'asc' },
+        }),
+      ]);
+
+      const entries = [
+        ...receipts.map(r => ({
+          id: `rv-${r.id}`, type: 'receipt',
+          voucherNo: r.voucherNo, date: r.date, amount: r.amount,
+          narration: r.narration || '',
+          particular: r.particularName || r.customer?.name || r.supplier?.name || '—',
+          particularType: r.particularType || null,
+        })),
+        ...payments.map(p => ({
+          id: `pv-${p.id}`, type: 'payment',
+          voucherNo: p.voucherNo, date: p.date, amount: p.amount,
+          narration: p.narration || '',
+          particular: p.particularName || p.customer?.name || p.supplier?.name || '—',
+          particularType: p.particularType || null,
+        })),
+      ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      return {
+        method: { id: method.id, name: method.name, category: method.category, openingBalance: method.openingBalance || 0 },
+        entries,
+      };
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('getMoneyLedger error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getContraNextNo,        getContras,        createContra,        deleteContra,        updateContra,
   getReceiptNextNo,       getReceipts,       createReceipt,       deleteReceipt,       updateReceipt,
@@ -1987,4 +2053,5 @@ module.exports = {
   getSupplierLedger,
   getCustomerLedger,
   getDayBook,
+  getMoneyLedger,
 };

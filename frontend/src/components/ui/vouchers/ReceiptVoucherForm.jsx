@@ -100,7 +100,7 @@ const ReceiptVoucherForm = () => {
       setSuppliers(supp);
       setExpenses(exp);
       setBranches(brnch);
-      setPaymentMethods(pm);
+      setPaymentMethods(pm.map(m => ({ ...m, name: m.category ? `${m.name} (${m.category})` : m.name })));
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
     }).catch(err => setError(err?.message || 'Failed to load form data'))

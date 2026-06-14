@@ -21,6 +21,7 @@ import ProductInfoPage from './pages/ProductInfoPage';
 import SupplierLedgerPage from './pages/SupplierLedgerPage';
 import CustomerLedgerPage from './pages/CustomerLedgerPage';
 import DayBookPage from './pages/DayBookPage';
+import MoneyLedgerPage from './pages/MoneyLedgerPage';
 import { useAuth } from './context/AuthContext';
 
 const MasterRouteWrapper = ({ userRole }) => {
@@ -72,6 +73,7 @@ function App() {
           <Route path="other/product-info" element={<ProductInfoPage />} />
           <Route path="other/supplier-ledger" element={<SupplierLedgerPage />} />
           <Route path="other/client-ledger"   element={<CustomerLedgerPage />} />
+          <Route path="other/money-ledger"    element={<MoneyLedgerPage />} />
           <Route path="other/day-book"        element={<DayBookPage />} />
 
           <Route path="master/:type" element={<MasterRouteWrapper userRole={userRole} />} />

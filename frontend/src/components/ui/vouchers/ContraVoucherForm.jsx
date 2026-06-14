@@ -55,7 +55,7 @@ const ContraVoucherForm = () => {
       getContraVoucherNextNo(),
       getContras(),
     ]).then(([pm, vn, vlist]) => {
-      setPaymentMethods(pm);
+      setPaymentMethods(pm.map(m => ({ ...m, name: m.category ? `${m.name} (${m.category})` : m.name })));
       setVoucherNo(vn.voucherNo);
       setVouchers(vlist);
     }).catch(err => setError(err?.message || 'Failed to load form data'))

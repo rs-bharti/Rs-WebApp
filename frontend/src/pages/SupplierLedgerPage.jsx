@@ -215,7 +215,7 @@ const LedgerRow = ({ row, index }) => {
         </td>
 
         {/* Payment Method (hidden — shown inside Particulars) */}
-        <td className="px-3 py-3 text-xs text-stone-500">
+        <td className="px-3 py-3 text-xs text-stone-500 hidden md:table-cell">
           <span className="text-stone-200">—</span>
         </td>
 
@@ -567,8 +567,8 @@ const SupplierLedgerPage = () => {
 
           {/* Search */}
           {allRows.length > 0 && (
-            <div className="flex items-center gap-3">
-              <div className="relative w-72">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                 <input
                   type="text"
@@ -596,21 +596,17 @@ const SupplierLedgerPage = () => {
           )}
 
           {/* Ledger Table */}
-          <div className="border border-stone-200 rounded-xl bg-white overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
+          <div className="border border-stone-200 rounded-xl bg-white overflow-x-auto shadow-sm">
+            <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-stone-50 border-b border-stone-200">
                   <th className="w-8 px-3 py-3"></th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-24">Date</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Voucher No</th>
-                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Payment Method</th>
+                  <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28 hidden md:table-cell">Payment Method</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Particulars</th>
-                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">
-                    DR
-                  </th>
-                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">
-                    CR
-                  </th>
+                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">DR</th>
+                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">CR</th>
                   <th className="px-3 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider w-32">Balance</th>
                 </tr>
               </thead>

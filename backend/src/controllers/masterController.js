@@ -986,7 +986,11 @@ const getDashboardBalance = async (req, res) => {
     }
 
     // Sum opening balances per category from payment method master
-    const [cashOpeningAgg, bankOpeningAgg, cashIn, bankIn, cashOut, bankOut] = await Promise.all([
+    const [
+      cashOpeningAgg, bankOpeningAgg,
+      cashIn, bankIn, cashOut, bankOut,
+      contraToCash, contraToBank, contraFromCash, contraFromBank,
+    ] = await Promise.all([
       prisma.paymentMethodMaster.aggregate({ where: { branchId, category: 'CASH' }, _sum: { openingBalance: true } }),
       prisma.paymentMethodMaster.aggregate({ where: { branchId, category: 'BANK' }, _sum: { openingBalance: true } }),
       // Receipt = money IN → add to balance
@@ -995,27 +999,38 @@ const getDashboardBalance = async (req, res) => {
       // Payment = money OUT → subtract from balance
       prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'CASH' } }, _sum: { amount: true } }),
       prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'BANK' } }, _sum: { amount: true } }),
+      // Contra = transfer between methods → destination gains, source loses
+      prisma.contraVoucher.aggregate({ where: { branchId, toPaymentMethod:   { category: 'CASH' } }, _sum: { amount: true } }),
+      prisma.contraVoucher.aggregate({ where: { branchId, toPaymentMethod:   { category: 'BANK' } }, _sum: { amount: true } }),
+      prisma.contraVoucher.aggregate({ where: { branchId, fromPaymentMethod: { category: 'CASH' } }, _sum: { amount: true } }),
+      prisma.contraVoucher.aggregate({ where: { branchId, fromPaymentMethod: { category: 'BANK' } }, _sum: { amount: true } }),
     ]);
 
     const openingCash = cashOpeningAgg._sum.openingBalance || 0;
     const openingBank = bankOpeningAgg._sum.openingBalance || 0;
-    const currentCash = openingCash + (cashIn._sum.amount || 0) - (cashOut._sum.amount || 0);
-    const currentBank = openingBank + (bankIn._sum.amount || 0) - (bankOut._sum.amount || 0);
+    const currentCash = openingCash
+      + (cashIn._sum.amount       || 0)   // receipt via CASH method
+      + (contraToCash._sum.amount || 0)   // contra transfer into CASH
+      - (cashOut._sum.amount      || 0)   // payment via CASH method
+      - (contraFromCash._sum.amount || 0); // contra transfer out of CASH
+    const currentBank = openingBank
+      + (bankIn._sum.amount       || 0)   // receipt via BANK method
+      + (contraToBank._sum.amount || 0)   // contra transfer into BANK
+      - (bankOut._sum.amount      || 0)   // payment via BANK method
+      - (contraFromBank._sum.amount || 0); // contra transfer out of BANK
 
-    // Total Receivables = Total Sales - Receipts from customers - Sales Returns + Payments to customers
-    const [salesAgg, custReceiptsAgg, salesReturnAgg, payToCustomerAgg] = await Promise.all([
-      prisma.salesVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
-      prisma.receiptVoucher.aggregate({ where: { branchId, customerId: { not: null } }, _sum: { amount: true } }),
-      prisma.salesReturnVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
-      prisma.paymentVoucher.aggregate({ where: { branchId, customerId: { not: null } }, _sum: { amount: true } }),
+    // Total Receivables = Opening + Payments to customers (advance/refund) - Receipts from customers
+    // Only receipt/payment vouchers where the particular is a customer affect this figure.
+    const customerFilter = { OR: [{ customerId: { not: null } }, { particularType: 'customer' }] };
+    const [custReceiptsAgg, payToCustomerAgg] = await Promise.all([
+      prisma.receiptVoucher.aggregate({ where: { branchId, ...customerFilter }, _sum: { amount: true } }),
+      prisma.paymentVoucher.aggregate({ where: { branchId, ...customerFilter }, _sum: { amount: true } }),
     ]);
-    const transactionReceivables =
-      (salesAgg._sum.totalAmount || 0)
-      - (custReceiptsAgg._sum.amount || 0)
-      - (salesReturnAgg._sum.totalAmount || 0)
-      + (payToCustomerAgg._sum.amount || 0);
 
-    const totalReceivables = (opening.openingReceivables || 0) + transactionReceivables;
+    const totalReceivables =
+      (opening.openingReceivables || 0)
+      + (custReceiptsAgg._sum.amount || 0)   // receipt = getting money from customer → increases
+      - (payToCustomerAgg._sum.amount || 0); // payment = paying out to customer → decreases
 
     res.json({
       openingCash:         Math.round(openingCash * 100) / 100,
