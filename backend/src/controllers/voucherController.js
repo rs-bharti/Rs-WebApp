@@ -1876,7 +1876,7 @@ const getCustomerLedger = async (req, res) => {
     for (const pv of paymentToCustomerRows) {
       entries.push({
         _date:          new Date(pv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         pv.amount,
         voucherNo:      pv.voucherNo,
         source:         'payment_to_customer',
@@ -1894,7 +1894,7 @@ const getCustomerLedger = async (req, res) => {
     for (const sv of salesRows) {
       entries.push({
         _date:          new Date(sv.date),
-        type:           'CR',
+        type:           'DR',
         amount:         sv.totalAmount,
         voucherNo:      sv.voucherNo,
         source:         'sales',
