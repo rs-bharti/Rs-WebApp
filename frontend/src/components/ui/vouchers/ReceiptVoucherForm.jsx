@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, List, ChevronDown } from 'lucide-react';
 import SelectSearch from '../SelectSearch';
-import { getCustomers, getSuppliers, getMasterBranchMasters, getPaymentMethods } from '../../../api/masters';
+import { getCustomers, getSuppliers, getMasterBranchMasters, getPaymentMethods, getCustomerLedger, getSupplierLedger } from '../../../api/masters';
 import { useNavigate } from 'react-router-dom';
 import { getReceiptVoucherNextNo, saveReceiptVoucher, getReceipts, updateReceiptVoucher, deleteReceiptVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
@@ -25,6 +25,9 @@ const ReceiptVoucherForm = () => {
   const [branches, setBranches] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
 
+  const [partyBalance, setPartyBalance]       = useState(null);
+  const [balanceLoading, setBalanceLoading]   = useState(false);
+
   const [masterPopup, setMasterPopup] = useState(false);
   const masterPopupRef = useRef(null);
 
@@ -34,6 +37,21 @@ const ReceiptVoucherForm = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [masterPopup]);
+
+  useEffect(() => {
+    setPartyBalance(null);
+    if (!particularKey) return;
+    const parsed = parseParticular(particularKey);
+    if (!parsed || (parsed.type !== 'customer' && parsed.type !== 'supplier')) return;
+    let cancelled = false;
+    setBalanceLoading(true);
+    const fetcher = parsed.type === 'customer' ? getCustomerLedger(parsed.id) : getSupplierLedger(parsed.id);
+    fetcher
+      .then(res => { if (!cancelled) setPartyBalance({ amount: res.summary.closingBalance, type: parsed.type }); })
+      .catch(() => { if (!cancelled) setPartyBalance(null); })
+      .finally(() => { if (!cancelled) setBalanceLoading(false); });
+    return () => { cancelled = true; };
+  }, [particularKey]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -149,6 +167,7 @@ const ReceiptVoucherForm = () => {
     setNarration('');
     setError('');
     setSuccess('');
+    setPartyBalance(null);
   };
 
   const handleDeleteVoucher = async (id) => {
@@ -241,7 +260,24 @@ const ReceiptVoucherForm = () => {
               options={particularsOptions}
               placeholder="Select Customer / Supplier / Branch"
             />
-            {selectedTypeBadge()}
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              {selectedTypeBadge()}
+              {balanceLoading && <span className="text-[10px] text-stone-400 animate-pulse">Loading balance…</span>}
+              {!balanceLoading && partyBalance && (() => {
+                const { amount, type } = partyBalance;
+                const drCr = type === 'customer'
+                  ? (amount >= 0 ? 'Dr' : 'Cr')
+                  : (amount >= 0 ? 'Cr' : 'Dr');
+                const colorCls = type === 'customer'
+                  ? (amount >= 0 ? 'text-emerald-600' : 'text-orange-500')
+                  : (amount >= 0 ? 'text-red-500' : 'text-emerald-600');
+                return (
+                  <span className={`text-[10px] font-bold ${colorCls}`}>
+                    Bal: ₹{Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {drCr}
+                  </span>
+                );
+              })()}
+            </div>
           </div>
         </div>
 

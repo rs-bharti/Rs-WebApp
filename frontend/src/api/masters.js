@@ -69,6 +69,9 @@ export const createSupplierTransaction = (id, body) => apiFetch(`/api/masters/su
 export const getSupplierLedger = (supplierId) =>
   apiFetch(`/api/vouchers/supplier-ledger/${supplierId}`);
 
+export const getCustomerLedger = (customerId) =>
+  apiFetch(`/api/vouchers/customer-ledger/${customerId}`);
+
 // ── Customers ──────────────────────────────────────────────────────────────────
 export const getCustomers   = ()          => apiFetch('/api/masters/customers');
 export const createCustomer = (body)      => apiFetch('/api/masters/customers', { method: 'POST',   body: JSON.stringify(body) });
