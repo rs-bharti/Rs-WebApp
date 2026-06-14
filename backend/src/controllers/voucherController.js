@@ -1623,11 +1623,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Purchase Vouchers (CR — increases payable)
+    // Add Purchase Vouchers (DR — increases payable, shown in DR column)
     for (const pv of purchaseRows) {
       entries.push({
         _date:          new Date(pv.date),
-        type:           'CR',
+        type:           'DR',
         amount:         pv.totalAmount,
         kind:           'purchase',
         voucherNo:      pv.voucherNo,
@@ -1677,11 +1677,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Receipt Vouchers from supplier (DR — reduces payable / supplier refund)
+    // Add Receipt Vouchers from supplier (CR — shown in CR column)
     for (const rv of receiptFromSupplierRows) {
       entries.push({
         _date:          new Date(rv.date),
-        type:           'DR',
+        type:           'CR',
         kind:           'receipt_from_supplier',
         voucherNo:      rv.voucherNo,
         source:         'receipt_from_supplier',
@@ -1697,11 +1697,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Purchase Return Vouchers (DR — reduces payable)
+    // Add Purchase Return Vouchers (CR — shown in CR column)
     for (const prv of purchaseReturnRows) {
       entries.push({
         _date:          new Date(prv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         prv.totalAmount,
         kind:           'purchase_return',
         voucherNo:      prv.voucherNo,

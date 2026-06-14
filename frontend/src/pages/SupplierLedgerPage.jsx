@@ -329,7 +329,13 @@ const SupplierLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    runBal += r.type === 'CR' ? r.amount : -r.amount;
+    let effect;
+    if      (r.source === 'purchase')              effect =  r.amount;
+    else if (r.source === 'payment')               effect = -r.amount;
+    else if (r.source === 'receipt_from_supplier') effect = -r.amount;
+    else if (r.source === 'purchase_return')       effect = -r.amount;
+    else effect = r.type === 'CR' ? r.amount : -r.amount;
+    runBal += effect;
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 
