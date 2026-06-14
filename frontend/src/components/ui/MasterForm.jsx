@@ -494,7 +494,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       if (isPaymentMethod) {
         if (!f('name')) return setError('Payment method name is required');
         if (!f('category')) return setError('Please select a category (CASH or BANK)');
-        newRow = await createPaymentMethod({ name: f('name'), category: f('category') });
+        newRow = await createPaymentMethod({ name: f('name'), category: f('category'), openingBalance: parseFloat(f('openingBalance') || 0) });
       } else if (isExpense) {
         if (!f('name')) return setError('Expense name is required');
         newRow = await createExpense({ name: f('name') });
@@ -610,6 +610,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       setEditData({ name: r.name || '', address: r.address || '', area: r.area || '' });
     } else if (isUnit) {
       setEditData({ unitName: r.unitName || '', shortName: r.shortName || '' });
+    } else if (isPaymentMethod) {
+      setEditData({ name: r.name || '', category: r.category || '', openingBalance: String(r.openingBalance ?? 0) });
     } else {
       setEditData({ name: r.name || '' });
     }
@@ -642,7 +644,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       } else if (isCategory) {
         updated = await updateCategory(id, { name: editData.name.trim() });
       } else if (isPaymentMethod) {
-        updated = await updatePaymentMethod(id, { name: editData.name.trim(), category: editData.category || null });
+        updated = await updatePaymentMethod(id, { name: editData.name.trim(), category: editData.category || null, openingBalance: Number(editData.openingBalance ?? 0) });
       } else if (isExpense) {
         updated = await updateExpense(id, { name: editData.name.trim() });
       }
@@ -935,6 +937,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
             <option value="BANK">BANK</option>
           </select>
         </div>
+        <div className="space-y-2"><label className={labelCls}>Opening Balance</label><input className={inputCls} type="number" step="0.01" placeholder="0.00" value={f('openingBalance') || ''} onChange={upd('openingBalance')} /></div>
       </div>
     );
 
@@ -1149,6 +1152,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                       <th className={thCls}>#</th>
                       <th className={thCls}>Name</th>
                       <th className={thCls}>Category</th>
+                      <th className={thCls}>Opening Balance</th>
                       <th className={thCls}></th>
                     </tr>
                   </thead>
@@ -1158,6 +1162,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                         <td className={cn(tdCls, 'font-bold w-10 text-stone-400')}>{i + 1}</td>
                         <td className={cn(tdCls, 'font-semibold')}>{r.name}</td>
                         <td className={cn(tdCls, 'text-xs font-bold uppercase tracking-widest', r.category === 'CASH' ? 'text-green-600' : r.category === 'BANK' ? 'text-blue-600' : 'text-stone-400')}>{r.category || '—'}</td>
+                        <td className={cn(tdCls, 'font-mono')}>{currencySymbol} {Number(r.openingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="px-4 py-3 text-right">
                           <button type="button" onClick={() => openView(r)} className={viewBtnCls}>View</button>
                         </td>
@@ -1604,7 +1609,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     : isUnit
                     ? [{ key: 'unitName', label: 'Unit Name', type: 'text' }, { key: 'shortName', label: 'Short Name', type: 'text' }]
                     : isPaymentMethod
-                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'category', label: 'Category', type: 'select', options: ['CASH', 'BANK'] }]
+                    ? [{ key: 'name', label: 'Name', type: 'text' }, { key: 'category', label: 'Category', type: 'select', options: ['CASH', 'BANK'] }, { key: 'openingBalance', label: 'Opening Balance', type: 'number' }]
                     : [{ key: 'name', label: 'Name', type: 'text' }]
                   ).map(f => (
                     <div key={f.key}>
@@ -1736,6 +1741,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                     ? [
                         { label: 'Name', value: viewRecord.name },
                         { label: 'Category', value: viewRecord.category },
+                        { label: 'Opening Balance', value: `${currencySymbol} ${Number(viewRecord.openingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                       ]
                     : isUnit
                     ? [

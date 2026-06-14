@@ -339,6 +339,7 @@ model PaymentMethodMaster {
   name            String
   category        String?
   branchId        Int?
+  openingBalance  Float                   @default(0)
   contraFrom      ContraVoucher[]         @relation("ContraFrom")
   contraTo        ContraVoucher[]         @relation("ContraTo")
   branch          Branch?                 @relation(fields: [branchId], references: [id])

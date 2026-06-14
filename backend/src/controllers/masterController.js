@@ -800,7 +800,7 @@ const getPaymentMethods = async (req, res) => {
     const where = branchId ? { branchId } : {};
     const rows = await prisma.paymentMethodMaster.findMany({
       where,
-      select: { id: true, name: true, category: true },
+      select: { id: true, name: true, category: true, openingBalance: true },
       orderBy: { name: 'asc' },
     });
     res.json(rows);
@@ -809,12 +809,12 @@ const getPaymentMethods = async (req, res) => {
 
 const createPaymentMethod = async (req, res) => {
   try {
-    const { name, category } = req.body;
+    const { name, category, openingBalance } = req.body;
     if (!name) return res.status(400).json({ message: 'name is required' });
     const branchId = getBranchId(req);
     const row = await prisma.paymentMethodMaster.create({
-      data: { name: name.trim(), category: category || null, branchId: branchId || null },
-      select: { id: true, name: true, category: true },
+      data: { name: name.trim(), category: category || null, branchId: branchId || null, openingBalance: Number(openingBalance ?? 0) },
+      select: { id: true, name: true, category: true, openingBalance: true },
     });
     res.status(201).json(row);
   } catch (err) {
@@ -826,11 +826,15 @@ const createPaymentMethod = async (req, res) => {
 
 const updatePaymentMethod = async (req, res) => {
   try {
-    const { name, category } = req.body;
+    const { name, category, openingBalance } = req.body;
     const row = await prisma.paymentMethodMaster.update({
       where: { id: Number(req.params.id) },
-      data: { name: name.trim(), ...(category !== undefined && { category: category || null }) },
-      select: { id: true, name: true, category: true },
+      data: {
+        name: name.trim(),
+        ...(category !== undefined && { category: category || null }),
+        ...(openingBalance !== undefined && { openingBalance: Number(openingBalance) }),
+      },
+      select: { id: true, name: true, category: true, openingBalance: true },
     });
     res.json(row);
   } catch (err) {
@@ -981,8 +985,10 @@ const getDashboardBalance = async (req, res) => {
       opening = await prisma.dashboardBalance.create({ data: { branchId, openingCash: 0, openingBank: 0, openingReceivables: 0 } });
     }
 
-    // Filter directly via the payment method relation — avoids any branchId mismatch on the master table
-    const [cashIn, bankIn, cashOut, bankOut] = await Promise.all([
+    // Sum opening balances per category from payment method master
+    const [cashOpeningAgg, bankOpeningAgg, cashIn, bankIn, cashOut, bankOut] = await Promise.all([
+      prisma.paymentMethodMaster.aggregate({ where: { branchId, category: 'CASH' }, _sum: { openingBalance: true } }),
+      prisma.paymentMethodMaster.aggregate({ where: { branchId, category: 'BANK' }, _sum: { openingBalance: true } }),
       // Receipt = money IN → add to balance
       prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'CASH' } }, _sum: { amount: true } }),
       prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'BANK' } }, _sum: { amount: true } }),
@@ -991,8 +997,10 @@ const getDashboardBalance = async (req, res) => {
       prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethod: { category: 'BANK' } }, _sum: { amount: true } }),
     ]);
 
-    const currentCash = opening.openingCash + (cashIn._sum.amount || 0) - (cashOut._sum.amount || 0);
-    const currentBank = opening.openingBank + (bankIn._sum.amount || 0) - (bankOut._sum.amount || 0);
+    const openingCash = cashOpeningAgg._sum.openingBalance || 0;
+    const openingBank = bankOpeningAgg._sum.openingBalance || 0;
+    const currentCash = openingCash + (cashIn._sum.amount || 0) - (cashOut._sum.amount || 0);
+    const currentBank = openingBank + (bankIn._sum.amount || 0) - (bankOut._sum.amount || 0);
 
     // Total Receivables = Total Sales - Receipts from customers - Sales Returns + Payments to customers
     const [salesAgg, custReceiptsAgg, salesReturnAgg, payToCustomerAgg] = await Promise.all([
@@ -1010,8 +1018,8 @@ const getDashboardBalance = async (req, res) => {
     const totalReceivables = (opening.openingReceivables || 0) + transactionReceivables;
 
     res.json({
-      openingCash:         Math.round(opening.openingCash * 100) / 100,
-      openingBank:         Math.round(opening.openingBank * 100) / 100,
+      openingCash:         Math.round(openingCash * 100) / 100,
+      openingBank:         Math.round(openingBank * 100) / 100,
       openingReceivables:  Math.round((opening.openingReceivables || 0) * 100) / 100,
       currentCash:         Math.round(currentCash * 100) / 100,
       currentBank:         Math.round(currentBank * 100) / 100,
