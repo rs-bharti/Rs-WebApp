@@ -238,8 +238,8 @@ const LedgerRow = ({ row }) => {
           ) : <span className="text-stone-200">—</span>}
         </td>
         <td className={`px-3 py-3 text-right font-bold tabular-nums ${
-          row.balance > 0 ? 'text-rose-700' :
-          row.balance < 0 ? 'text-emerald-700' :
+          row.balance > 0 ? 'text-emerald-700' :
+          row.balance < 0 ? 'text-rose-700' :
           'text-stone-300'
         }`}>
           ₹{fmt(Math.abs(row.balance))}
@@ -524,20 +524,20 @@ const CustomerLedgerPage = () => {
             </div>
 
             <div className={`bg-white border rounded-xl p-4 shadow-sm ${
-              closing > 0 ? 'border-rose-200' : closing < 0 ? 'border-emerald-200' : 'border-stone-200'
+              closing > 0 ? 'border-emerald-200' : closing < 0 ? 'border-rose-200' : 'border-stone-200'
             }`}>
               <div className="flex items-center gap-2 mb-2">
                 <div className={`p-2 rounded-lg ${
-                  closing > 0 ? 'bg-rose-50' : closing < 0 ? 'bg-emerald-50' : 'bg-stone-50'
+                  closing > 0 ? 'bg-emerald-50' : closing < 0 ? 'bg-rose-50' : 'bg-stone-50'
                 }`}>
                   <Wallet className={`w-4 h-4 ${
-                    closing > 0 ? 'text-rose-600' : closing < 0 ? 'text-emerald-600' : 'text-stone-400'
+                    closing > 0 ? 'text-emerald-600' : closing < 0 ? 'text-rose-600' : 'text-stone-400'
                   }`} />
                 </div>
                 <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Balance Due</p>
               </div>
               <p className={`text-xl font-bold tabular-nums ${
-                closing > 0 ? 'text-rose-600' : closing < 0 ? 'text-emerald-600' : 'text-stone-300'
+                closing > 0 ? 'text-emerald-600' : closing < 0 ? 'text-rose-600' : 'text-stone-300'
               }`}>
                 ₹{fmt(Math.abs(closing))}
               </p>
@@ -620,7 +620,7 @@ const CustomerLedgerPage = () => {
                       ₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0))}
                     </td>
                     <td className={`px-3 py-3 text-right font-bold tabular-nums ${
-                      closing > 0 ? 'text-rose-700' : closing < 0 ? 'text-emerald-700' : 'text-stone-400'
+                      closing > 0 ? 'text-emerald-700' : closing < 0 ? 'text-rose-700' : 'text-stone-400'
                     }`}>
                       ₹{fmt(Math.abs(closing))}
                       <span className="text-[10px] ml-1 font-medium">
@@ -640,7 +640,7 @@ const CustomerLedgerPage = () => {
             <span>·</span>
             <span><span className="font-semibold text-rose-600">CR (Receipt/Return)</span> = Amount received / returned</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-700">Balance Dr</span> = Still receivable from customer</span>
+            <span><span className="font-semibold text-emerald-700">Balance Dr</span> = Still receivable from customer</span>
           </div>
         </div>
       )}
