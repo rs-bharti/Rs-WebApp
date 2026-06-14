@@ -1926,7 +1926,7 @@ const getCustomerLedger = async (req, res) => {
     for (const srv of salesReturnRows) {
       entries.push({
         _date:          new Date(srv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         srv.totalAmount,
         voucherNo:      srv.voucherNo,
         source:         'sales_return',
