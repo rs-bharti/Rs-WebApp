@@ -237,16 +237,18 @@ const LedgerRow = ({ row }) => {
             <span className="text-rose-600">+₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
-        <td className={`px-3 py-3 text-right font-bold tabular-nums ${
-          row.balance > 0 ? 'text-emerald-700' :
-          row.balance < 0 ? 'text-rose-700' :
-          'text-stone-300'
-        }`}>
-          ₹{fmt(Math.abs(row.balance))}
-          {row.balance !== 0 && (
-            <span className="text-[10px] font-medium ml-1 opacity-70">
-              {row.balance > 0 ? 'Dr' : 'Cr'}
+        <td className="px-3 py-3 text-right">
+          {row.balance !== 0 ? (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums ${
+              row.balance > 0
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-rose-50 text-rose-600 border border-rose-200'
+            }`}>
+              ₹{fmt(Math.abs(row.balance))}
+              <span className="text-[9px] font-black">{row.balance > 0 ? 'Dr' : 'Cr'}</span>
             </span>
+          ) : (
+            <span className="text-stone-300 text-xs">Nil</span>
           )}
         </td>
       </tr>
@@ -620,13 +622,19 @@ const CustomerLedgerPage = () => {
                     <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
                       +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' || r.source === 'receipt' ? r.amount : 0), 0))}
                     </td>
-                    <td className={`px-3 py-3 text-right font-bold tabular-nums ${
-                      closing > 0 ? 'text-emerald-700' : closing < 0 ? 'text-rose-700' : 'text-stone-400'
-                    }`}>
-                      ₹{fmt(Math.abs(closing))}
-                      <span className="text-[10px] ml-1 font-medium">
-                        {closing > 0 ? 'Dr' : closing < 0 ? 'Cr' : ''}
-                      </span>
+                    <td className="px-3 py-3 text-right">
+                      {closing !== 0 ? (
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums ${
+                          closing > 0
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-600 border border-rose-200'
+                        }`}>
+                          ₹{fmt(Math.abs(closing))}
+                          <span className="text-[9px] font-black">{closing > 0 ? 'Dr' : 'Cr'}</span>
+                        </span>
+                      ) : (
+                        <span className="text-stone-300 text-xs">Nil</span>
+                      )}
                     </td>
                   </tr>
                 </tfoot>
