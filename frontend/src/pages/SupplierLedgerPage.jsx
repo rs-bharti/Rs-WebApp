@@ -331,8 +331,9 @@ const SupplierLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // CR = we receive (+), DR = we give (-)
-    runBal += r.type === 'CR' ? r.amount : -r.amount;
+    // Payment is stored as CR but shown in DR column — must subtract
+    const inCR = r.type === 'CR' && r.source !== 'payment';
+    runBal += inCR ? r.amount : -r.amount;
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 

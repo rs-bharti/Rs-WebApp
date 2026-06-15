@@ -424,11 +424,11 @@ const getSuppliers = async (req, res) => {
         cityId: true, stateId: true, countryId: true,
         cityName: true, stateName: true, countryName: true,
         contacts:     { select: { id: true, name: true, phone: true, designation: true, dob: true }, orderBy: { id: 'asc' } },
-        transactions: { select: { type: true, amount: true } },
+        transactions: { select: { type: true, amount: true, source: true } },
       },
     });
     const result = rows.map(r => {
-      const balance = r.transactions.reduce((sum, t) => sum + (t.type === 'CR' ? t.amount : -t.amount), 0);
+      const balance = r.transactions.reduce((sum, t) => sum + ((t.type === 'CR' && t.source !== 'payment') ? t.amount : -t.amount), 0);
       const { transactions, ...rest } = r;
       return { ...rest, balance };
     });
@@ -583,12 +583,13 @@ const getCustomers = async (req, res) => {
       }),
       prisma.customerTransaction.findMany({
         where: branchId ? { customer: { branchId } } : {},
-        select: { customerId: true, type: true, amount: true },
+        select: { customerId: true, type: true, amount: true, source: true },
       }),
     ]);
     const balanceMap = {};
     for (const t of txList) {
-      balanceMap[t.customerId] = (balanceMap[t.customerId] || 0) + (t.type === 'CR' ? t.amount : -t.amount);
+      const inCR = t.type === 'CR' || t.source === 'receipt';
+      balanceMap[t.customerId] = (balanceMap[t.customerId] || 0) + (inCR ? t.amount : -t.amount);
     }
     const result = rows.map(r => ({ ...r, balance: balanceMap[r.id] || 0 }));
     res.json(result);

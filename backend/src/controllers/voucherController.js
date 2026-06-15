@@ -1734,10 +1734,11 @@ const getSupplierLedger = async (req, res) => {
     // Sort chronologically
     entries.sort((a, b) => a._date - b._date);
 
-    // Compute running balance — CR = we receive (+), DR = we give (-)
+    // Compute running balance — payment is stored as CR but goes in DR column (subtract)
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      balance += e.type === 'CR' ? e.amount : -e.amount;
+      const inCR = e.type === 'CR' && e.source !== 'payment';
+      balance += inCR ? e.amount : -e.amount;
       const { _date, ...rest } = e;
       return {
         id:      idx + 1,
@@ -1954,10 +1955,11 @@ const getCustomerLedger = async (req, res) => {
 
     entries.sort((a, b) => a._date - b._date);
 
-    // Compute running balance — CR = we receive (+), DR = we give (-)
+    // Compute running balance — receipt is stored as DR but goes in CR column (add)
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      balance += e.type === 'CR' ? e.amount : -e.amount;
+      const inCR = e.type === 'CR' || e.source === 'receipt';
+      balance += inCR ? e.amount : -e.amount;
       const { _date, ...rest } = e;
       return { id: idx + 1, date: _date.toISOString(), balance: Math.round(balance * 100) / 100, ...rest };
     });
