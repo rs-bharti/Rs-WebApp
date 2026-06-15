@@ -560,7 +560,21 @@ const updateSupplier = async (req, res) => {
 
 const deleteSupplier = async (req, res) => {
   try {
-    await prisma.supplier.delete({ where: { id: Number(req.params.id) } });
+    const id = Number(req.params.id);
+    const [purchase, payment, receipt, purchaseReturn] = await Promise.all([
+      prisma.purchaseVoucher.findFirst({ where: { supplierId: id }, select: { id: true } }),
+      prisma.paymentVoucher.findFirst({ where: { supplierId: id }, select: { id: true } }),
+      prisma.receiptVoucher.findFirst({ where: { supplierId: id }, select: { id: true } }),
+      prisma.purchaseReturnVoucher.findFirst({ where: { supplierId: id }, select: { id: true } }),
+    ]);
+    const linked = [
+      purchase       && 'Purchase vouchers',
+      payment        && 'Payment vouchers',
+      receipt        && 'Receipt vouchers',
+      purchaseReturn && 'Purchase Return vouchers',
+    ].filter(Boolean);
+    if (linked.length) return res.status(400).json({ message: `Cannot delete — this supplier is linked to: ${linked.join(', ')}.` });
+    await prisma.supplier.delete({ where: { id } });
     res.json({ message: 'Deleted' });
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
@@ -720,7 +734,21 @@ const updateCustomer = async (req, res) => {
 
 const deleteCustomer = async (req, res) => {
   try {
-    await prisma.customer.delete({ where: { id: Number(req.params.id) } });
+    const id = Number(req.params.id);
+    const [sales, receipt, salesReturn, payment] = await Promise.all([
+      prisma.salesVoucher.findFirst({ where: { customerId: id }, select: { id: true } }),
+      prisma.receiptVoucher.findFirst({ where: { customerId: id }, select: { id: true } }),
+      prisma.salesReturnVoucher.findFirst({ where: { customerId: id }, select: { id: true } }),
+      prisma.paymentVoucher.findFirst({ where: { customerId: id }, select: { id: true } }),
+    ]);
+    const linked = [
+      sales       && 'Sales vouchers',
+      receipt     && 'Receipt vouchers',
+      salesReturn && 'Sales Return vouchers',
+      payment     && 'Payment vouchers',
+    ].filter(Boolean);
+    if (linked.length) return res.status(400).json({ message: `Cannot delete — this customer is linked to: ${linked.join(', ')}.` });
+    await prisma.customer.delete({ where: { id } });
     res.json({ message: 'Deleted' });
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
@@ -791,7 +819,25 @@ const updateProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
   try {
-    await prisma.product.delete({ where: { id: Number(req.params.id) } });
+    const id = Number(req.params.id);
+    const [purchase, sales, purchaseReturn, salesReturn, stockData, stockTransfer] = await Promise.all([
+      prisma.purchaseVoucherItem.findFirst({ where: { productId: id }, select: { id: true } }),
+      prisma.salesVoucherItem.findFirst({ where: { productId: id }, select: { id: true } }),
+      prisma.purchaseReturnVoucherItem.findFirst({ where: { productId: id }, select: { id: true } }),
+      prisma.salesReturnVoucherItem.findFirst({ where: { productId: id }, select: { id: true } }),
+      prisma.stockDataVoucherItem.findFirst({ where: { productId: id }, select: { id: true } }),
+      prisma.stockTransferVoucherItem.findFirst({ where: { productId: id }, select: { id: true } }),
+    ]);
+    const linked = [
+      purchase       && 'Purchase vouchers',
+      sales          && 'Sales vouchers',
+      purchaseReturn && 'Purchase Return vouchers',
+      salesReturn    && 'Sales Return vouchers',
+      stockData      && 'Stock Data vouchers',
+      stockTransfer  && 'Stock Transfer vouchers',
+    ].filter(Boolean);
+    if (linked.length) return res.status(400).json({ message: `Cannot delete — this product is linked to: ${linked.join(', ')}.` });
+    await prisma.product.delete({ where: { id } });
     res.json({ message: 'Deleted' });
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
@@ -950,7 +996,21 @@ const updateWarehouse = async (req, res) => {
 
 const deleteWarehouse = async (req, res) => {
   try {
-    await prisma.warehouseMaster.delete({ where: { id: parseInt(req.params.id) } });
+    const id = parseInt(req.params.id);
+    const [purchase, sales, purchaseReturn, salesReturnItem] = await Promise.all([
+      prisma.purchaseVoucher.findFirst({ where: { warehouseId: id }, select: { id: true } }),
+      prisma.salesVoucher.findFirst({ where: { warehouseId: id }, select: { id: true } }),
+      prisma.purchaseReturnVoucher.findFirst({ where: { warehouseId: id }, select: { id: true } }),
+      prisma.salesReturnVoucherItem.findFirst({ where: { warehouseId: id }, select: { id: true } }),
+    ]);
+    const linked = [
+      purchase        && 'Purchase vouchers',
+      sales           && 'Sales vouchers',
+      purchaseReturn  && 'Purchase Return vouchers',
+      salesReturnItem && 'Sales Return vouchers',
+    ].filter(Boolean);
+    if (linked.length) return res.status(400).json({ message: `Cannot delete — this warehouse is linked to: ${linked.join(', ')}.` });
+    await prisma.warehouseMaster.delete({ where: { id } });
     res.json({ message: 'Warehouse deleted' });
   } catch (err) { console.error(err); res.status(400).json({ message: prismaErr(err) }); }
 };
