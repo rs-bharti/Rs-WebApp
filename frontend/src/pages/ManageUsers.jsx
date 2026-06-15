@@ -520,18 +520,16 @@ const UserCard = ({ user, onEdit, onEditDetails, onToggleActive }) => {
             <Settings2 className="w-3.5 h-3.5" /> Edit Access
           </button>
         )}
-        {!isAdminUser && (
-          <button onClick={() => onToggleActive(user)}
-            className={cn(
-              'flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all cursor-pointer',
-              isActive
-                ? 'text-red-500 border-red-200 hover:bg-red-50'
-                : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
-            )}>
-            {isActive ? <ShieldOff className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-            {isActive ? 'Block' : 'Unblock'}
-          </button>
-        )}
+        <button onClick={() => onToggleActive(user)}
+          className={cn(
+            'flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all cursor-pointer',
+            isActive
+              ? 'text-red-500 border-red-200 hover:bg-red-50'
+              : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
+          )}>
+          {isActive ? <ShieldOff className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+          {isActive ? 'Block' : 'Unblock'}
+        </button>
       </div>
     </div>
   );
