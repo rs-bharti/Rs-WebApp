@@ -405,7 +405,6 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
     const label  = record?.name || record?.unitName || `this ${type.toLowerCase()}`;
     setDeleteModal({ id, label });
     setDeleteModalErr('');
-    setForceMode(false);
   };
 
   const confirmDelete = async () => {
@@ -426,6 +425,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
       else if (isExpense)       await deleteExpense(id);
       setRecords(prev => prev.filter(r => r.id !== id));
       setDeleteModal(null);
+      setViewRecord(null);
       emitDataChange();
     } catch (err) {
       setDeleteModalErr(err.message || 'Cannot delete this record.');
