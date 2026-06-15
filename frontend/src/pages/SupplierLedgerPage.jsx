@@ -331,11 +331,8 @@ const SupplierLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // OB: CR = payable to supplier (+), DR = advance/overpaid (-)
-    // Others: DR (purchase) adds; CR (payment/return) subtracts
-    runBal += r.source === 'opening_balance'
-      ? (r.type === 'CR' ? r.amount : -r.amount)
-      : (r.type === 'DR' ? r.amount : -r.amount);
+    // CR = we receive (+), DR = we give (-)
+    runBal += r.type === 'CR' ? r.amount : -r.amount;
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 
@@ -569,7 +566,7 @@ const SupplierLedgerPage = () => {
               </p>
               {closing !== 0 && (
                 <p className="text-[10px] font-semibold mt-0.5 text-stone-400">
-                  {closing > 0 ? 'Payable to supplier' : 'Advance / Overpaid'}
+                  {closing < 0 ? 'Payable to supplier' : 'Advance / Receivable'}
                 </p>
               )}
             </div>
@@ -674,7 +671,7 @@ const SupplierLedgerPage = () => {
             <span>·</span>
             <span><span className="font-semibold text-rose-600">CR (Payment / Return / Receipt)</span> = Amount paid or returned</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-700">Balance Cr</span> = Still payable to supplier</span>
+            <span><span className="font-semibold text-emerald-700">Balance Dr</span> = Still payable to supplier</span>
           </div>
         </div>
       )}
