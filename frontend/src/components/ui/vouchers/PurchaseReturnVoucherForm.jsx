@@ -3,7 +3,7 @@ import { useAutoRefresh, emitDataChange } from '../../../hooks/useAutoRefresh';
 import { Plus, X, ExternalLink, List } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SelectSearch from '../SelectSearch';
-import { getSuppliers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
+import { getSuppliers, getProducts, getWarehouses, getMasterBranchMasters, getSupplierLedger } from '../../../api/masters';
 
 const PAYMENT_TERMS_OPTIONS = [
   { id: '60 Days Consignment Basis', name: '60 Days Consignment Basis' },
@@ -39,6 +39,23 @@ const PurchaseReturnVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const [partyBalance,    setPartyBalance]    = useState(null);
+  const [balanceLoading,  setBalanceLoading]  = useState(false);
+
+  useEffect(() => {
+    setPartyBalance(null);
+    if (!partyKey) return;
+    const [pType, pId] = partyKey.split('_');
+    if (pType !== 'supplier') return;
+    let cancelled = false;
+    setBalanceLoading(true);
+    getSupplierLedger(Number(pId))
+      .then(res => { if (!cancelled) setPartyBalance({ amount: res.summary.closingBalance, type: 'supplier' }); })
+      .catch(() => { if (!cancelled) setPartyBalance(null); })
+      .finally(() => { if (!cancelled) setBalanceLoading(false); });
+    return () => { cancelled = true; };
+  }, [partyKey]);
 
   const refreshVouchers = useCallback(() => { getPurchaseReturns().then(setVouchers).catch(console.error); }, []);
   useAutoRefresh(refreshVouchers, 15000);
@@ -192,6 +209,19 @@ const PurchaseReturnVoucherForm = () => {
               options={partyOptions}
               placeholder="Select Supplier or Branch"
             />
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              {balanceLoading && <span className="text-[10px] text-stone-400 animate-pulse">Loading balance…</span>}
+              {!balanceLoading && partyBalance && (() => {
+                const { amount } = partyBalance;
+                const drCr = amount >= 0 ? 'Cr' : 'Dr';
+                const colorCls = amount >= 0 ? 'text-red-500' : 'text-emerald-600';
+                return (
+                  <span className={`text-[10px] font-bold ${colorCls}`}>
+                    Bal: ₹{Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {drCr}
+                  </span>
+                );
+              })()}
+            </div>
           </div>
         </div>
 

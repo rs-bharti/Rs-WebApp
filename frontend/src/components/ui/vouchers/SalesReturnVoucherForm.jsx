@@ -11,7 +11,7 @@ const PAYMENT_TERMS_OPTIONS = [
   { id: 'Cash', name: 'Cash' },
 ];
 import { Link, useNavigate } from 'react-router-dom';
-import { getCustomers, getProducts, getWarehouses, getMasterBranchMasters } from '../../../api/masters';
+import { getCustomers, getProducts, getWarehouses, getMasterBranchMasters, getCustomerLedger } from '../../../api/masters';
 import { getSalesReturnNextNo, saveSalesReturnVoucher, getSalesReturns, updateSalesReturnVoucher, deleteSalesReturnVoucher } from '../../../api/vouchers';
 import { useAuth } from '../../../context/AuthContext';
 import VoucherListModal, { fmtDate } from './VoucherListModal';
@@ -39,6 +39,23 @@ const SalesReturnVoucherForm = () => {
   const [vouchers, setVouchers]               = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(false);
   const [showList,        setShowList]        = useState(false);
+
+  const [partyBalance,    setPartyBalance]    = useState(null);
+  const [balanceLoading,  setBalanceLoading]  = useState(false);
+
+  useEffect(() => {
+    setPartyBalance(null);
+    if (!partyKey) return;
+    const [pType, pId] = partyKey.split('_');
+    if (pType !== 'customer') return;
+    let cancelled = false;
+    setBalanceLoading(true);
+    getCustomerLedger(Number(pId))
+      .then(res => { if (!cancelled) setPartyBalance({ amount: res.summary.closingBalance, type: 'customer' }); })
+      .catch(() => { if (!cancelled) setPartyBalance(null); })
+      .finally(() => { if (!cancelled) setBalanceLoading(false); });
+    return () => { cancelled = true; };
+  }, [partyKey]);
 
   const refreshVouchers = useCallback(() => { getSalesReturns().then(setVouchers).catch(console.error); }, []);
   useAutoRefresh(refreshVouchers, 15000);
@@ -189,6 +206,19 @@ const SalesReturnVoucherForm = () => {
               options={partyOptions}
               placeholder="Select Customer or Branch"
             />
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              {balanceLoading && <span className="text-[10px] text-stone-400 animate-pulse">Loading balance…</span>}
+              {!balanceLoading && partyBalance && (() => {
+                const { amount } = partyBalance;
+                const drCr = amount >= 0 ? 'Dr' : 'Cr';
+                const colorCls = amount >= 0 ? 'text-emerald-600' : 'text-orange-500';
+                return (
+                  <span className={`text-[10px] font-bold ${colorCls}`}>
+                    Bal: ₹{Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {drCr}
+                  </span>
+                );
+              })()}
+            </div>
           </div>
         </div>
 
