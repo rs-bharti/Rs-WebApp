@@ -1623,11 +1623,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Purchase Vouchers (DR — increases payable, shown in DR column)
+    // Add Purchase Vouchers (CR — increases payable, shown in CR column)
     for (const pv of purchaseRows) {
       entries.push({
         _date:          new Date(pv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         pv.totalAmount,
         kind:           'purchase',
         voucherNo:      pv.voucherNo,
@@ -1677,11 +1677,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Receipt Vouchers from supplier (CR — shown in CR column)
+    // Add Receipt Vouchers from supplier (DR — reduces payable)
     for (const rv of receiptFromSupplierRows) {
       entries.push({
         _date:          new Date(rv.date),
-        type:           'CR',
+        type:           'DR',
         kind:           'receipt_from_supplier',
         voucherNo:      rv.voucherNo,
         source:         'receipt_from_supplier',
@@ -1697,11 +1697,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Purchase Return Vouchers (CR — shown in CR column)
+    // Add Purchase Return Vouchers (DR — reduces payable)
     for (const prv of purchaseReturnRows) {
       entries.push({
         _date:          new Date(prv.date),
-        type:           'CR',
+        type:           'DR',
         amount:         prv.totalAmount,
         kind:           'purchase_return',
         voucherNo:      prv.voucherNo,
@@ -1858,7 +1858,7 @@ const getCustomerLedger = async (req, res) => {
     for (const rv of receiptRows) {
       entries.push({
         _date:          new Date(rv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         rv.amount,
         voucherNo:      rv.voucherNo,
         source:         'receipt',
@@ -1957,7 +1957,7 @@ const getCustomerLedger = async (req, res) => {
 
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      balance += e.type === 'CR' ? e.amount : -e.amount;
+      balance += e.type === 'DR' ? e.amount : -e.amount;
       const { _date, ...rest } = e;
       return { id: idx + 1, date: _date.toISOString(), balance: Math.round(balance * 100) / 100, ...rest };
     });

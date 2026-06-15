@@ -243,14 +243,14 @@ const LedgerRow = ({ row, index }) => {
         {/* DR — payment out / purchase return */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'DR' ? (
-            <span className="text-rose-600">-₹{fmt(row.amount)}</span>
+            <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
 
         {/* CR — purchase (we owe supplier) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {row.type === 'CR' ? (
-            <span className="text-emerald-700">+₹{fmt(row.amount)}</span>
+            <span className="text-rose-600">+₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
 
@@ -610,8 +610,8 @@ const SupplierLedgerPage = () => {
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28">Voucher No</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider w-28 hidden md:table-cell">Payment Method</th>
                   <th className="px-3 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Particulars</th>
-                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">DR</th>
-                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">CR</th>
+                  <th className="px-3 py-3 text-right font-semibold text-emerald-600 text-xs uppercase tracking-wider w-28">DR</th>
+                  <th className="px-3 py-3 text-right font-semibold text-rose-600 text-xs uppercase tracking-wider w-28">CR</th>
                   <th className="px-3 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider w-32">Balance</th>
                 </tr>
               </thead>
@@ -636,10 +636,10 @@ const SupplierLedgerPage = () => {
                     <td colSpan={5} className="px-3 py-3 text-xs font-bold text-stone-600 uppercase tracking-wider">
                       Grand Total ({filtered.length} entries)
                     </td>
-                    <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
+                    <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">
                       -₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0))}
                     </td>
-                    <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">
+                    <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
                       +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0))}
                     </td>
                     <td className={`px-3 py-3 text-right font-bold tabular-nums ${
@@ -659,9 +659,9 @@ const SupplierLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-emerald-600">+CR (Purchase)</span> = Amount owed to supplier</span>
+            <span><span className="font-semibold text-rose-600">+CR (Purchase)</span> = Amount owed to supplier</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-600">-DR (Payment/Return)</span> = Amount paid / returned</span>
+            <span><span className="font-semibold text-emerald-600">-DR (Payment/Return)</span> = Amount paid / returned</span>
             <span>·</span>
             <span><span className="font-semibold text-rose-700">Balance Cr</span> = Still payable to supplier</span>
           </div>
