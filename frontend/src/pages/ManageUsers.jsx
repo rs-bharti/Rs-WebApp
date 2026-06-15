@@ -6,7 +6,7 @@ import {
   KeyRound, Eye, EyeOff, Mail, Pencil, User,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getUsers, deleteUser, forceDeleteUser, updateUserPermissions, getBranches } from '../api/users';
+import { getUsers, deleteUser, updateUserPermissions, getBranches } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 
 const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
@@ -17,16 +17,14 @@ const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});
 
 // ── Delete Confirmation Modal ──────────────────────────────────────────────
-const DeleteModal = ({ user, onConfirm, onForceConfirm, onCancel, loading }) => {
-  const [forceMode, setForceMode] = useState(false);
-
+const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className={`px-6 py-5 flex items-center gap-3 ${forceMode ? 'bg-red-700' : 'bg-rose-600'}`}>
+        <div className="px-6 py-5 flex items-center gap-3 bg-rose-600">
           <AlertTriangle className="w-6 h-6 text-white flex-shrink-0" />
           <div>
-            <h2 className="text-white font-serif text-xl">{forceMode ? 'Force Delete' : 'Delete User'}</h2>
+            <h2 className="text-white font-serif text-xl">Delete User</h2>
             <p className="text-white/70 text-[11px] uppercase tracking-widest">This cannot be undone</p>
           </div>
         </div>
@@ -36,47 +34,31 @@ const DeleteModal = ({ user, onConfirm, onForceConfirm, onCancel, loading }) => 
           <p className="font-bold text-stone-800 text-base mt-2">{user.name}</p>
           <p className="text-stone-400 text-sm">{user.email}</p>
 
-          {/* Force delete warning */}
-          {forceMode ? (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-xs font-bold uppercase tracking-widest mb-1">Warning — Permanent data loss</p>
-              <p className="text-red-600 text-sm">This will delete the user <strong>along with all their vouchers, entries and ledger records</strong>. This action is irreversible.</p>
+          {errorMsg ? (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-amber-700 text-xs font-bold uppercase tracking-widest mb-1">Cannot Delete</p>
+              <p className="text-amber-700 text-sm">{errorMsg}</p>
             </div>
           ) : (
             <div className="mt-4 p-3 bg-stone-50 border border-stone-200 rounded-lg">
-              <p className="text-stone-500 text-xs">If this user has vouchers, the delete will be blocked. Use <span className="font-bold text-red-600">Force Delete</span> to remove the user along with all their data.</p>
+              <p className="text-stone-500 text-xs">This user will be permanently removed. This action cannot be undone.</p>
             </div>
           )}
 
-          <div className="mt-5 flex flex-col gap-2">
-            {/* Toggle between normal and force */}
-            <button
-              onClick={() => setForceMode(p => !p)}
-              disabled={loading}
-              className={`w-full py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-widest border transition-all cursor-pointer ${
-                forceMode
-                  ? 'border-stone-300 text-stone-500 hover:bg-stone-50'
-                  : 'border-red-200 text-red-600 hover:bg-red-50'
-              }`}
-            >
-              {forceMode ? 'Switch to Normal Delete' : 'Force Delete (Remove All Data)'}
+          <div className="flex justify-end gap-3 mt-5">
+            <button onClick={onCancel} disabled={loading}
+              className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
+              Cancel
             </button>
-
-            <div className="flex justify-end gap-3 mt-1">
-              <button onClick={onCancel} disabled={loading}
-                className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
-                Cancel
-              </button>
+            {!errorMsg && (
               <button
-                onClick={forceMode ? onForceConfirm : onConfirm}
+                onClick={onConfirm}
                 disabled={loading}
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold text-white transition-all cursor-pointer disabled:opacity-60 ${
-                  forceMode ? 'bg-red-700 hover:bg-red-800' : 'bg-rose-600 hover:bg-rose-700'
-                }`}
+                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all cursor-pointer disabled:opacity-60"
               >
-                {loading ? 'Deleting...' : forceMode ? 'Yes, Force Delete' : 'Delete User'}
+                {loading ? 'Deleting...' : 'Delete User'}
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -554,6 +536,7 @@ const ManageUsers = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [deleteTarget,       setDeleteTarget]       = useState(null);
   const [deleteLoading,      setDeleteLoading]      = useState(false);
+  const [deleteModalErr,     setDeleteModalErr]     = useState('');
   const [editTarget,         setEditTarget]         = useState(null);
   const [editDetailsTarget,  setEditDetailsTarget]  = useState(null);
 
@@ -581,27 +564,14 @@ const ManageUsers = () => {
 
   const handleDelete = async () => {
     setDeleteLoading(true);
+    setDeleteModalErr('');
     try {
       await deleteUser(deleteTarget.id);
       setUsers(prev => prev.filter(u => u.id !== deleteTarget.id));
       flash(`${deleteTarget.name} has been removed.`);
       setDeleteTarget(null);
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const handleForceDelete = async () => {
-    setDeleteLoading(true);
-    try {
-      await forceDeleteUser(deleteTarget.id);
-      setUsers(prev => prev.filter(u => u.id !== deleteTarget.id));
-      flash(`${deleteTarget.name} and all their data have been permanently removed.`);
-      setDeleteTarget(null);
-    } catch (err) {
-      setError(err.message);
+      setDeleteModalErr(err.message || 'Cannot delete this user.');
     } finally {
       setDeleteLoading(false);
     }
@@ -650,9 +620,9 @@ const ManageUsers = () => {
         <DeleteModal
           user={deleteTarget}
           onConfirm={handleDelete}
-          onForceConfirm={handleForceDelete}
-          onCancel={() => setDeleteTarget(null)}
+          onCancel={() => { setDeleteTarget(null); setDeleteModalErr(''); }}
           loading={deleteLoading}
+          errorMsg={deleteModalErr}
         />
       )}
       {editTarget && (
