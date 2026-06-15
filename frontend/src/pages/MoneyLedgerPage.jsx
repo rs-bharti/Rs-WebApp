@@ -704,15 +704,10 @@ const MoneyLedgerPage = () => {
           <p className="text-sm">No payment methods found for this branch.</p>
           <p className="text-xs text-stone-300">Add payment methods in Payment Method Master to get started.</p>
         </div>
-      ) : !selectedMethodId ? (
-        <div className="text-center py-28 bg-white border border-dashed border-stone-200 rounded-xl flex flex-col items-center gap-3 text-stone-400">
-          <Landmark className="w-14 h-14 text-stone-200" />
-          <p className="text-base font-medium text-stone-500">Select a payment method to view its ledger</p>
-          <p className="text-xs text-stone-300">Use the dropdown above to choose Cash, Bank, or Total Receivables</p>
-        </div>
       ) : (
         <div className="space-y-6">
-          {selectedData && (
+          {selectedData ? (
+            /* Specific method selected from dropdown */
             <MethodSection
               key={selectedData.method.id}
               data={selectedData}
@@ -720,6 +715,24 @@ const MoneyLedgerPage = () => {
               toDate={toDate}
               currencySymbol={currencySymbol}
             />
+          ) : selectedMethodId === 'receivables' ? null : (
+            /* No specific method — show all methods in current category */
+            categoryFiltered.length > 0
+              ? categoryFiltered.map(d => (
+                  <MethodSection
+                    key={d.method.id}
+                    data={d}
+                    fromDate={fromDate}
+                    toDate={toDate}
+                    currencySymbol={currencySymbol}
+                  />
+                ))
+              : (
+                <div className="text-center py-20 bg-white border border-dashed border-stone-200 rounded-xl flex flex-col items-center gap-3 text-stone-400">
+                  <Landmark className="w-12 h-12 text-stone-200" />
+                  <p className="text-sm">No {filterCat !== 'ALL' ? filterCat.toLowerCase() : ''} payment methods found.</p>
+                </div>
+              )
           )}
           {selectedMethodId === 'receivables' && hasReceivables && (
             <ReceivablesSection
