@@ -309,8 +309,8 @@ const CustomerLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // DR entries (sales) add to receivable; CR entries (receipts/returns) reduce it
-    runBal += r.type === 'DR' ? r.amount : -r.amount;
+    // CR entries (sales) add to receivable; DR entries (receipts/returns) reduce it
+    runBal += r.type === 'CR' ? r.amount : -r.amount;
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 
@@ -637,9 +637,9 @@ const CustomerLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-emerald-600">-DR (Sales)</span> = Customer owes us</span>
+            <span><span className="font-semibold text-rose-600">+CR (Sales)</span> = Goods sold to customer</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-600">+CR (Receipt/Return)</span> = Amount received / returned</span>
+            <span><span className="font-semibold text-emerald-600">-DR (Receipt / Sales Return)</span> = Amount received / returned</span>
             <span>·</span>
             <span><span className="font-semibold text-emerald-700">Balance Dr</span> = Still receivable from customer</span>
           </div>
