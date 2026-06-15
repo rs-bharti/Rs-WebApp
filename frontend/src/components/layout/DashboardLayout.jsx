@@ -260,6 +260,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
               trendType={cashTrend}
               role={userRole}
               loading={loadingBalance}
+              onEdit={isAdmin ? () => setEditModal({ title: 'Cash Position', field: 'openingCash', currentOpening: balance?.openingCash ?? 0 }) : undefined}
             />
             <StatCard
               title="Bank Balance"
@@ -268,6 +269,7 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
               trendType={bankTrend}
               role={userRole}
               loading={loadingBalance}
+              onEdit={isAdmin ? () => setEditModal({ title: 'Bank Balance', field: 'openingBank', currentOpening: balance?.openingBank ?? 0 }) : undefined}
             />
             <StatCard
               title="Total Receivables"
