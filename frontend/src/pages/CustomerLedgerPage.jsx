@@ -57,6 +57,11 @@ const SOURCE_CONFIG = {
     className: 'bg-blue-50 text-blue-700 border border-blue-200',
     icon: FileText,
   },
+  payment_to_customer: {
+    label: 'Payment',
+    className: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    icon: CreditCard,
+  },
   manual: {
     label: 'Manual',
     className: 'bg-stone-100 text-stone-500 border border-stone-200',
