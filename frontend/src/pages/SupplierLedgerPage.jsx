@@ -329,8 +329,8 @@ const SupplierLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // CR (purchase) adds to payable; DR (payment/return) reduces payable
-    runBal += r.type === 'CR' ? r.amount : -r.amount;
+    // DR (purchase) adds to payable; CR (payment/return) reduces payable
+    runBal += r.type === 'DR' ? r.amount : -r.amount;
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 
@@ -659,9 +659,9 @@ const SupplierLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-rose-600">+CR (Purchase)</span> = Amount owed to supplier</span>
+            <span><span className="font-semibold text-emerald-600">-DR (Purchase)</span> = Amount owed to supplier</span>
             <span>·</span>
-            <span><span className="font-semibold text-emerald-600">-DR (Payment/Return)</span> = Amount paid / returned</span>
+            <span><span className="font-semibold text-rose-600">+CR (Payment/Return)</span> = Amount paid / returned</span>
             <span>·</span>
             <span><span className="font-semibold text-rose-700">Balance Cr</span> = Still payable to supplier</span>
           </div>

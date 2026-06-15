@@ -512,7 +512,7 @@ const createSupplier = async (req, res) => {
     let balance = 0;
     const obAmt = parseFloat(openingBalance);
     if (!isNaN(obAmt) && obAmt > 0) {
-      const obType = openingBalanceType === 'DR' ? 'DR' : 'CR';
+      const obType = openingBalanceType === 'DR' ? 'CR' : 'DR';
       await prisma.supplierTransaction.create({
         data: {
           supplierId: row.id,
@@ -523,7 +523,7 @@ const createSupplier = async (req, res) => {
           date:       new Date(),
         },
       });
-      balance = obType === 'CR' ? obAmt : -obAmt;
+      balance = obType === 'DR' ? obAmt : -obAmt;
     }
 
     res.status(201).json({ ...row, balance });

@@ -1623,11 +1623,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Purchase Vouchers (CR — increases payable, shown in CR column)
+    // Add Purchase Vouchers (DR — increases payable, shown in DR column)
     for (const pv of purchaseRows) {
       entries.push({
         _date:          new Date(pv.date),
-        type:           'CR',
+        type:           'DR',
         amount:         pv.totalAmount,
         kind:           'purchase',
         voucherNo:      pv.voucherNo,
@@ -1657,11 +1657,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Payment Vouchers (DR — reduces payable)
+    // Add Payment Vouchers (CR — reduces payable, shown in CR column)
     for (const pv of paymentRows) {
       entries.push({
         _date:          new Date(pv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         pv.amount,
         kind:           'payment',
         voucherNo:      pv.voucherNo,
@@ -1677,11 +1677,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Receipt Vouchers from supplier (DR — reduces payable)
+    // Add Receipt Vouchers from supplier (CR — reduces payable, shown in CR column)
     for (const rv of receiptFromSupplierRows) {
       entries.push({
         _date:          new Date(rv.date),
-        type:           'DR',
+        type:           'CR',
         kind:           'receipt_from_supplier',
         voucherNo:      rv.voucherNo,
         source:         'receipt_from_supplier',
@@ -1697,11 +1697,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Purchase Return Vouchers (DR — reduces payable)
+    // Add Purchase Return Vouchers (CR — reduces payable, shown in CR column)
     for (const prv of purchaseReturnRows) {
       entries.push({
         _date:          new Date(prv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         prv.totalAmount,
         kind:           'purchase_return',
         voucherNo:      prv.voucherNo,
@@ -1737,8 +1737,8 @@ const getSupplierLedger = async (req, res) => {
     // Compute running balance
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      // CR increases amount owed (payable), DR decreases it
-      balance += e.type === 'CR' ? e.amount : -e.amount;
+      // DR (purchase) increases payable; CR (payment/return) decreases it
+      balance += e.type === 'DR' ? e.amount : -e.amount;
       const { _date, ...rest } = e;
       return {
         id:      idx + 1,
