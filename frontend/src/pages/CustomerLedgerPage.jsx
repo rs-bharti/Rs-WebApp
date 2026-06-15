@@ -225,15 +225,15 @@ const LedgerRow = ({ row }) => {
             )}
           </div>
         </td>
-        {/* DR — Sales / Opening Balance DR (customer owes us) */}
+        {/* DR — Sales Return / Payment to customer / Opening Balance DR */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
-          {row.type === 'DR' ? (
+          {(row.type === 'DR' && row.source !== 'receipt') ? (
             <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
-        {/* CR — Receipt / Sales Return / Opening Balance CR (customer paid / returned) */}
+        {/* CR — Sales / Receipt / Opening Balance CR */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
-          {row.type === 'CR' ? (
+          {(row.type === 'CR' || row.source === 'receipt') ? (
             <span className="text-rose-600">+₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
@@ -615,10 +615,10 @@ const CustomerLedgerPage = () => {
                       Grand Total ({filtered.length} entries)
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">
-                      -₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0))}
+                      -₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' && r.source !== 'receipt' ? r.amount : 0), 0))}
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
-                      +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0))}
+                      +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' || r.source === 'receipt' ? r.amount : 0), 0))}
                     </td>
                     <td className={`px-3 py-3 text-right font-bold tabular-nums ${
                       closing > 0 ? 'text-emerald-700' : closing < 0 ? 'text-rose-700' : 'text-stone-400'
@@ -637,9 +637,9 @@ const CustomerLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-rose-600">+CR (Sales)</span> = Goods sold to customer</span>
+            <span><span className="font-semibold text-rose-600">+CR (Sales / Receipt)</span> = Goods sold / Amount received</span>
             <span>·</span>
-            <span><span className="font-semibold text-emerald-600">-DR (Receipt / Sales Return)</span> = Amount received / returned</span>
+            <span><span className="font-semibold text-emerald-600">-DR (Sales Return / Payment)</span> = Goods returned / Paid to customer</span>
             <span>·</span>
             <span><span className="font-semibold text-emerald-700">Balance Dr</span> = Still receivable from customer</span>
           </div>
