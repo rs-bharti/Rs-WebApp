@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import { Navigate } from 'react-router-dom';
 import {
   Users, Trash2, Settings2, FileText, Database, Building2, X, AlertTriangle,
-  KeyRound, Eye, EyeOff, Mail, Pencil, User,
+  KeyRound, Eye, EyeOff, Mail, Pencil, User, ShieldOff, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getUsers, deleteUser, updateUserPermissions, getBranches } from '../api/users';
+import { getUsers, deleteUser, updateUserPermissions, getBranches, toggleUserActive } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 
 const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
@@ -21,11 +21,11 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className={`px-6 py-5 flex items-center gap-3 ${errorMsg ? 'bg-amber-500' : 'bg-rose-600'}`}>
+        <div className="px-6 py-5 flex items-center gap-3 bg-rose-600">
           <AlertTriangle className="w-6 h-6 text-white flex-shrink-0" />
           <div>
-            <h2 className="text-white font-serif text-xl">{errorMsg ? 'Cannot Delete User' : 'Delete User'}</h2>
-            <p className="text-white/70 text-[11px] uppercase tracking-widest">{errorMsg ? 'Linked data exists' : 'This cannot be undone'}</p>
+            <h2 className="text-white font-serif text-xl">Delete User</h2>
+            <p className="text-white/70 text-[11px] uppercase tracking-widest">This cannot be undone</p>
           </div>
         </div>
 
@@ -34,28 +34,26 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
           <p className="font-bold text-stone-800 text-base mt-2">{user.name}</p>
           <p className="text-stone-400 text-sm">{user.email}</p>
 
-          {errorMsg ? (
-            <p className="mt-4 text-sm text-amber-700 leading-relaxed">{errorMsg}</p>
-          ) : (
-            <div className="mt-4 p-3 bg-stone-50 border border-stone-200 rounded-lg">
-              <p className="text-stone-500 text-xs">This user will be permanently removed. This action cannot be undone.</p>
-            </div>
+          <div className="mt-4 p-3 bg-stone-50 border border-stone-200 rounded-lg">
+            <p className="text-stone-500 text-xs">This user will be permanently removed. This action cannot be undone.</p>
+          </div>
+
+          {errorMsg && (
+            <p className="mt-3 text-sm text-amber-700 font-medium leading-relaxed">{errorMsg}</p>
           )}
 
           <div className="flex justify-end gap-3 mt-5">
             <button onClick={onCancel} disabled={loading}
               className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
-              {errorMsg ? 'Close' : 'Cancel'}
+              Cancel
             </button>
-            {!errorMsg && (
-              <button
-                onClick={onConfirm}
-                disabled={loading}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all cursor-pointer disabled:opacity-60"
-              >
-                {loading ? 'Deleting...' : 'Delete User'}
-              </button>
-            )}
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all cursor-pointer disabled:opacity-60"
+            >
+              {loading ? 'Deleting...' : 'Delete User'}
+            </button>
           </div>
         </div>
       </div>
@@ -457,33 +455,41 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
 };
 
 // ── User Card ──────────────────────────────────────────────────────────────
-const UserCard = ({ user, onEdit, onEditDetails, onDelete }) => {
+const UserCard = ({ user, onEdit, onEditDetails, onToggleActive }) => {
   const isAdminUser  = user.role === 'admin' || user.role?.name === 'admin';
+  const isActive     = user.isActive !== false;
   const voucherCount = Object.values(user.permissions?.vouchers || {}).filter(Boolean).length;
   const masterCount  = Object.values(user.permissions?.masters  || {}).filter(Boolean).length;
   const branchCount  = (user.permissions?.branches || []).length;
 
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+    <div className={cn('border rounded-xl p-5 shadow-sm transition-all', isActive ? 'bg-white border-stone-200 hover:shadow-md' : 'bg-stone-50 border-red-200')}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn(
             'w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0',
-            isAdminUser ? 'bg-brand-primary' : 'bg-stone-400'
+            isAdminUser ? 'bg-brand-primary' : isActive ? 'bg-stone-400' : 'bg-red-300'
           )}>
             {user.name?.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-stone-800 text-sm truncate">{user.name}</p>
+            <p className={cn('font-semibold text-sm truncate', isActive ? 'text-stone-800' : 'text-stone-400')}>{user.name}</p>
             <p className="text-stone-400 text-xs truncate">{user.email}</p>
           </div>
         </div>
-        <span className={cn(
-          'text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full flex-shrink-0 ml-2',
-          isAdminUser ? 'bg-brand-primary/10 text-brand-primary' : 'bg-stone-100 text-stone-500'
-        )}>
-          {isAdminUser ? 'Admin' : 'User'}
-        </span>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+          <span className={cn(
+            'text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full',
+            isAdminUser ? 'bg-brand-primary/10 text-brand-primary' : 'bg-stone-100 text-stone-500'
+          )}>
+            {isAdminUser ? 'Admin' : 'User'}
+          </span>
+          {!isActive && (
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-100 text-red-500">
+              Blocked
+            </span>
+          )}
+        </div>
       </div>
 
       {isAdminUser ? (
@@ -514,10 +520,18 @@ const UserCard = ({ user, onEdit, onEditDetails, onDelete }) => {
             <Settings2 className="w-3.5 h-3.5" /> Edit Access
           </button>
         )}
-        <button onClick={() => onDelete(user)}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-rose-500 border border-rose-200 rounded-lg hover:bg-rose-50 transition-all cursor-pointer">
-          <Trash2 className="w-3.5 h-3.5" /> Delete
-        </button>
+        {!isAdminUser && (
+          <button onClick={() => onToggleActive(user)}
+            className={cn(
+              'flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all cursor-pointer',
+              isActive
+                ? 'text-red-500 border-red-200 hover:bg-red-50'
+                : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
+            )}>
+            {isActive ? <ShieldOff className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+            {isActive ? 'Block' : 'Unblock'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -571,6 +585,16 @@ const ManageUsers = () => {
       setDeleteModalErr(err.message || 'Cannot delete this user.');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleToggleActive = async (user) => {
+    try {
+      const updated = await toggleUserActive(user.id);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: updated.isActive } : u));
+      flash(`${user.name} has been ${updated.isActive ? 'unblocked' : 'blocked'}.`);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -673,7 +697,7 @@ const ManageUsers = () => {
               user={user}
               onEdit={setEditTarget}
               onEditDetails={setEditDetailsTarget}
-              onDelete={setDeleteTarget}
+              onToggleActive={handleToggleActive}
             />
           ))}
         </div>

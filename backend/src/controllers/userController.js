@@ -167,4 +167,19 @@ const getRoles = async (req, res) => {
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
 };
 
-module.exports = { getAll, getOne, create, update, remove, forceDelete, getBranches, getRoles };
+const toggleActive = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id }, select: { isActive: true, role: { select: { name: true } } } });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role.name === 'admin') return res.status(400).json({ message: 'Cannot block an admin user.' });
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isActive: !user.isActive },
+      select: { id: true, isActive: true },
+    });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: 'Server error' }); }
+};
+
+module.exports = { getAll, getOne, create, update, remove, forceDelete, getBranches, getRoles, toggleActive };

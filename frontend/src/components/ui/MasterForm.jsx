@@ -1648,19 +1648,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-sm mx-4 p-6 space-y-5 animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${deleteModalErr ? 'bg-amber-50 border border-amber-100' : 'bg-red-50 border border-red-100'}`}>
-                <Trash2 className={`w-5 h-5 ${deleteModalErr ? 'text-amber-500' : 'text-red-500'}`} />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-red-50 border border-red-100">
+                <Trash2 className="w-5 h-5 text-red-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-stone-800">
-                  {deleteModalErr ? `Cannot Delete "${deleteModal.label}"` : `Delete ${type === 'Branches' ? 'Branch' : type}?`}
-                </h3>
-                {deleteModalErr ? (
-                  <p className="text-sm text-amber-700 mt-2 leading-relaxed">{deleteModalErr}</p>
-                ) : (
-                  <p className="text-sm text-stone-500 mt-1">
-                    <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently deleted. This cannot be undone.
-                  </p>
+                <h3 className="text-base font-bold text-stone-800">Delete {type === 'Branches' ? 'Branch' : type}?</h3>
+                <p className="text-sm text-stone-500 mt-1">
+                  <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently deleted. This cannot be undone.
+                </p>
+                {deleteModalErr && (
+                  <p className="text-sm text-amber-700 font-medium mt-2 leading-relaxed">{deleteModalErr}</p>
                 )}
               </div>
             </div>
@@ -1670,18 +1667,16 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 onClick={() => { setDeleteModal(null); setDeleteModalErr(''); }}
                 className="px-5 py-2 rounded-xl text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all active:scale-95"
               >
-                {deleteModalErr ? 'Close' : 'Cancel'}
+                Cancel
               </button>
-              {!deleteModalErr && (
-                <button
-                  type="button"
-                  onClick={confirmDelete}
-                  disabled={!!deletingId}
-                  className="px-5 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {deletingId ? 'Deleting…' : 'Yes, Delete'}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={!!deletingId}
+                className="px-5 py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deletingId ? 'Deleting…' : 'Yes, Delete'}
+              </button>
             </div>
           </div>
         </div>

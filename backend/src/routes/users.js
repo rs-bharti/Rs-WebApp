@@ -1,5 +1,5 @@
 const express = require('express');
-const { getAll, getOne, create, update, remove, forceDelete, getBranches, getRoles } = require('../controllers/userController');
+const { getAll, getOne, create, update, remove, forceDelete, getBranches, getRoles, toggleActive } = require('../controllers/userController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -14,6 +14,7 @@ router.get('/', getAll);
 router.get('/:id', getOne);
 router.post('/', create);
 router.put('/:id', update);
+router.patch('/:id/toggle-active', toggleActive);
 router.delete('/:id/force', forceDelete);
 router.delete('/:id', remove);
 

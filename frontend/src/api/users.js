@@ -57,6 +57,16 @@ export const forceDeleteUser = async (userId) => {
   return data;
 };
 
+export const toggleUserActive = async (userId) => {
+  const res = await fetch(`${API_URL}/api/users/${userId}/toggle-active`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update user status');
+  return data;
+};
+
 export const updateUserPermissions = async (userId, permissions, password, email, name) => {
   const body = {};
   if (permissions !== undefined) body.permissions = permissions;
