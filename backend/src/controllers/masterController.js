@@ -1048,11 +1048,12 @@ const getDashboardBalance = async (req, res) => {
       opening = await prisma.dashboardBalance.create({ data: { branchId, openingCash: 0, openingBank: 0, openingReceivables: 0 } });
     }
 
-    // Fetch ALL payment methods for this branch, then split by category in JS
-    // (avoids Prisma aggregate + nested/in filter bugs when category is null or wrong casing)
+    // Fetch payment methods: branch-specific OR global (branchId = null).
+    // Global methods are used in some branches (e.g. dummy branch) where methods were
+    // created without a branch — their vouchers still carry the correct branchId.
     const [allMethods, receiptsByMethod, paymentsByMethod, contraFromByMethod, contraToByMethod] = await Promise.all([
       prisma.paymentMethodMaster.findMany({
-        where: { branchId },
+        where: { OR: [{ branchId }, { branchId: null }] },
         select: { id: true, category: true, openingBalance: true },
       }),
       prisma.receiptVoucher.groupBy({ by: ['paymentMethodId'], where: { branchId }, _sum: { amount: true } }),
@@ -1061,12 +1062,14 @@ const getDashboardBalance = async (req, res) => {
       prisma.contraVoucher.groupBy({ by: ['toPaymentMethodId'],   where: { branchId }, _sum: { amount: true } }),
     ]);
 
-    const cashMethods = allMethods.filter(m => m.category === 'CASH');
-    const bankMethods = allMethods.filter(m => m.category === 'BANK');
+    // Case-insensitive category match to handle any legacy data inconsistencies
+    const cashMethods = allMethods.filter(m => m.category?.toUpperCase() === 'CASH');
+    const bankMethods = allMethods.filter(m => m.category?.toUpperCase() === 'BANK');
     const cashIds = new Set(cashMethods.map(m => m.id));
     const bankIds = new Set(bankMethods.map(m => m.id));
-    const openingCash = cashMethods.reduce((s, m) => s + (m.openingBalance || 0), 0);
-    const openingBank = bankMethods.reduce((s, m) => s + (m.openingBalance || 0), 0);
+    // Opening balances come from dashboardBalance (editable via the dashboard modal)
+    const openingCash = opening.openingCash || 0;
+    const openingBank = opening.openingBank || 0;
 
     const sumFor = (rows, idField, idSet) =>
       rows.filter(r => idSet.has(r[idField])).reduce((s, r) => s + (r._sum.amount || 0), 0);

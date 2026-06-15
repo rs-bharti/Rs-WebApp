@@ -67,16 +67,19 @@ const EditModal = ({ title, field, currentOpening, onSave, onClose }) => {
   const [value, setValue] = useState(String(currentOpening ?? 0));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [confirming, setConfirming] = useState(false);
 
   const handleSave = async () => {
     const num = parseFloat(value);
     if (isNaN(num)) return setErr('Enter a valid number');
+    if (!confirming) { setConfirming(true); return; }
     setSaving(true);
     try {
       await onSave({ [field]: num });
       onClose();
     } catch (e) {
       setErr(e.message || 'Failed to save');
+      setConfirming(false);
     } finally {
       setSaving(false);
     }
@@ -91,30 +94,53 @@ const EditModal = ({ title, field, currentOpening, onSave, onClose }) => {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-xs text-stone-400 mb-4 uppercase tracking-widest">Opening / Starting Balance</p>
-        <input
-          type="number"
-          step="0.01"
-          value={value}
-          onChange={e => { setValue(e.target.value); setErr(''); }}
-          className="w-full border border-stone-200 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-brand-primary"
-          autoFocus
-          onKeyDown={e => e.key === 'Enter' && handleSave()}
-        />
-        {err && <p className="text-xs text-rose-500 mt-2">{err}</p>}
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-brand-primary hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            Save
-          </button>
-        </div>
+        {confirming ? (
+          <>
+            <p className="text-sm text-stone-600 mb-1">Are you sure you want to update the opening balance to</p>
+            <p className="text-xl font-bold text-brand-primary mb-6">&#8377;{parseFloat(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-6">This will affect the running balance calculations for this branch.</p>
+            {err && <p className="text-xs text-rose-500 mb-3">{err}</p>}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirming(false)} className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
+                Back
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-brand-primary hover:brightness-110 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Confirm Save
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-stone-400 mb-4 uppercase tracking-widest">Opening / Starting Balance</p>
+            <input
+              type="number"
+              step="0.01"
+              value={value}
+              onChange={e => { setValue(e.target.value); setErr(''); }}
+              className="w-full border border-stone-200 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-brand-primary"
+              autoFocus
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+            />
+            {err && <p className="text-xs text-rose-500 mt-2">{err}</p>}
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-brand-primary hover:brightness-110 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                Save
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
