@@ -1067,9 +1067,9 @@ const getDashboardBalance = async (req, res) => {
     const bankMethods = allMethods.filter(m => m.category?.toUpperCase() === 'BANK');
     const cashIds = new Set(cashMethods.map(m => m.id));
     const bankIds = new Set(bankMethods.map(m => m.id));
-    // Opening balances come from dashboardBalance (editable via the dashboard modal)
-    const openingCash = opening.openingCash || 0;
-    const openingBank = opening.openingBank || 0;
+    // Opening balances = sum of openingBalance on each payment method master by category
+    const openingCash = cashMethods.reduce((s, m) => s + (m.openingBalance || 0), 0);
+    const openingBank = bankMethods.reduce((s, m) => s + (m.openingBalance || 0), 0);
 
     const sumFor = (rows, idField, idSet) =>
       rows.filter(r => idSet.has(r[idField])).reduce((s, r) => s + (r._sum.amount || 0), 0);
