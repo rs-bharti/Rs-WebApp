@@ -1048,44 +1048,39 @@ const getDashboardBalance = async (req, res) => {
       opening = await prisma.dashboardBalance.create({ data: { branchId, openingCash: 0, openingBank: 0, openingReceivables: 0 } });
     }
 
-    // Fetch payment method IDs per category first (avoids unreliable nested relation filters in aggregate)
-    const [cashMethods, bankMethods] = await Promise.all([
-      prisma.paymentMethodMaster.findMany({ where: { branchId, category: 'CASH' }, select: { id: true, openingBalance: true } }),
-      prisma.paymentMethodMaster.findMany({ where: { branchId, category: 'BANK' }, select: { id: true, openingBalance: true } }),
+    // Fetch ALL payment methods for this branch, then split by category in JS
+    // (avoids Prisma aggregate + nested/in filter bugs when category is null or wrong casing)
+    const [allMethods, receiptsByMethod, paymentsByMethod, contraFromByMethod, contraToByMethod] = await Promise.all([
+      prisma.paymentMethodMaster.findMany({
+        where: { branchId },
+        select: { id: true, category: true, openingBalance: true },
+      }),
+      prisma.receiptVoucher.groupBy({ by: ['paymentMethodId'], where: { branchId }, _sum: { amount: true } }),
+      prisma.paymentVoucher.groupBy({ by: ['paymentMethodId'], where: { branchId }, _sum: { amount: true } }),
+      prisma.contraVoucher.groupBy({ by: ['fromPaymentMethodId'], where: { branchId }, _sum: { amount: true } }),
+      prisma.contraVoucher.groupBy({ by: ['toPaymentMethodId'],   where: { branchId }, _sum: { amount: true } }),
     ]);
 
-    const cashIds = cashMethods.map(m => m.id);
-    const bankIds = bankMethods.map(m => m.id);
+    const cashMethods = allMethods.filter(m => m.category === 'CASH');
+    const bankMethods = allMethods.filter(m => m.category === 'BANK');
+    const cashIds = new Set(cashMethods.map(m => m.id));
+    const bankIds = new Set(bankMethods.map(m => m.id));
     const openingCash = cashMethods.reduce((s, m) => s + (m.openingBalance || 0), 0);
     const openingBank = bankMethods.reduce((s, m) => s + (m.openingBalance || 0), 0);
 
-    const [
-      cashIn, bankIn, cashOut, bankOut,
-      contraToCash, contraToBank, contraFromCash, contraFromBank,
-    ] = await Promise.all([
-      // Receipt = money IN → add to balance
-      cashIds.length ? prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethodId: { in: cashIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      bankIds.length ? prisma.receiptVoucher.aggregate({ where: { branchId, paymentMethodId: { in: bankIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      // Payment = money OUT → subtract from balance
-      cashIds.length ? prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethodId: { in: cashIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      bankIds.length ? prisma.paymentVoucher.aggregate({ where: { branchId, paymentMethodId: { in: bankIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      // Contra = transfer between methods → destination gains, source loses
-      cashIds.length ? prisma.contraVoucher.aggregate({ where: { branchId, toPaymentMethodId:   { in: cashIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      bankIds.length ? prisma.contraVoucher.aggregate({ where: { branchId, toPaymentMethodId:   { in: bankIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      cashIds.length ? prisma.contraVoucher.aggregate({ where: { branchId, fromPaymentMethodId: { in: cashIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-      bankIds.length ? prisma.contraVoucher.aggregate({ where: { branchId, fromPaymentMethodId: { in: bankIds } }, _sum: { amount: true } }) : { _sum: { amount: 0 } },
-    ]);
+    const sumFor = (rows, idField, idSet) =>
+      rows.filter(r => idSet.has(r[idField])).reduce((s, r) => s + (r._sum.amount || 0), 0);
 
     const currentCash = openingCash
-      + (cashIn._sum.amount       || 0)
-      + (contraToCash._sum.amount || 0)
-      - (cashOut._sum.amount      || 0)
-      - (contraFromCash._sum.amount || 0);
+      + sumFor(receiptsByMethod,    'paymentMethodId',     cashIds)
+      + sumFor(contraToByMethod,    'toPaymentMethodId',   cashIds)
+      - sumFor(paymentsByMethod,    'paymentMethodId',     cashIds)
+      - sumFor(contraFromByMethod,  'fromPaymentMethodId', cashIds);
     const currentBank = openingBank
-      + (bankIn._sum.amount       || 0)
-      + (contraToBank._sum.amount || 0)
-      - (bankOut._sum.amount      || 0)
-      - (contraFromBank._sum.amount || 0);
+      + sumFor(receiptsByMethod,    'paymentMethodId',     bankIds)
+      + sumFor(contraToByMethod,    'toPaymentMethodId',   bankIds)
+      - sumFor(paymentsByMethod,    'paymentMethodId',     bankIds)
+      - sumFor(contraFromByMethod,  'fromPaymentMethodId', bankIds);
 
     // Total Receivables = Opening + Payments to customers (advance/refund) - Receipts from customers
     // Only receipt/payment vouchers where the particular is a customer affect this figure.
