@@ -14,8 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset",
-    "db:fix-seq": "node fix-sequences.js"
+    "db:reset": "prisma migrate reset"
   },
 
   "prisma": {
