@@ -263,11 +263,11 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
           <div className="pt-6 border-t border-stone-100">
             <div className="flex items-center gap-2 mb-4">
               <Mail className="w-4 h-4 text-brand-accent" />
-              <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Email</h4>
+              <h4 className="text-[10px] font-bold text-brand-accent">Email</h4>
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Email</label>
+              <label className="text-[10px] font-bold text-stone-400 block mb-1.5">Email</label>
               <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary focus-within:bg-white transition-colors">
                 <Mail className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
                 <input
@@ -275,6 +275,8 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="Enter email"
+                  autoCapitalize="none"
+                  autoComplete="email"
                   className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
                 />
               </div>
@@ -285,12 +287,12 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
           <div className="pt-6 border-t border-stone-100">
             <div className="flex items-center gap-2 mb-4">
               <KeyRound className="w-4 h-4 text-brand-accent" />
-              <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Password</h4>
+              <h4 className="text-[10px] font-bold text-brand-accent">Password</h4>
             </div>
 
             {user.plainPassword && (
               <div className="mb-4">
-                <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Current Password</label>
+                <label className="text-[10px] font-bold text-stone-400 block mb-1.5">Current Password</label>
                 <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5">
                   <span className="flex-1 text-sm font-mono text-stone-700 tracking-widest">
                     {showCurrentPw ? user.plainPassword : '•'.repeat(Math.min(user.plainPassword.length, 16))}
@@ -304,13 +306,15 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
             )}
 
             <div>
-              <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5">Set New Password</label>
+              <label className="text-[10px] font-bold text-stone-400 block mb-1.5">New Password</label>
               <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary transition-colors">
                 <input
                   type={showNewPw ? 'text' : 'password'}
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="Leave blank to keep current password"
+                  autoCapitalize="none"
+                  autoComplete="new-password"
                   className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
                 />
                 <button type="button" onClick={() => setShowNewPw(p => !p)}
@@ -411,7 +415,7 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
 
           {/* Email */}
           <div>
-            <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5 flex items-center gap-1.5">
+            <label className="text-[10px] font-bold text-stone-400 block mb-1.5 flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5" /> Email
             </label>
             <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary focus-within:bg-white transition-colors">
@@ -421,6 +425,8 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="Enter email"
+                autoCapitalize="none"
+                autoComplete="email"
                 className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
               />
             </div>
@@ -428,7 +434,7 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
 
           {/* Password */}
           <div>
-            <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5 flex items-center gap-1.5">
+            <label className="text-[10px] font-bold text-stone-400 block mb-1.5 flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5" /> Password
             </label>
             <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary focus-within:bg-white transition-colors">
@@ -437,6 +443,8 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Enter password"
+                autoCapitalize="none"
+                autoComplete="new-password"
                 className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
               />
               <button type="button" onClick={() => setShowPw(p => !p)}
