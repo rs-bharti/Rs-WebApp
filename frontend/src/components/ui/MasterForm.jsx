@@ -948,7 +948,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
                   <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
-                    {(f('obType') || 'CR') !== 'DR' ? '−' : '+'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -1002,7 +1002,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 </div>
                 {f('openingBalance') && parseFloat(f('openingBalance')) > 0 && (
                   <div className={cn('flex items-center px-3 rounded-lg text-xs font-bold whitespace-nowrap', (f('obType') || 'CR') !== 'DR' ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
-                    {(f('obType') || 'CR') !== 'DR' ? '−' : '+'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {(f('obType') || 'CR') !== 'DR' ? '+' : '−'} {currencySymbol}{parseFloat(f('openingBalance')).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -1175,8 +1175,8 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                           {(isDetailed || isCustomer) && (
                             <td className={tdCls}>
                               {r.balance !== undefined && r.balance !== null ? (
-                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap', r.balance >= 0 ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200')}>
-                                  {r.balance >= 0 ? 'CR' : 'DR'} {currencySymbol}{Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <span className={cn('text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap', r.balance > 0 ? 'bg-green-50 text-green-600 border border-green-200' : r.balance < 0 ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-stone-50 text-stone-400 border border-stone-200')}>
+                                  {r.balance > 0 ? 'DR' : r.balance < 0 ? 'CR' : 'Nil'} {r.balance !== 0 ? `${currencySymbol}${Math.abs(r.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : ''}
                                 </span>
                               ) : '—'}
                             </td>
