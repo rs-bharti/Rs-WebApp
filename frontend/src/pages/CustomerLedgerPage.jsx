@@ -228,7 +228,7 @@ const LedgerRow = ({ row }) => {
         {/* DR */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {(row.type === 'DR' && row.source !== 'receipt') ? (
-            <span className="text-emerald-700">+₹{fmt(row.amount)}</span>
+            <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
         {/* CR */}
@@ -617,7 +617,7 @@ const CustomerLedgerPage = () => {
                       Grand Total ({filtered.length} entries)
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">
-                      +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' && r.source !== 'receipt' ? r.amount : 0), 0))}
+                      -₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' && r.source !== 'receipt' ? r.amount : 0), 0))}
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
                       +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' || r.source === 'receipt' ? r.amount : 0), 0))}
