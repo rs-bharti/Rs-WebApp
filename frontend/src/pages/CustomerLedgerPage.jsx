@@ -225,13 +225,13 @@ const LedgerRow = ({ row }) => {
             )}
           </div>
         </td>
-        {/* DR — Sales Return / Payment to customer / Opening Balance DR */}
+        {/* DR */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {(row.type === 'DR' && row.source !== 'receipt') ? (
             <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
-        {/* CR — Sales / Receipt / Opening Balance CR */}
+        {/* CR */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {(row.type === 'CR' || row.source === 'receipt') ? (
             <span className="text-rose-600">+₹{fmt(row.amount)}</span>
@@ -648,9 +648,9 @@ const CustomerLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-rose-600">+CR (Sales / Receipt)</span> = Goods sold / Amount received</span>
+            <span><span className="font-semibold text-rose-600">CR (Sales / Receipt)</span> = Goods sold / Amount received</span>
             <span>·</span>
-            <span><span className="font-semibold text-emerald-600">-DR (Sales Return / Payment)</span> = Goods returned / Paid to customer</span>
+            <span><span className="font-semibold text-emerald-600">DR (Sales Return / Payment)</span> = Goods returned / Paid to customer</span>
             <span>·</span>
             <span><span className="font-semibold text-emerald-700">Balance Dr</span> = Still receivable from customer</span>
           </div>

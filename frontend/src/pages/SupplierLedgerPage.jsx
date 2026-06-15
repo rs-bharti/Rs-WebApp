@@ -240,14 +240,14 @@ const LedgerRow = ({ row, index }) => {
           </div>
         </td>
 
-        {/* DR — Purchase / Payment to supplier / Opening Balance DR */}
+        {/* DR — Purchase / Payment / Opening Balance */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {(row.type === 'DR' || row.source === 'payment') ? (
             <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
 
-        {/* CR — Receipt from supplier / Purchase Return / Opening Balance CR */}
+        {/* CR — Receipt / Purchase Return */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
           {(row.type === 'CR' && row.source !== 'payment') ? (
             <span className="text-rose-600">+₹{fmt(row.amount)}</span>
@@ -670,9 +670,9 @@ const SupplierLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-emerald-600">-DR (Purchase / Payment)</span> = Amount owed / Paid to supplier</span>
+            <span><span className="font-semibold text-emerald-600">DR (Purchase)</span> = Amount owed to supplier</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-600">+CR (Receipt / Return)</span> = Received from supplier / Returned</span>
+            <span><span className="font-semibold text-rose-600">CR (Payment / Return / Receipt)</span> = Amount paid or returned</span>
             <span>·</span>
             <span><span className="font-semibold text-rose-700">Balance Cr</span> = Still payable to supplier</span>
           </div>

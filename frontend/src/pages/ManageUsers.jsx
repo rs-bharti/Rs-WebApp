@@ -315,6 +315,7 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
                   placeholder="Leave blank to keep current password"
                   autoCapitalize="none"
                   autoComplete="new-password"
+                  data-no-upper
                   className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
                 />
                 <button type="button" onClick={() => setShowNewPw(p => !p)}
@@ -445,6 +446,7 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
                 placeholder="Enter password"
                 autoCapitalize="none"
                 autoComplete="new-password"
+                data-no-upper
                 className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
               />
               <button type="button" onClick={() => setShowPw(p => !p)}
