@@ -682,8 +682,8 @@ const createCustomer = async (req, res) => {
           date:       new Date(),
         },
       });
-      // DR = customer owes us (positive/Dr); CR = we owe customer (negative/Cr)
-      balance = obType === 'DR' ? obAmt : -obAmt;
+      // CR = we receive (positive); DR = we give (negative)
+      balance = obType === 'CR' ? obAmt : -obAmt;
     }
 
     res.status(201).json({ ...row, balance });
