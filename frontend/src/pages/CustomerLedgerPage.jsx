@@ -311,8 +311,11 @@ const CustomerLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // CR entries (sales) add to receivable; DR entries (receipts/returns) reduce it
-    runBal += r.type === 'CR' ? r.amount : -r.amount;
+    // OB: DR = receivable (+), CR = we owe customer (-)
+    // Others: CR (sales) adds; DR (receipt/return) subtracts
+    runBal += r.source === 'opening_balance'
+      ? (r.type === 'DR' ? r.amount : -r.amount)
+      : (r.type === 'CR' ? r.amount : -r.amount);
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 

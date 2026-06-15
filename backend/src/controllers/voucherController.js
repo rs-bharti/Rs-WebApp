@@ -1737,8 +1737,11 @@ const getSupplierLedger = async (req, res) => {
     // Compute running balance
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      // DR (purchase) increases payable; CR (payment/return) decreases it
-      balance += e.type === 'DR' ? e.amount : -e.amount;
+      // OB: CR = payable to supplier (+), DR = advance/overpaid (-)
+      // Others: DR (purchase) increases payable; CR (payment/return) decreases it
+      balance += e.source === 'opening_balance'
+        ? (e.type === 'CR' ? e.amount : -e.amount)
+        : (e.type === 'DR' ? e.amount : -e.amount);
       const { _date, ...rest } = e;
       return {
         id:      idx + 1,
@@ -1957,7 +1960,11 @@ const getCustomerLedger = async (req, res) => {
 
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      balance += e.type === 'CR' ? e.amount : -e.amount;
+      // OB: DR = receivable from customer (+), CR = we owe customer (-)
+      // Others: CR (sales) increases receivable; DR (receipt/return) decreases it
+      balance += e.source === 'opening_balance'
+        ? (e.type === 'DR' ? e.amount : -e.amount)
+        : (e.type === 'CR' ? e.amount : -e.amount);
       const { _date, ...rest } = e;
       return { id: idx + 1, date: _date.toISOString(), balance: Math.round(balance * 100) / 100, ...rest };
     });

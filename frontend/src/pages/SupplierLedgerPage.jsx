@@ -331,8 +331,11 @@ const SupplierLedgerPage = () => {
 
   let runBal = 0;
   const periodRows = dateFiltered.map(r => {
-    // DR (purchase) adds to payable; CR (payment/return) reduces payable
-    runBal += r.type === 'DR' ? r.amount : -r.amount;
+    // OB: CR = payable to supplier (+), DR = advance/overpaid (-)
+    // Others: DR (purchase) adds; CR (payment/return) subtracts
+    runBal += r.source === 'opening_balance'
+      ? (r.type === 'CR' ? r.amount : -r.amount)
+      : (r.type === 'DR' ? r.amount : -r.amount);
     return { ...r, balance: Math.round(runBal * 100) / 100 };
   });
 

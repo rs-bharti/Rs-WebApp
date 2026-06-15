@@ -512,7 +512,7 @@ const createSupplier = async (req, res) => {
     let balance = 0;
     const obAmt = parseFloat(openingBalance);
     if (!isNaN(obAmt) && obAmt > 0) {
-      const obType = openingBalanceType === 'DR' ? 'CR' : 'DR';
+      const obType = openingBalanceType === 'DR' ? 'DR' : 'CR';
       await prisma.supplierTransaction.create({
         data: {
           supplierId: row.id,
@@ -523,7 +523,8 @@ const createSupplier = async (req, res) => {
           date:       new Date(),
         },
       });
-      balance = obType === 'DR' ? obAmt : -obAmt;
+      // CR = we owe supplier (positive/Cr); DR = supplier owes us (negative/Dr)
+      balance = obType === 'CR' ? obAmt : -obAmt;
     }
 
     res.status(201).json({ ...row, balance });
@@ -670,7 +671,7 @@ const createCustomer = async (req, res) => {
     let balance = 0;
     const obAmt = parseFloat(openingBalance);
     if (!isNaN(obAmt) && obAmt > 0) {
-      const obType = openingBalanceType === 'DR' ? 'CR' : 'DR';
+      const obType = openingBalanceType === 'DR' ? 'DR' : 'CR';
       await prisma.customerTransaction.create({
         data: {
           customerId: row.id,
@@ -681,7 +682,8 @@ const createCustomer = async (req, res) => {
           date:       new Date(),
         },
       });
-      balance = obType === 'CR' ? obAmt : -obAmt;
+      // DR = customer owes us (positive/Dr); CR = we owe customer (negative/Cr)
+      balance = obType === 'DR' ? obAmt : -obAmt;
     }
 
     res.status(201).json({ ...row, balance });
