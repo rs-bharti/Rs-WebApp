@@ -1098,16 +1098,6 @@ const getDashboardBalance = async (req, res) => {
       + (custReceiptsAgg._sum.amount || 0)   // receipt = getting money from customer → increases
       - (payToCustomerAgg._sum.amount || 0); // payment = paying out to customer → decreases
 
-    const _dbankReceipts  = sumFor(receiptsByMethod,   'paymentMethodId',     bankIds);
-    const _dbankContraIn  = sumFor(contraToByMethod,   'toPaymentMethodId',   bankIds);
-    const _dbankPayments  = sumFor(paymentsByMethod,   'paymentMethodId',     bankIds);
-    const _dbankContraOut = sumFor(contraFromByMethod, 'fromPaymentMethodId', bankIds);
-    console.log('[dashboardBalance DEBUG] branchId:', branchId,
-      'bankIds:', [...bankIds],
-      'bankReceipts:', _dbankReceipts, 'bankContraIn:', _dbankContraIn,
-      'bankPayments:', _dbankPayments, 'bankContraOut:', _dbankContraOut,
-      'openingBank:', openingBank, 'currentBank:', currentBank);
-
     res.json({
       openingCash:         Math.round(openingCash * 100) / 100,
       openingBank:         Math.round(openingBank * 100) / 100,
@@ -1115,7 +1105,6 @@ const getDashboardBalance = async (req, res) => {
       currentCash:         Math.round(currentCash * 100) / 100,
       currentBank:         Math.round(currentBank * 100) / 100,
       totalReceivables:    Math.round(totalReceivables * 100) / 100,
-      _debug: { bankIds: [...bankIds], bankReceipts: _dbankReceipts, bankContraIn: _dbankContraIn, bankPayments: _dbankPayments, bankContraOut: _dbankContraOut },
     });
   } catch (err) {
     console.error('getDashboardBalance error:', err);
