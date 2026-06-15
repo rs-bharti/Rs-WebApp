@@ -240,16 +240,16 @@ const LedgerRow = ({ row, index }) => {
           </div>
         </td>
 
-        {/* DR — Purchase / Payment to supplier / Opening Balance DR */}
+        {/* DR — Purchase / Opening Balance (adds to payable) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
-          {(row.type === 'DR' || row.source === 'payment') ? (
-            <span className="text-emerald-700">-₹{fmt(row.amount)}</span>
+          {row.type === 'DR' ? (
+            <span className="text-emerald-700">+₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
 
-        {/* CR — Receipt from supplier / Purchase Return / Opening Balance CR */}
+        {/* CR — Payment / Receipt / Purchase Return (reduces payable) */}
         <td className="px-3 py-3 text-right font-semibold tabular-nums">
-          {(row.type === 'CR' && row.source !== 'payment') ? (
+          {row.type === 'CR' ? (
             <span className="text-rose-600">+₹{fmt(row.amount)}</span>
           ) : <span className="text-stone-200">—</span>}
         </td>
@@ -639,10 +639,10 @@ const SupplierLedgerPage = () => {
                       Grand Total ({filtered.length} entries)
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-emerald-700 tabular-nums">
-                      -₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' || r.source === 'payment' ? r.amount : 0), 0))}
+                      +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'DR' ? r.amount : 0), 0))}
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-rose-700 tabular-nums">
-                      +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' && r.source !== 'payment' ? r.amount : 0), 0))}
+                      +₹{fmt(filtered.reduce((s, r) => s + (r.type === 'CR' ? r.amount : 0), 0))}
                     </td>
                     <td className="px-3 py-3 text-right">
                       {closing !== 0 ? (
@@ -667,9 +667,9 @@ const SupplierLedgerPage = () => {
           {/* Legend */}
           <div className="flex flex-wrap gap-3 text-[11px] text-stone-400 pb-4">
             <span className="font-semibold text-stone-500">Legend:</span>
-            <span><span className="font-semibold text-emerald-600">-DR (Purchase / Payment)</span> = Amount owed / Paid to supplier</span>
+            <span><span className="font-semibold text-emerald-600">DR (Purchase)</span> = Amount owed to supplier</span>
             <span>·</span>
-            <span><span className="font-semibold text-rose-600">+CR (Receipt / Return)</span> = Received from supplier / Returned</span>
+            <span><span className="font-semibold text-rose-600">CR (Payment / Return / Receipt)</span> = Amount paid or returned</span>
             <span>·</span>
             <span><span className="font-semibold text-rose-700">Balance Cr</span> = Still payable to supplier</span>
           </div>
