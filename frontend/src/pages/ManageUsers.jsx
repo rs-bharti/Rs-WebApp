@@ -345,11 +345,10 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
 
 // ── Edit Details Modal (admin users) ──────────────────────────────────────
 const EditDetailsModal = ({ user, onSave, onCancel }) => {
-  const [name,        setName]        = useState(user.name  || '');
-  const [email,       setEmail]       = useState(user.email || '');
-  const [newPassword, setNewPassword] = useState('');
-  const [showCurPw,   setShowCurPw]  = useState(false);
-  const [showNewPw,   setShowNewPw]  = useState(false);
+  const [name,        setName]        = useState(user.name          || '');
+  const [email,       setEmail]       = useState(user.email         || '');
+  const [newPassword, setNewPassword] = useState(user.plainPassword || '');
+  const [showPw,      setShowPw]      = useState(false);
   const [saving,      setSaving]     = useState(false);
   const [error,       setError]      = useState('');
 
@@ -359,15 +358,16 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
   }, []);
 
   const handleSave = async () => {
-    if (!name.trim())  { setError('Name cannot be empty.'); return; }
-    if (!email.trim()) { setError('Email cannot be empty.'); return; }
+    if (!name.trim())        { setError('Name cannot be empty.'); return; }
+    if (!email.trim())       { setError('Email cannot be empty.'); return; }
+    if (!newPassword.trim()) { setError('Password cannot be empty.'); return; }
     setSaving(true);
     setError('');
     try {
       await onSave({
         name:     name.trim(),
         email:    email.trim(),
-        password: newPassword.trim() || null,
+        password: newPassword.trim(),
       });
     } catch (err) {
       setError(err.message);
@@ -431,34 +431,19 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
             <label className="text-[10px] uppercase font-bold text-stone-400 tracking-widest block mb-1.5 flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5" /> Password
             </label>
-            {user.plainPassword && (
-              <div className="mb-2">
-                <p className="text-[10px] text-stone-400 mb-1">Current password</p>
-                <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5">
-                  <span className="flex-1 text-sm font-mono text-stone-600 tracking-widest">
-                    {showCurPw ? user.plainPassword : '•'.repeat(Math.min(user.plainPassword.length, 16))}
-                  </span>
-                  <button type="button" onClick={() => setShowCurPw(p => !p)}
-                    className="text-stone-400 hover:text-stone-600 transition-colors cursor-pointer flex-shrink-0">
-                    {showCurPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            )}
             <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 focus-within:border-brand-primary focus-within:bg-white transition-colors">
               <input
-                type={showNewPw ? 'text' : 'password'}
+                type={showPw ? 'text' : 'password'}
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
-                placeholder="New password (leave blank to keep)"
+                placeholder="Enter password"
                 className="flex-1 text-sm bg-transparent outline-none text-stone-700 placeholder:text-stone-300"
               />
-              <button type="button" onClick={() => setShowNewPw(p => !p)}
+              <button type="button" onClick={() => setShowPw(p => !p)}
                 className="text-stone-400 hover:text-stone-600 transition-colors cursor-pointer flex-shrink-0">
-                {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[10px] text-stone-400 mt-1.5">Leave blank to keep current password</p>
           </div>
 
           {error && (
