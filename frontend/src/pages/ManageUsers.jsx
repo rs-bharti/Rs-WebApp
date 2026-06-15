@@ -21,11 +21,11 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 flex items-center gap-3 bg-rose-600">
+        <div className={`px-6 py-5 flex items-center gap-3 ${errorMsg ? 'bg-amber-500' : 'bg-rose-600'}`}>
           <AlertTriangle className="w-6 h-6 text-white flex-shrink-0" />
           <div>
-            <h2 className="text-white font-serif text-xl">Delete User</h2>
-            <p className="text-white/70 text-[11px] uppercase tracking-widest">This cannot be undone</p>
+            <h2 className="text-white font-serif text-xl">{errorMsg ? 'Cannot Delete User' : 'Delete User'}</h2>
+            <p className="text-white/70 text-[11px] uppercase tracking-widest">{errorMsg ? 'Linked data exists' : 'This cannot be undone'}</p>
           </div>
         </div>
 
@@ -35,10 +35,7 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
           <p className="text-stone-400 text-sm">{user.email}</p>
 
           {errorMsg ? (
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-amber-700 text-xs font-bold uppercase tracking-widest mb-1">Cannot Delete</p>
-              <p className="text-amber-700 text-sm">{errorMsg}</p>
-            </div>
+            <p className="mt-4 text-sm text-amber-700 leading-relaxed">{errorMsg}</p>
           ) : (
             <div className="mt-4 p-3 bg-stone-50 border border-stone-200 rounded-lg">
               <p className="text-stone-500 text-xs">This user will be permanently removed. This action cannot be undone.</p>
@@ -48,7 +45,7 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
           <div className="flex justify-end gap-3 mt-5">
             <button onClick={onCancel} disabled={loading}
               className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
-              Cancel
+              {errorMsg ? 'Close' : 'Cancel'}
             </button>
             {!errorMsg && (
               <button

@@ -1652,13 +1652,11 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 <Trash2 className={`w-5 h-5 ${deleteModalErr ? 'text-amber-500' : 'text-red-500'}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-stone-800">Delete {type === 'Branches' ? 'Branch' : type}?</h3>
+                <h3 className="text-base font-bold text-stone-800">
+                  {deleteModalErr ? `Cannot Delete "${deleteModal.label}"` : `Delete ${type === 'Branches' ? 'Branch' : type}?`}
+                </h3>
                 {deleteModalErr ? (
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm font-semibold text-amber-700">Cannot delete "{deleteModal.label}"</p>
-                    <p className="text-sm text-stone-500 leading-relaxed">{deleteModalErr}</p>
-                    <p className="text-xs text-stone-400 mt-1">Remove or reassign the linked entries first.</p>
-                  </div>
+                  <p className="text-sm text-amber-700 mt-2 leading-relaxed">{deleteModalErr}</p>
                 ) : (
                   <p className="text-sm text-stone-500 mt-1">
                     <span className="font-semibold text-stone-700">"{deleteModal.label}"</span> will be permanently deleted. This cannot be undone.
@@ -1672,7 +1670,7 @@ const MasterForm = ({ type = 'Customer', userRole = 'admin' }) => {
                 onClick={() => { setDeleteModal(null); setDeleteModalErr(''); }}
                 className="px-5 py-2 rounded-xl text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all active:scale-95"
               >
-                Cancel
+                {deleteModalErr ? 'Close' : 'Cancel'}
               </button>
               {!deleteModalErr && (
                 <button
