@@ -144,8 +144,8 @@ const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6" onClick={onCancel}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300" onClick={e => e.stopPropagation()}>
 
         <div className="bg-brand-primary px-6 py-5 flex items-center justify-between flex-shrink-0">
           <div>
@@ -383,8 +383,8 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6" onClick={onCancel}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="bg-brand-primary px-6 py-5 flex items-center justify-between flex-shrink-0">
@@ -397,7 +397,7 @@ const EditDetailsModal = ({ user, onSave, onCancel }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6">
 
           {/* Name */}
           <div>
