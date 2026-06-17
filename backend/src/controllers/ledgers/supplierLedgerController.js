@@ -163,11 +163,11 @@ const getSupplierLedger = async (req, res) => {
       });
     }
 
-    // Add Receipt Vouchers from supplier (CR — reduces payable, shown in CR column)
+    // Add Receipt Vouchers from supplier (DR — shown in DR column)
     for (const rv of receiptFromSupplierRows) {
       entries.push({
         _date:          new Date(rv.date),
-        type:           'CR',
+        type:           'DR',
         kind:           'receipt_from_supplier',
         voucherNo:      rv.voucherNo,
         source:         'receipt_from_supplier',
@@ -220,10 +220,9 @@ const getSupplierLedger = async (req, res) => {
     // Sort chronologically
     entries.sort((a, b) => a._date - b._date);
 
-    // Compute running balance — payment is stored as CR but goes in DR column (subtract)
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      const inCR = e.type === 'CR' && e.source !== 'payment';
+      const inCR = e.type === 'CR';
       balance += inCR ? e.amount : -e.amount;
       const { _date, ...rest } = e;
       return {

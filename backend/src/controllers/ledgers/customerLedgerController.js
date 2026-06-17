@@ -103,7 +103,7 @@ const getCustomerLedger = async (req, res) => {
     for (const pv of paymentToCustomerRows) {
       entries.push({
         _date:          new Date(pv.date),
-        type:           'DR',
+        type:           'CR',
         amount:         pv.amount,
         voucherNo:      pv.voucherNo,
         source:         'payment_to_customer',
@@ -182,10 +182,9 @@ const getCustomerLedger = async (req, res) => {
 
     entries.sort((a, b) => a._date - b._date);
 
-    // Compute running balance — receipt is stored as DR but goes in CR column (add)
     let balance = 0;
     const ledger = entries.map((e, idx) => {
-      const inCR = e.type === 'CR' || e.source === 'receipt';
+      const inCR = e.type === 'CR';
       balance += inCR ? e.amount : -e.amount;
       const { _date, ...rest } = e;
       return { id: idx + 1, date: _date.toISOString(), balance: Math.round(balance * 100) / 100, ...rest };
