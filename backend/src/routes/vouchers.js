@@ -19,6 +19,8 @@ const {
   getDayBook,
   getMoneyLedger,
   getReceivablesLedger,
+  getReceivablesEntries,
+  markReceivablePaid,
 } = require('../controllers/voucherController');
 
 const router = express.Router();
@@ -32,6 +34,8 @@ router.get('/supplier-ledger/:supplierId', getSupplierLedger);
 router.get('/customer-ledger/:customerId', getCustomerLedger);
 router.get('/money-ledger',               getMoneyLedger);
 router.get('/receivables-ledger',         getReceivablesLedger);
+router.get('/receivables-entries',        getReceivablesEntries);
+router.patch('/receivables-entries/:type/:id/mark-paid', markReceivablePaid);
 router.get('/day-book',                   getDayBook);
 
 router.get('/contra/next-number',       getContraNextNo);

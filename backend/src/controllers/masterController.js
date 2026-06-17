@@ -1086,10 +1086,10 @@ const getDashboardBalance = async (req, res) => {
       - sumFor(paymentsByMethod,    'paymentMethodId',     bankIds)
       - sumFor(contraFromByMethod,  'fromPaymentMethodId', bankIds);
 
-    // Total Receivables = sum of all Sales Vouchers + sum of all Purchase Return Vouchers for this branch
+    // Total Receivables = sum of unpaid Sales Vouchers + sum of unpaid Purchase Return Vouchers
     const [salesAgg, purchaseReturnAgg] = await Promise.all([
-      prisma.salesVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
-      prisma.purchaseReturnVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
+      prisma.salesVoucher.aggregate({ where: { branchId, isPaid: false }, _sum: { totalAmount: true } }),
+      prisma.purchaseReturnVoucher.aggregate({ where: { branchId, isPaid: false }, _sum: { totalAmount: true } }),
     ]);
 
     const totalReceivables =

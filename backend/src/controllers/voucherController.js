@@ -2191,6 +2191,84 @@ const getMoneyLedger = async (req, res) => {
   }
 };
 
+const getReceivablesEntries = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    if (!branchId) return res.status(400).json({ message: 'Branch required' });
+
+    const [salesVouchers, purchaseReturnVouchers] = await Promise.all([
+      prisma.salesVoucher.findMany({
+        where: { branchId },
+        include: {
+          customer:  { select: { name: true } },
+          items:     { include: { product: { select: { name: true } } } },
+          createdBy: { select: { name: true } },
+        },
+        orderBy: { date: 'desc' },
+      }),
+      prisma.purchaseReturnVoucher.findMany({
+        where: { branchId },
+        include: {
+          supplier:  { select: { name: true } },
+          items:     { include: { product: { select: { name: true } } } },
+          createdBy: { select: { name: true } },
+        },
+        orderBy: { date: 'desc' },
+      }),
+    ]);
+
+    const unpaidSales    = salesVouchers.filter(v => !v.isPaid);
+    const unpaidReturns  = purchaseReturnVouchers.filter(v => !v.isPaid);
+
+    const totalSales          = unpaidSales.reduce((s, v)   => s + (v.totalAmount || 0), 0);
+    const totalPurchaseReturn = unpaidReturns.reduce((s, v) => s + (v.totalAmount || 0), 0);
+
+    res.json({
+      sales:           salesVouchers,
+      purchaseReturns: purchaseReturnVouchers,
+      totalSales,
+      totalPurchaseReturn,
+      grandTotal: totalSales + totalPurchaseReturn,
+    });
+  } catch (err) {
+    console.error('getReceivablesEntries error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const markReceivablePaid = async (req, res) => {
+  try {
+    const branchId = getBranchId(req);
+    if (!branchId) return res.status(400).json({ message: 'Branch required' });
+
+    const { type, id } = req.params;
+    const numId = Number(id);
+
+    if (type === 'sales') {
+      const voucher = await prisma.salesVoucher.findFirst({ where: { id: numId, branchId } });
+      if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
+      await prisma.salesVoucher.update({
+        where: { id: numId },
+        data: { isPaid: true, paidAt: new Date() },
+      });
+    } else if (type === 'purchase-return') {
+      const voucher = await prisma.purchaseReturnVoucher.findFirst({ where: { id: numId, branchId } });
+      if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
+      await prisma.purchaseReturnVoucher.update({
+        where: { id: numId },
+        data: { isPaid: true, paidAt: new Date() },
+      });
+    } else {
+      return res.status(400).json({ message: 'Invalid type. Use "sales" or "purchase-return"' });
+    }
+
+    res.json({ message: 'Marked as paid' });
+  } catch (err) {
+    console.error('markReceivablePaid error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 const getReceivablesLedger = async (req, res) => {
   try {
     const branchId = getBranchId(req);
@@ -2260,4 +2338,6 @@ module.exports = {
   getDayBook,
   getMoneyLedger,
   getReceivablesLedger,
+  getReceivablesEntries,
+  markReceivablePaid,
 };

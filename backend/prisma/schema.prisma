@@ -425,6 +425,8 @@ model SalesVoucher {
   warehouseName  String?
   paymentTerms   String?
   particularType String?
+  isPaid         Boolean          @default(false)
+  paidAt         DateTime?
   branch         Branch           @relation(fields: [branchId], references: [id])
   createdBy      User             @relation(fields: [createdById], references: [id])
   customer       Customer?        @relation(fields: [customerId], references: [id])
@@ -592,6 +594,8 @@ model PurchaseReturnVoucher {
   warehouseId       Int?
   warehouseName     String?
   particularType    String?
+  isPaid            Boolean                     @default(false)
+  paidAt            DateTime?
   branch            Branch                      @relation(fields: [branchId], references: [id])
   createdBy         User                        @relation(fields: [createdById], references: [id])
   paymentMethod     PaymentMethodMaster?        @relation(fields: [paymentMethodId], references: [id])

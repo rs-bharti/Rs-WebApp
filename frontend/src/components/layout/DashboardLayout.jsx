@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../ui/Sidebar';
-import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, Landmark, Menu, ChevronDown, Sun, Moon, Pencil, X, Check, Loader2 } from 'lucide-react';
+import { MoreVertical, TrendingUp, Building2, TrendingDown, Wallet, Landmark, Menu, ChevronDown, Sun, Moon, Pencil, X, Check, Loader2, Bell } from 'lucide-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
@@ -154,7 +154,12 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
   const { isDark, toggle: toggleTheme } = useTheme();
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [statsOpen, setStatsOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const isReceivablesPage = location.pathname.includes('/receivables');
+  const [statsOpen, setStatsOpen] = useState(() => !location.pathname.includes('/receivables') && typeof window !== 'undefined' && window.innerWidth >= 768);
+
+  useEffect(() => {
+    if (isReceivablesPage) setStatsOpen(false);
+  }, [isReceivablesPage]);
 
   // Dashboard balance state
   const [balance, setBalance] = useState(null);
@@ -239,6 +244,21 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
             )}
           </div>
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => navigate('/dashboard/receivables')}
+              title="Total Receivables — Sales & Purchase Return entries"
+              className={cn(
+                'relative p-2 rounded-lg transition-colors cursor-pointer',
+                userRole === 'admin'
+                  ? 'text-brand-primary/60 hover:text-brand-primary hover:bg-brand-primary/5'
+                  : 'text-rs-text-muted hover:text-rs-text-primary hover:bg-rs-accent-bg'
+              )}
+            >
+              <Bell className="w-4 h-4" />
+              {balance && balance.totalReceivables > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
+              )}
+            </button>
             <button
               onClick={toggleTheme}
               className={cn(
