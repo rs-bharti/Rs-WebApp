@@ -1086,18 +1086,16 @@ const getDashboardBalance = async (req, res) => {
       - sumFor(paymentsByMethod,    'paymentMethodId',     bankIds)
       - sumFor(contraFromByMethod,  'fromPaymentMethodId', bankIds);
 
-    // Total Receivables = Opening + Payments to customers (advance/refund) - Receipts from customers
-    // Only receipt/payment vouchers where the particular is a customer affect this figure.
-    const customerFilter = { OR: [{ customerId: { not: null } }, { particularType: 'customer' }] };
-    const [custReceiptsAgg, payToCustomerAgg] = await Promise.all([
-      prisma.receiptVoucher.aggregate({ where: { branchId, ...customerFilter }, _sum: { amount: true } }),
-      prisma.paymentVoucher.aggregate({ where: { branchId, ...customerFilter }, _sum: { amount: true } }),
+    // Total Receivables = sum of all Sales Vouchers + sum of all Purchase Return Vouchers for this branch
+    const [salesAgg, purchaseReturnAgg] = await Promise.all([
+      prisma.salesVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
+      prisma.purchaseReturnVoucher.aggregate({ where: { branchId }, _sum: { totalAmount: true } }),
     ]);
 
     const totalReceivables =
       (opening.openingReceivables || 0)
-      + (custReceiptsAgg._sum.amount || 0)   // receipt = getting money from customer → increases
-      - (payToCustomerAgg._sum.amount || 0); // payment = paying out to customer → decreases
+      + (salesAgg._sum.totalAmount || 0)
+      + (purchaseReturnAgg._sum.totalAmount || 0);
 
     res.json({
       openingCash:         Math.round(openingCash * 100) / 100,
