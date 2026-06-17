@@ -12,8 +12,6 @@ const fmt = (n, symbol) => {
   if (n === null || n === undefined) return `${symbol}—`;
   const abs  = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  if (abs >= 10000000) return `${sign}${symbol}${(abs / 10000000).toFixed(2)}Cr`;
-  if (abs >= 100000)   return `${sign}${symbol}${(abs / 100000).toFixed(2)}L`;
   return `${sign}${symbol}${abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
@@ -181,6 +179,12 @@ const DashboardLayout = ({ userRole = 'admin' }) => {
 
   useEffect(() => { fetchBalance(); }, [fetchBalance]);
   useAutoRefresh(fetchBalance, 15000);
+
+  // Refresh dashboard total immediately when a receivable is marked paid from the tracker page
+  useEffect(() => {
+    window.addEventListener('receivable-paid', fetchBalance);
+    return () => window.removeEventListener('receivable-paid', fetchBalance);
+  }, [fetchBalance]);
 
   const handleSaveOpening = async (body) => {
     await updateDashboardBalance(body);

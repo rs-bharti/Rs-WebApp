@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ReceiptText, RefreshCw, AlertTriangle,
-  CheckCircle2, Loader2, Check, ShoppingCart, Repeat,
+  Bell, RefreshCw, AlertTriangle, CheckCircle2,
+  Loader2, Check, ShoppingCart, Repeat, RotateCcw, Package,
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -38,8 +38,7 @@ const getDueDate = (date, terms) => {
 const isOverdue = (v) => {
   if (v.isPaid) return false;
   const due = getDueDate(v.date, v.paymentTerms);
-  if (!due) return false;
-  return Date.now() > due.getTime();
+  return due ? Date.now() > due.getTime() : false;
 };
 
 const daysOverdue = (v) => {
@@ -48,9 +47,17 @@ const daysOverdue = (v) => {
   return Math.max(0, Math.floor((Date.now() - due.getTime()) / 86400000));
 };
 
+// type metadata
+const TYPE_META = {
+  sales:           { label: 'Sales',          Icon: ShoppingCart, bg: 'bg-green-100',  text: 'text-green-700',  affectsReceivable: true  },
+  'purchase-return':{ label: 'Pur. Return',   Icon: Repeat,       bg: 'bg-teal-100',   text: 'text-teal-700',   affectsReceivable: true  },
+  'sales-return':  { label: 'Sales Return',   Icon: RotateCcw,    bg: 'bg-orange-100', text: 'text-orange-700', affectsReceivable: false },
+  purchase:        { label: 'Purchase',       Icon: Package,      bg: 'bg-amber-100',  text: 'text-amber-700',  affectsReceivable: false },
+};
+
 // ── Done button ────────────────────────────────────────────────────────────────
 const DoneButton = ({ voucherType, id, onSuccess }) => {
-  const [state, setState] = useState('idle'); // idle | loading | done
+  const [state, setState] = useState('idle');
 
   const handleClick = async () => {
     if (state !== 'idle') return;
@@ -62,7 +69,11 @@ const DoneButton = ({ voucherType, id, onSuccess }) => {
       );
       if (!res.ok) throw new Error();
       setState('done');
-      setTimeout(onSuccess, 500);
+      // If this type affects receivable, notify dashboard to refresh
+      if (TYPE_META[voucherType]?.affectsReceivable) {
+        window.dispatchEvent(new Event('receivable-paid'));
+      }
+      setTimeout(onSuccess, 400);
     } catch {
       setState('idle');
     }
@@ -87,73 +98,68 @@ const DoneButton = ({ voucherType, id, onSuccess }) => {
   );
 };
 
-// ── Column header row ──────────────────────────────────────────────────────────
-const ColHeader = ({ overdue }) => (
-  <div className="grid grid-cols-[100px_90px_100px_1fr_140px_100px_120px_90px] gap-3 px-4 py-2 border-b border-stone-100 bg-stone-50/80">
-    {['Voucher No', 'Date', 'Type', 'Party', 'Terms', overdue ? 'Overdue' : 'Due Date', 'Amount', ''].map((h, i) => (
+// ── Column headers ─────────────────────────────────────────────────────────────
+const ColHeader = ({ isOverdueSection }) => (
+  <div className="grid grid-cols-[100px_82px_110px_1fr_130px_100px_120px_88px] gap-2 px-4 py-2 border-b border-stone-100 bg-stone-50/80">
+    {['Voucher No', 'Date', 'Type', 'Party', 'Terms', isOverdueSection ? 'Overdue' : 'Due Date', 'Amount', ''].map((h, i) => (
       <span key={i} className="text-[9px] font-bold uppercase tracking-widest text-stone-400 truncate">{h}</span>
     ))}
   </div>
 );
 
-// ── Single compact row ─────────────────────────────────────────────────────────
-const EntryRow = ({ v, voucherType, party, isOverdueRow, onPaid }) => {
+// ── Single row ─────────────────────────────────────────────────────────────────
+const EntryRow = ({ v, isOverdueSection, onPaid }) => {
+  const meta    = TYPE_META[v._type] || TYPE_META.sales;
+  const { Icon } = meta;
   const dueDate = getDueDate(v.date, v.paymentTerms);
-  const over    = isOverdueRow ? daysOverdue(v) : 0;
   const days    = parseDays(v.paymentTerms);
-  const isSales = voucherType === 'sales';
+  const over    = isOverdueSection ? daysOverdue(v) : 0;
 
   return (
-    <div className={`grid grid-cols-[100px_90px_100px_1fr_140px_100px_120px_90px] gap-3 items-center px-4 py-2.5 border-b border-stone-50 transition-colors ${
-      isOverdueRow ? 'bg-red-50/40 hover:bg-red-50/70' : 'hover:bg-stone-50/60'
+    <div className={`grid grid-cols-[100px_82px_110px_1fr_130px_100px_120px_88px] gap-2 items-center px-4 py-2.5 border-b border-stone-50 transition-colors ${
+      isOverdueSection ? 'bg-red-50/30 hover:bg-red-50/60' : 'hover:bg-stone-50/50'
     }`}>
 
-      {/* Voucher No */}
       <span className="text-[11px] font-mono text-stone-400 truncate">{v.voucherNo || '—'}</span>
 
-      {/* Date */}
-      <span className="text-[11px] text-stone-400 truncate">{fmtDate(v.date)}</span>
+      <span className="text-[11px] text-stone-400">{fmtDate(v.date)}</span>
 
-      {/* Type badge */}
-      <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-        isSales ? 'bg-green-100 text-green-700' : 'bg-teal-100 text-teal-700'
-      }`}>
-        {isSales ? <ShoppingCart className="w-2.5 h-2.5" /> : <Repeat className="w-2.5 h-2.5" />}
-        {isSales ? 'Sales' : 'Pur. Return'}
+      <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${meta.bg} ${meta.text}`}>
+        <Icon className="w-2.5 h-2.5" />
+        {meta.label}
+        {!meta.affectsReceivable && (
+          <span className="ml-0.5 text-[8px] opacity-60">notify</span>
+        )}
       </span>
 
-      {/* Party */}
-      <span className="text-sm font-semibold text-stone-700 truncate">{party}</span>
+      <span className="text-sm font-semibold text-stone-700 truncate">{v._party}</span>
 
-      {/* Terms */}
       <span className="text-[10px] text-stone-400 truncate">
         {days ? `${days} Days` : (v.paymentTerms || '—')}
       </span>
 
-      {/* Due date / overdue */}
-      {isOverdueRow ? (
-        <span className="text-[10px] font-semibold text-red-500 truncate">{over}d overdue</span>
+      {isOverdueSection ? (
+        <span className="text-[10px] font-bold text-red-500">{over}d overdue</span>
       ) : (
-        <span className="text-[10px] text-stone-400 truncate">
-          {dueDate ? fmtDate(dueDate) : '—'}
-        </span>
+        <span className="text-[10px] text-stone-400">{dueDate ? fmtDate(dueDate) : '—'}</span>
       )}
 
-      {/* Amount */}
       <span className={`text-sm font-bold tabular-nums text-right ${
-        v.isPaid ? 'line-through text-stone-300' : isSales ? 'text-green-600' : 'text-teal-600'
+        v.isPaid ? 'line-through text-stone-300'
+          : meta.affectsReceivable
+            ? (v._type === 'sales' ? 'text-green-600' : 'text-teal-600')
+            : 'text-stone-600'
       }`}>
         ₹{fmt(v.totalAmount)}
       </span>
 
-      {/* Action */}
       <div className="flex justify-end">
         {v.isPaid ? (
           <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-0.5">
-            <CheckCircle2 className="w-3 h-3" /> Paid
+            <CheckCircle2 className="w-3 h-3" /> Done
           </span>
         ) : (
-          <DoneButton voucherType={voucherType} id={v.id} onSuccess={onPaid} />
+          <DoneButton voucherType={v._type} id={v.id} onSuccess={onPaid} />
         )}
       </div>
     </div>
@@ -161,32 +167,24 @@ const EntryRow = ({ v, voucherType, party, isOverdueRow, onPaid }) => {
 };
 
 // ── Section ────────────────────────────────────────────────────────────────────
-const Section = ({ title, icon: Icon, iconCls, count, total, totalCls, borderCls, rows, overdue, onPaid }) => {
+const Section = ({ title, SectionIcon, iconCls, borderCls, count, total, totalCls, rows, isOverdueSection, onPaid }) => {
   if (!rows.length) return null;
   return (
-    <div className="mb-6">
-      {/* Section heading */}
-      <div className={`flex items-center justify-between px-1 pb-2 mb-0 border-b-2 ${borderCls}`}>
+    <div className="mb-5">
+      <div className={`flex items-center justify-between px-1 pb-2 border-b-2 ${borderCls}`}>
         <div className="flex items-center gap-2">
-          <Icon className={`w-4 h-4 ${iconCls}`} />
+          <SectionIcon className={`w-4 h-4 ${iconCls}`} />
           <h2 className={`text-sm font-bold uppercase tracking-widest ${iconCls}`}>{title}</h2>
-          <span className="text-[10px] text-stone-400 font-medium">{count} {count === 1 ? 'entry' : 'entries'}</span>
+          <span className="text-[10px] text-stone-400">{count} {count === 1 ? 'entry' : 'entries'}</span>
         </div>
-        <span className={`text-base font-bold tabular-nums ${totalCls}`}>₹{fmt(total)}</span>
+        {total > 0 && (
+          <span className={`text-base font-bold tabular-nums ${totalCls}`}>₹{fmt(total)}</span>
+        )}
       </div>
-
-      {/* Table */}
       <div className="bg-white rounded-b-xl border border-t-0 border-stone-100 overflow-hidden shadow-sm">
-        <ColHeader overdue={overdue} />
+        <ColHeader isOverdueSection={isOverdueSection} />
         {rows.map((v) => (
-          <EntryRow
-            key={`${v._type ?? (overdue ? 'od' : 'e')}-${v.id}`}
-            v={v}
-            voucherType={v._type ?? (v.voucherNo?.startsWith('SV') ? 'sales' : 'purchase-return')}
-            party={v._party ?? (v.customerName || v.customer?.name || v.supplierName || v.supplier?.name || '—')}
-            isOverdueRow={overdue}
-            onPaid={onPaid}
-          />
+          <EntryRow key={`${v._type}-${v.id}`} v={v} isOverdueSection={isOverdueSection} onPaid={onPaid} />
         ))}
       </div>
     </div>
@@ -217,63 +215,61 @@ const ReceivablesPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const overdueEntries = data
-    ? [
-        ...data.sales.filter(isOverdue).map(v => ({
-          ...v, _type: 'sales',
-          _party: v.customerName || v.customer?.name || '—',
-        })),
-        ...data.purchaseReturns.filter(isOverdue).map(v => ({
-          ...v, _type: 'purchase-return',
-          _party: v.supplierName || v.supplier?.name || '—',
-        })),
-      ].sort((a, b) => daysOverdue(b) - daysOverdue(a))
-    : [];
+  // Flatten all 4 types into a unified list with metadata
+  const allEntries = data ? [
+    ...data.sales.map(v => ({ ...v, _type: 'sales', _party: v.customerName || v.customer?.name || '—' })),
+    ...data.purchaseReturns.map(v => ({ ...v, _type: 'purchase-return', _party: v.supplierName || v.supplier?.name || '—' })),
+    ...data.salesReturns.map(v => ({ ...v, _type: 'sales-return', _party: v.customerName || v.customer?.name || '—' })),
+    ...data.purchases.map(v => ({ ...v, _type: 'purchase', _party: v.supplierName || v.supplier?.name || '—' })),
+  ] : [];
 
-  const normalEntries = data
-    ? [
-        ...data.sales.filter(v => !v.isPaid && !isOverdue(v)).map(v => ({
-          ...v, _type: 'sales',
-          _party: v.customerName || v.customer?.name || '—',
-        })),
-        ...data.purchaseReturns.filter(v => !v.isPaid && !isOverdue(v)).map(v => ({
-          ...v, _type: 'purchase-return',
-          _party: v.supplierName || v.supplier?.name || '—',
-        })),
-      ].sort((a, b) => new Date(b.date) - new Date(a.date))
-    : [];
+  const overdueEntries = allEntries
+    .filter(isOverdue)
+    .sort((a, b) => daysOverdue(b) - daysOverdue(a));
 
-  const totalOverdue = overdueEntries.reduce((s, v) => s + (v.totalAmount || 0), 0);
-  const totalNormal  = normalEntries.reduce((s, v) => s + (v.totalAmount || 0), 0);
+  const pendingEntries = allEntries
+    .filter(v => !v.isPaid && !isOverdue(v))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const overdueTotal  = overdueEntries
+    .filter(v => TYPE_META[v._type]?.affectsReceivable)
+    .reduce((s, v) => s + (v.totalAmount || 0), 0);
+
+  const totalPending  = [...overdueEntries, ...pendingEntries]
+    .filter(v => TYPE_META[v._type]?.affectsReceivable)
+    .reduce((s, v) => s + (v.totalAmount || 0), 0);
 
   return (
     <div className="w-full py-4 animate-in fade-in duration-300">
 
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <ReceiptText className="w-6 h-6 text-brand-primary" />
+          <Bell className="w-5 h-5 text-brand-primary" />
           <div>
-            <h1 className="text-xl font-bold text-brand-primary font-serif leading-none">Receivables</h1>
-            <p className="text-[11px] text-stone-400 mt-0.5">Sales &amp; Purchase Return — mark Done when payment is received</p>
+            <h1 className="text-xl font-bold text-brand-primary font-serif leading-none">Consignment Tracker</h1>
+            <p className="text-[11px] text-stone-400 mt-0.5">
+              All vouchers with payment terms — click Done when payment is received
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-5">
           {data && (
             <>
+              {overdueEntries.length > 0 && (
+                <>
+                  <div className="text-right">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-red-400">Overdue</p>
+                    <p className="text-base font-bold text-red-500 tabular-nums">
+                      {overdueEntries.length} entries · ₹{fmt(overdueTotal)}
+                    </p>
+                  </div>
+                  <div className="w-px h-8 bg-stone-200" />
+                </>
+              )}
               <div className="text-right">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-red-400">Overdue</p>
-                <p className="text-base font-bold text-red-500 tabular-nums">₹{fmt(totalOverdue)}</p>
-              </div>
-              <div className="w-px h-8 bg-stone-200" />
-              <div className="text-right">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Pending</p>
-                <p className="text-base font-bold text-stone-700 tabular-nums">₹{fmt(totalNormal)}</p>
-              </div>
-              <div className="w-px h-8 bg-stone-200" />
-              <div className="text-right">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-brand-primary/50">Total</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Receivable Total</p>
                 <p className="text-base font-bold text-brand-primary tabular-nums font-serif">₹{fmt(data.grandTotal)}</p>
               </div>
             </>
@@ -288,8 +284,23 @@ const ReceivablesPage = () => {
         </div>
       </div>
 
-      {/* ── Divider ── */}
       <div className="border-t border-stone-100 mb-5" />
+
+      {/* Legend */}
+      {data && (
+        <div className="flex items-center gap-4 mb-5 flex-wrap">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Legend:</span>
+          {Object.entries(TYPE_META).map(([key, m]) => (
+            <span key={key} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold ${m.bg} ${m.text}`}>
+              <m.Icon className="w-2.5 h-2.5" />
+              {m.label}
+              {m.affectsReceivable
+                ? <span className="opacity-60">→ affects receivable</span>
+                : <span className="opacity-60">→ notify only</span>}
+            </span>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>
@@ -303,40 +314,37 @@ const ReceivablesPage = () => {
 
       {!loading && data && (
         <>
-          {/* ── OVERDUE ── */}
           <Section
             title="Overdue"
-            icon={AlertTriangle}
+            SectionIcon={AlertTriangle}
             iconCls="text-red-500"
             borderCls="border-red-300"
             count={overdueEntries.length}
-            total={totalOverdue}
+            total={overdueTotal}
             totalCls="text-red-500"
             rows={overdueEntries}
-            overdue={true}
+            isOverdueSection={true}
             onPaid={fetchData}
           />
 
-          {/* ── NORMAL ENTRIES ── */}
           <Section
-            title="Pending Entries"
-            icon={ReceiptText}
+            title="Pending"
+            SectionIcon={Bell}
             iconCls="text-brand-primary"
             borderCls="border-brand-primary/30"
-            count={normalEntries.length}
-            total={totalNormal}
+            count={pendingEntries.length}
+            total={totalPending}
             totalCls="text-brand-primary"
-            rows={normalEntries}
-            overdue={false}
+            rows={pendingEntries}
+            isOverdueSection={false}
             onPaid={fetchData}
           />
 
-          {/* ── Empty ── */}
-          {overdueEntries.length === 0 && normalEntries.length === 0 && (
+          {overdueEntries.length === 0 && pendingEntries.length === 0 && (
             <div className="text-center py-28 border border-dashed border-stone-200 rounded-xl bg-white flex flex-col items-center gap-2">
-              <ReceiptText className="w-8 h-8 text-stone-200" />
-              <p className="text-sm font-semibold text-stone-400">No pending receivables</p>
-              <p className="text-xs text-stone-300">Sales and Purchase Return entries will appear here.</p>
+              <Bell className="w-8 h-8 text-stone-200" />
+              <p className="text-sm font-semibold text-stone-400">No pending consignment entries</p>
+              <p className="text-xs text-stone-300">Vouchers with consignment payment terms will appear here.</p>
             </div>
           )}
         </>

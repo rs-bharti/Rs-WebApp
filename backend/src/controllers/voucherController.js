@@ -2196,9 +2196,14 @@ const getReceivablesEntries = async (req, res) => {
     const branchId = getBranchId(req);
     if (!branchId) return res.status(400).json({ message: 'Branch required' });
 
-    const [salesVouchers, purchaseReturnVouchers] = await Promise.all([
+    // Only fetch vouchers that actually have consignment payment terms (not Cash / null)
+    const consignmentFilter = {
+      paymentTerms: { not: null, notIn: ['Cash'] },
+    };
+
+    const [salesVouchers, purchaseReturnVouchers, salesReturnVouchers, purchaseVouchers] = await Promise.all([
       prisma.salesVoucher.findMany({
-        where: { branchId },
+        where: { branchId, ...consignmentFilter },
         include: {
           customer:  { select: { name: true } },
           items:     { include: { product: { select: { name: true } } } },
@@ -2207,7 +2212,27 @@ const getReceivablesEntries = async (req, res) => {
         orderBy: { date: 'desc' },
       }),
       prisma.purchaseReturnVoucher.findMany({
-        where: { branchId },
+        where: { branchId, ...consignmentFilter },
+        include: {
+          supplier:  { select: { name: true } },
+          items:     { include: { product: { select: { name: true } } } },
+          createdBy: { select: { name: true } },
+        },
+        orderBy: { date: 'desc' },
+      }),
+      // Notify-only — does NOT affect total receivable
+      prisma.salesReturnVoucher.findMany({
+        where: { branchId, ...consignmentFilter },
+        include: {
+          customer:  { select: { name: true } },
+          items:     { include: { product: { select: { name: true } } } },
+          createdBy: { select: { name: true } },
+        },
+        orderBy: { date: 'desc' },
+      }),
+      // Notify-only — does NOT affect total receivable
+      prisma.purchaseVoucher.findMany({
+        where: { branchId, ...consignmentFilter },
         include: {
           supplier:  { select: { name: true } },
           items:     { include: { product: { select: { name: true } } } },
@@ -2217,15 +2242,16 @@ const getReceivablesEntries = async (req, res) => {
       }),
     ]);
 
-    const unpaidSales    = salesVouchers.filter(v => !v.isPaid);
-    const unpaidReturns  = purchaseReturnVouchers.filter(v => !v.isPaid);
-
-    const totalSales          = unpaidSales.reduce((s, v)   => s + (v.totalAmount || 0), 0);
-    const totalPurchaseReturn = unpaidReturns.reduce((s, v) => s + (v.totalAmount || 0), 0);
+    const unpaidSales         = salesVouchers.filter(v => !v.isPaid);
+    const unpaidPurchaseRet   = purchaseReturnVouchers.filter(v => !v.isPaid);
+    const totalSales          = unpaidSales.reduce((s, v) => s + (v.totalAmount || 0), 0);
+    const totalPurchaseReturn = unpaidPurchaseRet.reduce((s, v) => s + (v.totalAmount || 0), 0);
 
     res.json({
       sales:           salesVouchers,
       purchaseReturns: purchaseReturnVouchers,
+      salesReturns:    salesReturnVouchers,    // notify-only
+      purchases:       purchaseVouchers,        // notify-only
       totalSales,
       totalPurchaseReturn,
       grandTotal: totalSales + totalPurchaseReturn,
@@ -2243,26 +2269,24 @@ const markReceivablePaid = async (req, res) => {
 
     const { type, id } = req.params;
     const numId = Number(id);
+    const now   = new Date();
 
-    if (type === 'sales') {
-      const voucher = await prisma.salesVoucher.findFirst({ where: { id: numId, branchId } });
-      if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
-      await prisma.salesVoucher.update({
-        where: { id: numId },
-        data: { isPaid: true, paidAt: new Date() },
-      });
-    } else if (type === 'purchase-return') {
-      const voucher = await prisma.purchaseReturnVoucher.findFirst({ where: { id: numId, branchId } });
-      if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
-      await prisma.purchaseReturnVoucher.update({
-        where: { id: numId },
-        data: { isPaid: true, paidAt: new Date() },
-      });
-    } else {
-      return res.status(400).json({ message: 'Invalid type. Use "sales" or "purchase-return"' });
-    }
+    const modelMap = {
+      'sales':           { model: prisma.salesVoucher },
+      'purchase-return': { model: prisma.purchaseReturnVoucher },
+      'sales-return':    { model: prisma.salesReturnVoucher },   // notify-only dismiss
+      'purchase':        { model: prisma.purchaseVoucher },       // notify-only dismiss
+    };
 
-    res.json({ message: 'Marked as paid' });
+    const entry = modelMap[type];
+    if (!entry) return res.status(400).json({ message: 'Invalid type' });
+
+    const voucher = await entry.model.findFirst({ where: { id: numId, branchId } });
+    if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
+
+    await entry.model.update({ where: { id: numId }, data: { isPaid: true, paidAt: now } });
+
+    res.json({ message: 'Marked as done' });
   } catch (err) {
     console.error('markReceivablePaid error:', err);
     res.status(500).json({ message: 'Server error' });

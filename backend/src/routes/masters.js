@@ -1,27 +1,17 @@
 const express = require('express');
 const { authenticate, requireAdmin, requirePermission } = require('../middleware/auth');
-const {
-  getCountries,
-  getStates,
-  getCities,
-  getBranches,   createBranch,   updateBranch,   deleteBranch,
-  getBranchMasters, createBranchMaster, updateBranchMaster, deleteBranchMaster,
-  getCategories, createCategory, updateCategory, deleteCategory,
-  getUnits,      createUnit,     updateUnit,     deleteUnit,
-  getSuppliers,  createSupplier, updateSupplier, deleteSupplier,
-  getSupplierTransactions, createSupplierTransaction,
-  getCustomers,  createCustomer, updateCustomer, deleteCustomer,
-  getCustomerTransactions, createCustomerTransaction,
-  getProducts,   createProduct,  updateProduct,  deleteProduct,
-  getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-  getExpenses,   createExpense,  updateExpense,  deleteExpense,
-  getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse,
-  updateContact, deleteContact,
-  getDashboardBalance, updateDashboardBalance,
-  forceDeleteBranch, forceDeleteSupplier, forceDeleteCustomer,
-  forceDeleteProduct, forceDeleteWarehouse, forceDeleteCategory,
-  forceDeleteUnit, forceDeletePaymentMethod,
-} = require('../controllers/masterController');
+
+const { getCountries, getStates, getCities, createCountry, updateCountry, deleteCountry, createState, updateState, deleteState, createCity, updateCity, deleteCity } = require('../controllers/masters/locationController');
+const { getBranches, createBranch, updateBranch, deleteBranch, getBranchMasters, createBranchMaster, updateBranchMaster, deleteBranchMaster, forceDeleteBranch } = require('../controllers/masters/branchController');
+const { getCategories, createCategory, updateCategory, deleteCategory, forceDeleteCategory, getUnits, createUnit, updateUnit, deleteUnit, forceDeleteUnit } = require('../controllers/masters/categoryUnitController');
+const { getProducts, createProduct, updateProduct, deleteProduct, forceDeleteProduct } = require('../controllers/masters/productController');
+const { getSuppliers, getSupplierTransactions, createSupplierTransaction, createSupplier, updateSupplier, deleteSupplier, forceDeleteSupplier } = require('../controllers/masters/supplierController');
+const { getCustomers, getCustomerTransactions, createCustomerTransaction, createCustomer, updateCustomer, deleteCustomer, forceDeleteCustomer } = require('../controllers/masters/customerController');
+const { getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod, forceDeletePaymentMethod } = require('../controllers/masters/paymentMethodController');
+const { getExpenses, createExpense, updateExpense, deleteExpense } = require('../controllers/masters/expenseController');
+const { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, forceDeleteWarehouse } = require('../controllers/masters/warehouseController');
+const { updateContact, deleteContact } = require('../controllers/masters/contactController');
+const { getDashboardBalance, updateDashboardBalance } = require('../controllers/masters/dashboardController');
 
 const router = express.Router();
 router.use(authenticate);

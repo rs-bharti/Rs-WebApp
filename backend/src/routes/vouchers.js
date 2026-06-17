@@ -1,27 +1,20 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
-const {
-  getContraNextNo,        getContras,        createContra,        deleteContra,        updateContra,
-  getReceiptNextNo,       getReceipts,       createReceipt,       deleteReceipt,       updateReceipt,
-  getPaymentNextNo,       getPayments,       createPayment,       deletePayment,       updatePayment,
-  getPurchaseNextNo,      getPurchases,      createPurchase,      deletePurchase,      updatePurchase,
-  getSalesNextNo,         getSales,          createSales,         deleteSales,         updateSales,
-  getPurchaseReturnNextNo, getPurchaseReturns, createPurchaseReturn, deletePurchaseReturn, updatePurchaseReturn,
-  getSalesReturnNextNo,   getSalesReturns,   createSalesReturn,   deleteSalesReturn,   updateSalesReturn,
-  getDashboard,
-  getStockDataNextNo,    getStockData,    createStockData,    deleteStockData,    updateStockData,
-  getStockTransferNextNo, getStockTransfers, createStockTransfer, deleteStockTransfer, updateStockTransfer,
-  getStockQty,
-  getStockQtyByWarehouse,
-  getProductLedger,
-  getSupplierLedger,
-  getCustomerLedger,
-  getDayBook,
-  getMoneyLedger,
-  getReceivablesLedger,
-  getReceivablesEntries,
-  markReceivablePaid,
-} = require('../controllers/voucherController');
+
+const { getContraNextNo, getContras, createContra, updateContra, deleteContra } = require('../controllers/vouchers/contraController');
+const { getReceiptNextNo, getReceipts, createReceipt, updateReceipt, deleteReceipt } = require('../controllers/vouchers/receiptController');
+const { getPaymentNextNo, getPayments, createPayment, updatePayment, deletePayment } = require('../controllers/vouchers/paymentController');
+const { getPurchaseNextNo, getPurchases, createPurchase, updatePurchase, deletePurchase } = require('../controllers/vouchers/purchaseController');
+const { getSalesNextNo, getSales, createSales, updateSales, deleteSales } = require('../controllers/vouchers/salesController');
+const { getSalesReturnNextNo, getSalesReturns, createSalesReturn, updateSalesReturn, deleteSalesReturn } = require('../controllers/vouchers/salesReturnController');
+const { getPurchaseReturnNextNo, getPurchaseReturns, createPurchaseReturn, updatePurchaseReturn, deletePurchaseReturn } = require('../controllers/vouchers/purchaseReturnController');
+const { getStockDataNextNo, getStockData, createStockData, updateStockData, deleteStockData, getStockTransferNextNo, getStockTransfers, createStockTransfer, updateStockTransfer, deleteStockTransfer, getStockQty, getStockQtyByWarehouse } = require('../controllers/vouchers/stockController');
+const { getDashboard, getDayBook } = require('../controllers/ledgers/dayBookController');
+const { getProductLedger } = require('../controllers/ledgers/productLedgerController');
+const { getSupplierLedger } = require('../controllers/ledgers/supplierLedgerController');
+const { getCustomerLedger } = require('../controllers/ledgers/customerLedgerController');
+const { getMoneyLedger } = require('../controllers/ledgers/moneyLedgerController');
+const { getReceivablesEntries, markReceivablePaid, getReceivablesLedger } = require('../controllers/ledgers/receivablesController');
 
 const router = express.Router();
 router.use(authenticate);
