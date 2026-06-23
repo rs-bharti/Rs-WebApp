@@ -99,25 +99,27 @@ const DoneButton = ({ voucherType, id, onSuccess }) => {
 };
 
 // ── Column headers ─────────────────────────────────────────────────────────────
-const ColHeader = ({ isOverdueSection }) => (
+const DATE_COL_LABEL = { overdue: 'Overdue', completed: 'Paid On', pending: 'Due Date' };
+
+const ColHeader = ({ mode }) => (
   <div className="grid grid-cols-[100px_82px_110px_1fr_130px_100px_120px_88px] gap-2 px-4 py-2 border-b border-stone-100 bg-stone-50/80">
-    {['Voucher No', 'Date', 'Type', 'Party', 'Terms', isOverdueSection ? 'Overdue' : 'Due Date', 'Amount', ''].map((h, i) => (
+    {['Voucher No', 'Date', 'Type', 'Party', 'Terms', DATE_COL_LABEL[mode], 'Amount', ''].map((h, i) => (
       <span key={i} className="text-[9px] font-bold uppercase tracking-widest text-stone-400 truncate">{h}</span>
     ))}
   </div>
 );
 
 // ── Single row ─────────────────────────────────────────────────────────────────
-const EntryRow = ({ v, isOverdueSection, onPaid }) => {
+const EntryRow = ({ v, mode, onPaid }) => {
   const meta    = TYPE_META[v._type] || TYPE_META.sales;
   const { Icon } = meta;
   const dueDate = getDueDate(v.date, v.paymentTerms);
   const days    = parseDays(v.paymentTerms);
-  const over    = isOverdueSection ? daysOverdue(v) : 0;
+  const over    = mode === 'overdue' ? daysOverdue(v) : 0;
 
   return (
     <div className={`grid grid-cols-[100px_82px_110px_1fr_130px_100px_120px_88px] gap-2 items-center px-4 py-2.5 border-b border-stone-50 transition-colors ${
-      isOverdueSection ? 'bg-red-50/30 hover:bg-red-50/60' : 'hover:bg-stone-50/50'
+      mode === 'overdue' ? 'bg-red-50/30 hover:bg-red-50/60' : 'hover:bg-stone-50/50'
     }`}>
 
       <span className="text-[11px] font-mono text-stone-400 truncate">{v.voucherNo || '—'}</span>
@@ -138,8 +140,10 @@ const EntryRow = ({ v, isOverdueSection, onPaid }) => {
         {days ? `${days} Days` : (v.paymentTerms || '—')}
       </span>
 
-      {isOverdueSection ? (
+      {mode === 'overdue' ? (
         <span className="text-[10px] font-bold text-red-500">{over}d overdue</span>
+      ) : mode === 'completed' ? (
+        <span className="text-[10px] text-emerald-500">{v.paidAt ? fmtDate(v.paidAt) : '—'}</span>
       ) : (
         <span className="text-[10px] text-stone-400">{dueDate ? fmtDate(dueDate) : '—'}</span>
       )}
@@ -167,7 +171,7 @@ const EntryRow = ({ v, isOverdueSection, onPaid }) => {
 };
 
 // ── Section ────────────────────────────────────────────────────────────────────
-const Section = ({ title, SectionIcon, iconCls, borderCls, count, total, totalCls, rows, isOverdueSection, onPaid }) => {
+const Section = ({ title, SectionIcon, iconCls, borderCls, count, total, totalCls, rows, mode, onPaid }) => {
   if (!rows.length) return null;
   return (
     <div className="mb-5">
@@ -182,9 +186,9 @@ const Section = ({ title, SectionIcon, iconCls, borderCls, count, total, totalCl
         )}
       </div>
       <div className="bg-white rounded-b-xl border border-t-0 border-stone-100 overflow-hidden shadow-sm">
-        <ColHeader isOverdueSection={isOverdueSection} />
+        <ColHeader mode={mode} />
         {rows.map((v) => (
-          <EntryRow key={`${v._type}-${v.id}`} v={v} isOverdueSection={isOverdueSection} onPaid={onPaid} />
+          <EntryRow key={`${v._type}-${v.id}`} v={v} mode={mode} onPaid={onPaid} />
         ))}
       </div>
     </div>
@@ -230,6 +234,10 @@ const ReceivablesPage = () => {
   const pendingEntries = allEntries
     .filter(v => !v.isPaid && !isOverdue(v))
     .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const completedEntries = allEntries
+    .filter(v => v.isPaid)
+    .sort((a, b) => new Date(b.paidAt || b.date) - new Date(a.paidAt || a.date));
 
   const overdueTotal  = overdueEntries
     .filter(v => TYPE_META[v._type]?.affectsReceivable)
@@ -323,7 +331,7 @@ const ReceivablesPage = () => {
             total={overdueTotal}
             totalCls="text-red-500"
             rows={overdueEntries}
-            isOverdueSection={true}
+            mode="overdue"
             onPaid={fetchData}
           />
 
@@ -336,17 +344,30 @@ const ReceivablesPage = () => {
             total={totalPending}
             totalCls="text-brand-primary"
             rows={pendingEntries}
-            isOverdueSection={false}
+            mode="pending"
             onPaid={fetchData}
           />
 
-          {overdueEntries.length === 0 && pendingEntries.length === 0 && (
+          {overdueEntries.length === 0 && pendingEntries.length === 0 && completedEntries.length === 0 && (
             <div className="text-center py-28 border border-dashed border-stone-200 rounded-xl bg-white flex flex-col items-center gap-2">
               <Bell className="w-8 h-8 text-stone-200" />
               <p className="text-sm font-semibold text-stone-400">No pending consignment entries</p>
               <p className="text-xs text-stone-300">Vouchers with consignment payment terms will appear here.</p>
             </div>
           )}
+
+          <Section
+            title="Completed"
+            SectionIcon={CheckCircle2}
+            iconCls="text-emerald-500"
+            borderCls="border-emerald-300"
+            count={completedEntries.length}
+            total={0}
+            totalCls="text-emerald-500"
+            rows={completedEntries}
+            mode="completed"
+            onPaid={fetchData}
+          />
         </>
       )}
     </div>
