@@ -525,7 +525,7 @@ const MoneyLedgerPage = () => {
         const cr = e.type === 'receipt'  ? e.amount : 0;
         const dr = e.type === 'payment'  ? e.amount : 0;
         runBal += cr - dr;
-        rows.push([e.date, e.voucherNo || '', e.particular || '', e.narration || '', cr || '', dr || '', runBal]);
+        rows.push([fmtDate(e.date), e.voucherNo || '', e.particular || '', e.narration || '', cr || '', dr || '', runBal]);
       });
       rows.push([]);
       const totalCr = filtered.filter(e => e.type === 'receipt').reduce((s, e) => s + e.amount, 0);
@@ -556,7 +556,7 @@ const MoneyLedgerPage = () => {
         const cr = e.type === 'receipt'  ? e.amount : 0;
         const dr = e.type === 'payment'  ? e.amount : 0;
         runBal += cr - dr;
-        rows.push([e.date, e.voucherNo || '', e.particular || '', e.narration || '', cr || '', dr || '', runBal]);
+        rows.push([fmtDate(e.date), e.voucherNo || '', e.particular || '', e.narration || '', cr || '', dr || '', runBal]);
       });
       rows.push([]);
       const totalCr = filtered.filter(e => e.type === 'receipt').reduce((s, e) => s + e.amount, 0);
