@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate } from 'react-router-dom';
 import {
-  Users, Trash2, Settings2, FileText, Database, Building2, X, AlertTriangle,
+  Users, Settings2, FileText, Database, Building2, X, AlertTriangle,
   KeyRound, Eye, EyeOff, Mail, Pencil, User, ShieldOff, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getUsers, deleteUser, updateUserPermissions, getBranches, toggleUserActive } from '../api/users';
+import { getUsers, updateUserPermissions, getBranches, toggleUserActive } from '../api/users';
 import { useAuth } from '../context/AuthContext';
 
 const VOUCHER_MODULES = ['Receipt', 'Payment', 'Sales', 'Sales Return', 'Purchase', 'Contra', 'Purchase Return', 'Stock Data', 'Stock Transfer'];
@@ -16,51 +16,6 @@ const OTHER_MODULES   = ['DSR', 'Client Ledger', 'Supplier Ledger', 'Stock Ledge
 const allFalse = (list) => list.reduce((a, k) => ({ ...a, [k]: false }), {});
 const allTrue  = (list) => list.reduce((a, k) => ({ ...a, [k]: true  }), {});
 
-// ── Delete Confirmation Modal ──────────────────────────────────────────────
-const DeleteModal = ({ user, onConfirm, onCancel, loading, errorMsg }) => {
-  return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 flex items-center gap-3 bg-rose-600">
-          <AlertTriangle className="w-6 h-6 text-white flex-shrink-0" />
-          <div>
-            <h2 className="text-white font-serif text-xl">Delete User</h2>
-            <p className="text-white/70 text-[11px] uppercase tracking-widest">This cannot be undone</p>
-          </div>
-        </div>
-
-        <div className="px-6 py-6">
-          <p className="text-stone-500 text-sm mb-1">You are about to permanently delete:</p>
-          <p className="font-bold text-stone-800 text-base mt-2">{user.name}</p>
-          <p className="text-stone-400 text-sm">{user.email}</p>
-
-          <div className="mt-4 p-3 bg-stone-50 border border-stone-200 rounded-lg">
-            <p className="text-stone-500 text-xs">This user will be permanently removed. This action cannot be undone.</p>
-          </div>
-
-          {errorMsg && (
-            <p className="mt-3 text-sm text-amber-700 font-medium leading-relaxed">{errorMsg}</p>
-          )}
-
-          <div className="flex justify-end gap-3 mt-5">
-            <button onClick={onCancel} disabled={loading}
-              className="px-5 py-2.5 text-sm font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer">
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={loading}
-              className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all cursor-pointer disabled:opacity-60"
-            >
-              {loading ? 'Deleting...' : 'Delete User'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
 
 // ── Edit Permissions Modal ─────────────────────────────────────────────────
 const EditPermissionsModal = ({ user, branches, onSave, onCancel }) => {
@@ -543,9 +498,6 @@ const ManageUsers = () => {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [deleteTarget,       setDeleteTarget]       = useState(null);
-  const [deleteLoading,      setDeleteLoading]      = useState(false);
-  const [deleteModalErr,     setDeleteModalErr]     = useState('');
   const [editTarget,         setEditTarget]         = useState(null);
   const [editDetailsTarget,  setEditDetailsTarget]  = useState(null);
 
@@ -569,21 +521,6 @@ const ManageUsers = () => {
   const flash = (msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(''), 3000);
-  };
-
-  const handleDelete = async () => {
-    setDeleteLoading(true);
-    setDeleteModalErr('');
-    try {
-      await deleteUser(deleteTarget.id);
-      setUsers(prev => prev.filter(u => u.id !== deleteTarget.id));
-      flash(`${deleteTarget.name} has been removed.`);
-      setDeleteTarget(null);
-    } catch (err) {
-      setDeleteModalErr(err.message || 'Cannot delete this user.');
-    } finally {
-      setDeleteLoading(false);
-    }
   };
 
   const handleToggleActive = async (user) => {
@@ -635,15 +572,6 @@ const ManageUsers = () => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {deleteTarget && (
-        <DeleteModal
-          user={deleteTarget}
-          onConfirm={handleDelete}
-          onCancel={() => { setDeleteTarget(null); setDeleteModalErr(''); }}
-          loading={deleteLoading}
-          errorMsg={deleteModalErr}
-        />
-      )}
       {editTarget && (
         <EditPermissionsModal
           user={editTarget}
