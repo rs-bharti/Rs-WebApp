@@ -1,20 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const authHeaders = () => {
-  const activeBranch = JSON.parse(sessionStorage.getItem('activeBranch') || 'null');
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${sessionStorage.getItem('token')}`,
-    ...(activeBranch?.id ? { 'X-Branch-Id': String(activeBranch.id) } : {}),
-  };
-};
-
-const apiFetch = async (path, options = {}) => {
-  const res = await fetch(`${API_URL}${path}`, { headers: authHeaders(), ...options });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
-  return data;
-};
+import { apiFetch } from './client';
 
 // ── Countries ──────────────────────────────────────────────────────────────────
 export const getCountries = () => apiFetch('/api/masters/countries');

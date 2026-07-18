@@ -1,84 +1,41 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { apiFetch } from './client';
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${sessionStorage.getItem('token')}`,
-});
+export const getUsers = () => apiFetch('/api/users');
 
-export const getUsers = async () => {
-  const res = await fetch(`${API_URL}/api/users`, { headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch users');
-  return data;
-};
-
-export const createUser = async (userData) => {
-  const res = await fetch(`${API_URL}/api/users`, {
+export const createUser = (userData) =>
+  apiFetch('/api/users', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(userData),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to create user');
-  return data;
-};
 
-export const getBranches = async () => {
-  const res = await fetch(`${API_URL}/api/users/branches`, { headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch branches');
-  return data; // full list — use filterBranches() from AuthContext to restrict by user permissions
-};
+export const getBranches = () => 
+  apiFetch('/api/users/branches'); // full list — use filterBranches() from AuthContext to restrict by user permissions
 
-export const getRoles = async () => {
-  const res = await fetch(`${API_URL}/api/users/roles`, { headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch roles');
-  return data;
-};
+export const getRoles = () => apiFetch('/api/users/roles');
 
-export const deleteUser = async (userId) => {
-  const res = await fetch(`${API_URL}/api/users/${userId}`, {
+export const deleteUser = (userId) =>
+  apiFetch(`/api/users/${userId}`, {
     method: 'DELETE',
-    headers: authHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to delete user');
-  return data;
-};
 
-export const forceDeleteUser = async (userId) => {
-  const res = await fetch(`${API_URL}/api/users/${userId}/force`, {
+export const forceDeleteUser = (userId) =>
+  apiFetch(`/api/users/${userId}/force`, {
     method: 'DELETE',
-    headers: authHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to force delete user');
-  return data;
-};
 
-export const toggleUserActive = async (userId) => {
-  const res = await fetch(`${API_URL}/api/users/${userId}/toggle-active`, {
+export const toggleUserActive = (userId) =>
+  apiFetch(`/api/users/${userId}/toggle-active`, {
     method: 'PATCH',
-    headers: authHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to update user status');
-  return data;
-};
 
-export const updateUserPermissions = async (userId, permissions, password, email, name) => {
+export const updateUserPermissions = (userId, permissions, password, email, name) => {
   const body = {};
   if (permissions !== undefined) body.permissions = permissions;
   if (password) body.password = password;
   if (email)    body.email    = email;
   if (name)     body.name     = name;
-  const res = await fetch(`${API_URL}/api/users/${userId}`, {
+  return apiFetch(`/api/users/${userId}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to update permissions');
-  return data;
 };
