@@ -8,7 +8,7 @@ const mastersRoutes      = require('./src/routes/masters');
 const voucherRoutes      = require('./src/routes/vouchers');
 
 const app  = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000; 
 
 app.use(cors({
   origin: process.env.FRONTEND_URL

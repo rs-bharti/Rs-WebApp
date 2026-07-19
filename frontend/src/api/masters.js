@@ -15,7 +15,7 @@ export const getCities = ({ stateId, search } = {}) => {
   return apiFetch(`/api/masters/cities${qs ? `?${qs}` : ''}`);
 };
 
-// ── Create Branch (login page branches) ────────────────────────────────────────
+// ── Create Branch (login page branches) sends req to this Backend path────────────────────────────────────────
 export const getMasterBranches = ()          => apiFetch('/api/masters/branches');
 export const createBranch      = (body)      => apiFetch('/api/masters/branches', { method: 'POST',   body: JSON.stringify(body) });
 export const updateBranch      = (id, body)  => apiFetch(`/api/masters/branches/${id}`, { method: 'PUT',    body: JSON.stringify(body) });
